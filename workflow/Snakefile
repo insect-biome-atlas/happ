@@ -1,0 +1,11 @@
+configfile: "config/config.yml"
+include: "rules/swarm.smk"
+include: "rules/dbotu3.smk"
+include: "rules/opticlust.smk"
+
+rule all:
+    input:
+        rules.swarm.output,
+        rules.dbotu3.output,
+        rules.opticlust.output
+

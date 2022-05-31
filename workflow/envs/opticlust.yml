@@ -1,0 +1,7 @@
+name: opticlust
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - mothur

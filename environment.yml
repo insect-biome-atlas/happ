@@ -1,0 +1,10 @@
+name: ASV-clustering
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+  - r
+dependencies:
+  - python=3.10
+  - snakemake=7.8.0
+  - biopython

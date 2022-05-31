@@ -1,0 +1,11 @@
+rundir: "test"
+swarm:
+  settings: "--fastidious"
+  threads: 10
+dbotu3:
+  settings: ""
+opticlust:
+  aligner: "vsearch"
+  vsearch:
+    threads: 10
+  threads: 10
