@@ -30,3 +30,7 @@ curated_result <- lulu(otutable=otutable, matchlist=matchlist, minimum_ratio_typ
 
 write.table(curated_result$curated_table, snakemake@output$curated_table, sep="\t", quote=FALSE)
 write.table(curated_result$otu_map, snakemake@output$otu_map, sep="\t", quote=FALSE)
+
+# Move logfile
+system_string <- paste(c("mv lulu.log*"), c(snakemake@log))
+system(system_string)

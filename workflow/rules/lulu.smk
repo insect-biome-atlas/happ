@@ -5,6 +5,7 @@ rule run_lulu:
     output:
         curated_table = "results/lulu/{rundir}/otus.tsv",
         otu_map = "results/lulu/{rundir}/otu_map.tsv"
+    shadow: "minimal"
     conda: "../envs/lulu.yml"
     params:
         dist = "$TMPDIR/lulu/{rundir}/asv_seqs.dist",
