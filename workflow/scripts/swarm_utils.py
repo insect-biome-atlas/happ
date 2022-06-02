@@ -1,12 +1,24 @@
 #!/usr/bin/env python
 
 from Bio.SeqIO import parse
-from common import sum_counts
+import gzip
 
 
 def format_swarm(sm):
-    counts = sum_counts(sm.input.counts[0])
-    with open(sm.input.fasta[0], 'r') as fhin, open(sm.output.fasta, 'w') as fhout:
+    """
+    Reformats input fasta file for use with swarm
+
+    :param sm:
+    :return:
+    """
+    counts = {}
+    # Read total counts from input file
+    with open(sm.input.counts, 'r') as fhin:
+        for line in fhin:
+            key, value = line.rstrip().split("\t")
+            counts[key] = int(value)
+    # Open fasta file and append counts as its being read
+    with gzip.open(sm.input.fasta, 'r') as fhin, gzip.open(sm.output.fasta, 'wt') as fhout:
         for record in parse(fhin, "fasta"):
             try:
                 new_rec = f"{record.id}_{counts[record.id]}"
@@ -19,6 +31,7 @@ def format_swarm(sm):
 def main(sm):
     toolbox = {'format_swarm': format_swarm}
     toolbox[sm.rule](sm)
+
 
 if __name__ == '__main__':
     main(snakemake)
