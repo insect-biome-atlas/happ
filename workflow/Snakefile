@@ -1,4 +1,5 @@
 configfile: "config/config.yml"
+container: "docker://continuumio/miniconda3:4.11.0
 
 if config["opticlust"]["aligner"] == "vsearch":
     config["opticlust"]["sim"] = "sim=true,"
