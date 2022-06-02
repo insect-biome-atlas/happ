@@ -1,3 +1,6 @@
+localrules:
+    lulu
+
 rule run_lulu:
     input:
         dist = "results/vsearch/{rundir}/asv_seqs.dist.gz",
@@ -17,6 +20,8 @@ rule run_lulu:
         minimum_ratio = config["lulu"]["minimum_ratio"],
         minimum_match = config["lulu"]["minimum_match"],
         minimum_relative_cooccurence = config["lulu"]["minimum_relative_cooccurence"]
+    resources:
+        runtime = 60 * 24 * 10
     script:
         "../scripts/lulu.R"
 

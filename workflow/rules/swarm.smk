@@ -1,3 +1,7 @@
+localrules:
+    format_swarm,
+    swarm
+
 rule format_swarm:
     input:
         fasta = "results/common/{rundir}/asv_seqs.fasta.gz",
@@ -6,7 +10,6 @@ rule format_swarm:
         fasta = "results/swarm/{rundir}/reformat.fasta.gz"
     script:
         "../scripts/swarm_utils.py"
-
 
 rule run_swarm:
     input:
@@ -22,11 +25,13 @@ rule run_swarm:
         output = "$TMPDIR/swarm/{rundir}/swarm.txt"
     threads: config["swarm"]["threads"]
     conda: "../envs/swarm.yml"
+    resources:
+        runtime = 60 * 24 * 10
     shell:
         """
         mkdir -p {params.tmpdir}
         gunzip -c {input} > {params.fasta}
-        swarm {params.settings} {params.fasta} -o {params.output} > {log} 2>&1
+        swarm {params.settings} {params.fasta} -o {params.output} -t {threads} > {log} 2>&1
         mv {params.output} {output}
         rm -rf {params.tmpdir}
         """

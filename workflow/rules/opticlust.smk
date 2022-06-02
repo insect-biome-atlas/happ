@@ -1,3 +1,6 @@
+localrules:
+    opticlust
+
 rule mothur_align:
     input:
         fasta = "results/common/{rundir}/asv_seqs.fasta.gz"
@@ -13,6 +16,8 @@ rule mothur_align:
         tmpdir = "$TMPDIR/opticlust/{rundir}",
         fasta = "$TMPDIR/opticlust/{rundir}/asv_seqs.fasta"
     threads: config["opticlust"]["threads"]
+    resources:
+        runtime = 60 * 24 * 10
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -48,6 +53,8 @@ rule run_opticlust:
     conda:
         "../envs/opticlust.yml"
     threads: config["opticlust"]["threads"]
+    resources:
+        runtime = 60 * 24 * 10
     shell:
         """
         mkdir -p {params.tmpdir}

@@ -1,3 +1,6 @@
+localrules:
+    dbotu3
+
 rule run_dbotu3:
     input:
         fasta = expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"]),
@@ -10,6 +13,8 @@ rule run_dbotu3:
     params:
         settings = config["dbotu3"]["settings"]
     conda: "../envs/dbotu3.yml"
+    resources:
+        runtime = 60 * 24 * 10
     shell:
         """
         dbotu3.py {input.counts} {input.fasta} -o {output} --log {log.log} 2> {log.err}

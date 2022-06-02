@@ -1,3 +1,6 @@
+localrules:
+    filter_seqs
+
 rule filter_seqs:
     input:
         counts = expand("data/{rundir}/asv_counts.tsv", rundir = config["rundir"]),
@@ -25,6 +28,8 @@ rule vsearch_align:
     threads: config["vsearch"]["threads"]
     conda:
         "../envs/opticlust.yml"
+    resources:
+        runtime = 60 * 24
     shell:
         """
         mkdir -p {params.tmpdir}
