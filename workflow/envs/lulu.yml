@@ -1,0 +1,9 @@
+name: lulu
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - r-base=3.3.2
+  - r-devtools
+  - r-dplyr
