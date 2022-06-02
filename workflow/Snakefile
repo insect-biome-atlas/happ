@@ -1,11 +1,21 @@
 configfile: "config/config.yml"
+
+if config["opticlust"]["aligner"] == "vsearch":
+    config["opticlust"]["sim"] = "sim=true,"
+else:
+    config["opticlust"]["sim"]= ""
+
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
+include: "rules/common.smk"
 include: "rules/opticlust.smk"
+include: "rules/lulu.smk"
 
 rule all:
     input:
-        rules.swarm.output,
-        rules.dbotu3.output,
-        rules.opticlust.output
+        expand("results/swarm/{rundir}/swarm.txt", rundir = config["rundir"]),
+        expand("results/dbotu3/{rundir}/dbotu3.txt", rundir = config["rundir"]),
+        expand("results/opticlust/{rundir}/asv_seqs.opti_mcc.{suff}",
+            suff=["list", "sensspec", "steps"],rundir=config["rundir"]),
+        expand("results/lulu/{rundir}/{f}.tsv", rundir = config["rundir"], f = ["otus", "otu_map"])
 
