@@ -5,6 +5,9 @@ rule run_lulu:
     output:
         curated_table = "results/lulu/{rundir}/otus.tsv",
         otu_map = "results/lulu/{rundir}/otu_map.tsv"
+    log:
+        progress = "logs/lulu/{rundir}/progress.txt",
+        log = "logs/lulu/{rundir}/log.txt"
     shadow: "minimal"
     conda: "../envs/lulu.yml"
     params:

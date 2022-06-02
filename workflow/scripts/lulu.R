@@ -1,4 +1,8 @@
 
+log <- file(snakemake@log$progress, open="wt")
+sink(log)
+sink(log, type="message")
+
 if (!"lulu"%in%installed.packages()) {
   library(devtools)
   install_github("tobiasgf/lulu")
@@ -32,5 +36,5 @@ write.table(curated_result$curated_table, snakemake@output$curated_table, sep="\
 write.table(curated_result$otu_map, snakemake@output$otu_map, sep="\t", quote=FALSE)
 
 # Move logfile
-system_string <- paste(c("mv lulu.log*"), c(snakemake@log))
+system_string <- paste(c("mv lulu.log*"), c(snakemake@log$log))
 system(system_string)
