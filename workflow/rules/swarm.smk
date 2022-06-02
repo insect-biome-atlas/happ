@@ -1,9 +1,9 @@
 rule format_swarm:
     input:
-        fasta = expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"]),
-        counts = expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"])
+        fasta = "results/common/{rundir}/asv_seqs.fasta.gz",
+        counts = "results/common/{rundir}/counts.tsv"
     output:
-        fasta = "results/swarm/{rundir}/reformat.fasta"
+        fasta = "results/swarm/{rundir}/reformat.fasta.gz"
     script:
         "../scripts/swarm_utils.py"
 
@@ -16,12 +16,19 @@ rule run_swarm:
     log:
         "logs/swarm/{rundir}/swarm.log"
     params:
-        settings = config["swarm"]["settings"]
+        settings = config["swarm"]["settings"],
+        tmpdir = "$TMPDIR/swarm/{rundir}",
+        fasta = "$TMPDIR/swarm/{rundir}/reformat.fasta",
+        output = "$TMPDIR/swarm/{rundir}/swarm.txt"
     threads: config["swarm"]["threads"]
     conda: "../envs/swarm.yml"
     shell:
         """
-        swarm {params.settings} {input} -o {output} > {log} 2>&1
+        mkdir -p {params.tmpdir}
+        gunzip -c {input} > {params.fasta}
+        swarm {params.settings} {params.fasta} -o {params.output} > {log} 2>&1
+        mv {params.output} {output}
+        rm -rf {params.tmpdir}
         """
 
 rule swarm:
