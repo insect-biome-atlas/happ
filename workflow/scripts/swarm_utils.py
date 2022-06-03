@@ -18,7 +18,7 @@ def format_swarm(sm):
             key, value = line.rstrip().split("\t")
             try:
                 counts[key] = int(value)
-            except KeyError:
+            except ValueError:
                 continue
     # Open fasta file and append counts as its being read
     with gzip.open(sm.input.fasta, 'r') as fhin, gzip.open(sm.output.fasta, 'wt') as fhout:
