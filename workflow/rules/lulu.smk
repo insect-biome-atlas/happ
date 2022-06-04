@@ -4,7 +4,7 @@ localrules:
 rule run_lulu:
     input:
         dist = "results/vsearch/{rundir}/asv_seqs.dist.gz",
-        counts = expand("data/{rundir}/asv_counts.tsv", rundir = config["rundir"])
+        counts = "results/common/{rundir}/asv_counts.tsv.gz"
     output:
         curated_table = "results/lulu/{rundir}/otus.tsv",
         otu_map = "results/lulu/{rundir}/otu_map.tsv"
