@@ -35,9 +35,12 @@ def opticlust_input(wildcards):
         return f"results/opticlust/{wildcards.rundir}/asv_seqs.dist.gz"
 
 rule run_opticlust:
+    """
+    opticlust requires that all sequences in the counts file have abundance > 0
+    """
     input:
         dist = opticlust_input,
-        total_counts = "results/common/{rundir}/counts.tsv"
+        total_counts = "results/common/{rundir}/total_counts.tsv"
     output:
         expand("results/opticlust/{{rundir}}/asv_seqs.opti_mcc.{suff}",
             suff = ["list", "sensspec", "steps"])
