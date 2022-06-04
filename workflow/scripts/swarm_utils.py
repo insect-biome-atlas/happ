@@ -21,7 +21,7 @@ def format_swarm(sm):
             except ValueError:
                 continue
     # Open fasta file and append counts as its being read
-    with gzip.open(sm.input.fasta, 'r') as fhin, gzip.open(sm.output.fasta, 'wt') as fhout:
+    with gzip.open(sm.input.fasta, 'rt') as fhin, gzip.open(sm.output.fasta, 'wt') as fhout:
         for record in parse(fhin, "fasta"):
             try:
                 new_rec = f"{record.id}_{counts[record.id]}"
