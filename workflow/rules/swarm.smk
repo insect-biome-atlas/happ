@@ -5,13 +5,17 @@ localrules:
 rule format_swarm:
     input:
         fasta = "results/common/{rundir}/asv_seqs.fasta.gz",
-        counts = "results/common/{rundir}/counts.tsv"
+        counts = "results/common/{rundir}/total_counts.tsv"
     output:
         fasta = "results/swarm/{rundir}/reformat.fasta.gz"
     script:
         "../scripts/swarm_utils.py"
 
 rule run_swarm:
+    """
+    swarm only requires that ASVs abundances are appended to fasta headers and
+    that only ASVs with total abundances >0 are included
+    """
     input:
         rules.format_swarm.output.fasta
     output:
