@@ -3,13 +3,19 @@ localrules:
 
 rule filter_seqs:
     input:
-        counts = expand("data/{rundir}/asv_counts.tsv", rundir = config["rundir"]),
+        counts = expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
         fasta = expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"])
     output:
-        total_counts = "results/common/{rundir}/counts.tsv",
+        total_counts = "results/common/{rundir}/total_counts.tsv",
+        counts = "results/common/{rundir}/asv_counts.tsv.gz",
         fasta = "results/common/{rundir}/asv_seqs.fasta.gz"
     script:
         "../scripts/common.py"
+
+rule filter:
+    input:
+        expand("results/common/{rundir}/{f}",
+            rundir = config["rundir"], f = ["total_counts.tsv", "asv_counts.tsv.gz", "asv_seqs.fasta.gz"])
 
 rule vsearch_align:
     input:
