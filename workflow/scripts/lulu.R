@@ -23,9 +23,7 @@ system_string <- paste(c("gunzip -c"), c(snakemake@input$dist), c(">"), dist)
 print(system_string)
 system(system_string)
 
-print(snakemake@input$counts[[1]])
-otutable <- read.table(snakemake@input$counts[[1]], sep="\t", row.names=1, header=TRUE)
-print(dist)
+otutable <- read.table(snakemake@input$counts, sep="\t", row.names=1, header=TRUE)
 matchlist <- read.table(dist, sep="\t")
 
 curated_result <- lulu(otutable=otutable, matchlist=matchlist, minimum_ratio_type=snakemake@params$minimum_ratio_type,
