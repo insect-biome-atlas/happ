@@ -46,7 +46,8 @@ rule run_opticlust:
             suff = ["list", "sensspec", "steps"])
     log:
         log = "logs/opticlust/{rundir}/opticlust.log",
-        err = "logs/opticlust/{rundir}/opticlust.err",
+        err = "logs/opticlust/{rundir}/opticlust.err"
+    shadow: "minimal"
     params:
         dist = "$TMPDIR/opticlust/{rundir}/asv_seqs.dist",
         counts = "$TMPDIR/opticlust/{rundir}/counts.tsv",
