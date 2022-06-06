@@ -53,7 +53,11 @@ rule run_opticlust:
         counts = "$TMPDIR/opticlust/{rundir}/counts.tsv",
         tmpdir = "$TMPDIR/opticlust/{rundir}",
         outdir = lambda wildcards, output: os.path.dirname(output[0]),
-        sim = config["opticlust"]["sim"]
+        sim = config["opticlust"]["sim"],
+        delta = config["opticlust"]["delta"],
+        cutoff = config["opticlust"]["cutoff"],
+        initialize = config["opticlust"]["initialize"],
+        precision = config["opticlust"]["precision"]
     conda:
         "../envs/opticlust.yml"
     threads: config["opticlust"]["threads"]
@@ -64,7 +68,10 @@ rule run_opticlust:
         mkdir -p {params.tmpdir}
         gunzip -c {input.dist} > {params.dist} 
         cp {input.total_counts} {params.counts}
-        mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log});cluster(column={params.dist}, count={params.counts}, {params.sim} method=opti)" >{log.err} 2>&1
+        mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log});\
+            cluster(column={params.dist}, count={params.counts}, {params.sim} \
+            method=opti, delta={params.delta}, cutoff={params.cutoff}, initialize={params.initialize},\
+            precision={params.precision})" >{log.err} 2>&1
         rm {params.dist} {params.counts}
         mv {params.tmpdir}/* {params.outdir}
         rm -rf {params.tmpdir}

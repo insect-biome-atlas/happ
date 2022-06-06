@@ -6,6 +6,20 @@ dbotu3:
   settings: ""
 opticlust:
   aligner: "vsearch"
+  # The delta parameter allows to set the stable value for the metric in the
+  # opticluster method Default delta=0.0001. To reach a full convergence,
+  # set delta=0
+  delta: 0.0001
+  # With the opticlust method the list file is created for the cutoff you set.
+  # The default cutoff is 0.03.
+  cutoff: 0.03
+  # The initialize parameter allows to select the initial randomization for the
+  # opticluster method. Options are 'singleton', meaning each sequence is randomly
+  # assigned to its own OTU, or 'oneotu' meaning all sequences are assigned to one
+  # otu. The opticlust authors found initialize=singleton to produce better clustering in
+  # less time. Default=singleton.
+  initialize: "singleton"
+  precision: 1000
   threads: 10
 lulu:
   aligner: "vsearch"
