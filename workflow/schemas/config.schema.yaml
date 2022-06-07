@@ -1,0 +1,148 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+
+description: snakemake configuration file
+
+type: object
+
+properties:
+  rundir:
+    type: string
+    description: "path to input directory, should contain a 'asv_counts.tsv' and a 'asv_seqs.fasta' file"
+  swarm:
+    type: object
+    default:
+      differences: 1
+      no-otu-breaking: False
+      fastidious: True
+      boundary: 3
+      threads: 10
+    properties:
+      differences:
+        type: integer
+        description: "maximum number of differences allowed between two amplicons"
+        default: 1
+      no-otu-breaking:
+        type: boolean
+        description: "when working with d = 1, deactivate the built-in cluster refinement (not recommended)"
+        default: False
+      fastidious:
+        type: boolean
+        description: "when working with d = 1, perform a second clustering pass to reduce the number of small clusters (recommended option)."
+        default: True
+      boundary:
+        type: integer
+        description: "when using the option --fastidious (-f), define the minimum abundance of what should be considered a large cluster"
+        default: 3
+      threads:
+        type: integer
+        description: "number of threads to use for swarm"
+        minimum: 1
+        default: 10
+  dbotu3:
+    type: object
+    default:
+      dist: 0.1
+      abund: 10.0
+      pval: 0.0005
+    properties:
+      dist:
+        type: number
+        description: "maximum genetic dissimilarity between sequences"
+        default: 0.1
+      abund:
+        type: number
+        description: "minimum fold difference for comparing two OTUs"
+        default: 10.0
+      pval:
+        type: number
+        description: "minimum p-value for merging OTUs"
+        default: 0.0005
+  opticlust:
+    type: object
+    default:
+      aligner: "vsearch"
+      delta: 0.0001
+      cutoff: 0.03
+      initialize: "singleton"
+      precision: 1000
+      threads: 10
+    properties:
+      aligner:
+        type: string
+        description: "aligner to use for calculating pairwise similarities"
+        default: "vsearch"
+        enum: ["vsearch", "mothur"]
+      delta:
+        type: number
+        description: "allows to set the stable value for the metric in the opticlust method"
+        default: 0.0001
+      cutoff:
+        type: number
+        description: "the list file is created for the cutoff you set"
+        default: 0.03
+      initialize:
+        type: string
+        description: "The initialize parameter allows to select the initial randomization for the opticlust method"
+        default: "singleton"
+        enum: ["singleton", "oneotu"]
+      precision:
+        type: integer
+        description: "precision for opticlust"
+        default: 1000
+      threads:
+        type: integer
+        description: "number of threads to use for opticlust"
+        default: 10
+        minimum: 1
+  lulu:
+    type: object
+    default:
+      minimum_ratio_type: "min"
+      minimum_ratio: 1
+      minimum_match: 84
+      minimum_relative_cooccurence: 0.95
+    properties:
+      minimum_ratio_type:
+        type: string
+        description: "sets whether a potential error must have lower abundance than the parent in all samples"
+        default: "min"
+        enum: ["min", "avg"]
+      minimum_ratio:
+        type: integer
+        description: "sets the minimum abundance ratio between a potential error and a potential parent to be identified as an error"
+        default: 1
+      minimum_match:
+        type: integer
+        description: "minimum threshold of sequence similarity for considering any OTU as an error of another can be set"
+        default: 84
+      minimum_relative_cooccurence:
+        type: number
+        description: "minimum co-occurrence rate – i.e. the lower rate of occurrence of the potential error explained by co-occurrence with the potential parent for considering error state."
+        default: 0.95
+  vsearch:
+    type: object
+    default:
+      threads: 10
+      id: 0.84
+      iddef: "1"
+      query_cov: 0.9
+    properties:
+      threads:
+        type: integer
+        description: "threads to use for vsearch"
+        default: 10
+        minimum: 1
+      id:
+        type: number
+        description: "reject if identity lower"
+        default: 0.84
+        minimum: 0.0
+        maximum: 1.0
+      iddef:
+        type: string
+        description: "id definition, 0-4=CD-HIT,all,int,MBL,BLAST (2)"
+        default: "1"
+      query_cov:
+        type: number
+        description: "reject if fraction of query seq. aligned lower"
+        default: 0.9

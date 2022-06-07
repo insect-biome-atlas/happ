@@ -16,7 +16,9 @@ rule run_dbotu3:
         log = "logs/dbotu3/{rundir}/dbotu3.log",
         err = "logs/dbotu3/{rundir}/dbotu3.err"
     params:
-        settings = config["dbotu3"]["settings"],
+        dist = config["dbotu3"]["dist"],
+        abund = config["dbotu3"]["abund"],
+        pval = config["dbotu3"]["pval"],
         tmpdir = "$TMPDIR/dbotu3/{rundir}",
         fasta = "$TMPDIR/dbotu3/{rundir}/asv_seqs.fasta",
         counts = "$TMPDIR/dbotu3/{rundir}/asv_counts.tsv",
@@ -29,7 +31,8 @@ rule run_dbotu3:
         mkdir -p {params.tmpdir}
         gunzip -c {input.fasta} > {params.fasta}
         gunzip -c {input.counts} > {params.counts}
-        dbotu3.py {params.counts} {params.fasta} -o {params.out} --log {log.log} 2> {log.err}
+        dbotu3.py -d {params.dist} -a {params.abund} -p {params.pval} \
+            {params.counts} {params.fasta} -o {params.out} --log {log.log} 2> {log.err}
         mv {params.out} {output}
         rm -rf {params.tmpdir}
         """

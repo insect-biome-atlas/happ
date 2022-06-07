@@ -1,7 +1,12 @@
-configfile: "config/config.yml"
+from snakemake.utils import validate
+validate(config, schema="schemas/config.schema.yaml", set_default=True)
+
 container: "docker://continuumio/miniconda3:4.11.0"
+
 localrules:
     all
+
+include: "rules/common.smk"
 
 if config["opticlust"]["aligner"] == "vsearch":
     config["opticlust"]["sim"] = "sim=true,"
@@ -10,7 +15,6 @@ else:
 
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
-include: "rules/common.smk"
 include: "rules/opticlust.smk"
 include: "rules/lulu.smk"
 
