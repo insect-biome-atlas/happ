@@ -11,7 +11,8 @@ rule run_dbotu3:
         fasta = "results/common/{rundir}/asv_seqs.fasta.gz",
         counts = "results/common/{rundir}/asv_counts.tsv.gz"
     output:
-        "results/dbotu3/{rundir}/dbotu3.txt"
+        tsv = "results/dbotu3/{rundir}/dbotu3.tsv",
+        memb = "results/dbotu3/{rundir}/dbotu3.clusters.tsv"
     log:
         log = "logs/dbotu3/{rundir}/dbotu3.log",
         err = "logs/dbotu3/{rundir}/dbotu3.err"
@@ -22,7 +23,8 @@ rule run_dbotu3:
         tmpdir = "$TMPDIR/dbotu3/{rundir}",
         fasta = "$TMPDIR/dbotu3/{rundir}/asv_seqs.fasta",
         counts = "$TMPDIR/dbotu3/{rundir}/asv_counts.tsv",
-        out = "$TMPDIR/dbotu3/{rundir}/dbotu3.txt"
+        tsv = "$TMPDIR/dbotu3/{rundir}/dbotu3.tsv",
+        memb = "$TMPDIR/dbotu3/{rundir}/dbotu3.clusters.tsv"
     conda: "../envs/dbotu3.yml"
     resources:
         runtime = 60 * 24 * 10
@@ -32,11 +34,13 @@ rule run_dbotu3:
         gunzip -c {input.fasta} > {params.fasta}
         gunzip -c {input.counts} > {params.counts}
         dbotu3.py -d {params.dist} -a {params.abund} -p {params.pval} \
-            {params.counts} {params.fasta} -o {params.out} --log {log.log} 2> {log.err}
-        mv {params.out} {output}
+            {params.counts} {params.fasta} -o {params.tsv} --membership {params.memb} --log {log.log} 2> {log.err}
+        mv {params.tsv} {output.tsv}
+        mv {params.memb} {output.memb}
         rm -rf {params.tmpdir}
         """
 
 rule dbotu3:
     input:
-        expand("results/dbotu3/{rundir}/dbotu3.txt", rundir = config["rundir"])
+        expand("results/dbotu3/{rundir}/dbotu3.{suff}",
+            rundir = config["rundir"], suff = ["tsv", "clusters.tsv"])
