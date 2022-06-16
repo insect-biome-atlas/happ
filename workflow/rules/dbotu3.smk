@@ -1,5 +1,6 @@
 localrules:
-    dbotu3
+    dbotu3,
+    dbotu32tab
 
 rule run_dbotu3:
     """
@@ -40,7 +41,18 @@ rule run_dbotu3:
         rm -rf {params.tmpdir}
         """
 
+rule dbotu32tab:
+    input:
+        rules.run_dbotu3.output.memb
+    output:
+        "results/dbotu3/{rundir}/otu_clusters.tsv"
+    params:
+        tmpdir = "$TMPDIR/{rundir}",
+        out = "$TMPDIR/{rundir}/otu_clusters.tsv"
+    script:
+        "../scripts/dbotu3_utils.py"
+
 rule dbotu3:
     input:
-        expand("results/dbotu3/{rundir}/dbotu3.{suff}",
-            rundir = config["rundir"], suff = ["tsv", "clusters.tsv"])
+        expand("results/dbotu3/{rundir}/otu_clusters.tsv",
+            rundir = config["rundir"])
