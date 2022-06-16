@@ -66,9 +66,8 @@ rule run_opticlust:
         counts = "$TMPDIR/opticlust/{rundir}/counts.tsv",
         tmpdir = "$TMPDIR/opticlust/{rundir}",
         outdir = lambda wildcards, output: os.path.dirname(output[0]),
-        #sim = config["opticlust"]["sim"],
         delta = config["opticlust"]["delta"],
-        cutoff = "-".join([str(x) for x in config["opticlust"]["cutoffs"]]),
+        cutoff = "-".join([str(x) for x in sorted(config["opticlust"]["cutoffs"])]),
         initialize = config["opticlust"]["initialize"],
         precision = config["opticlust"]["precision"]
     conda:

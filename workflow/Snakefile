@@ -7,12 +7,6 @@ localrules:
     all
 
 include: "rules/common.smk"
-
-if config["opticlust"]["aligner"] == "vsearch":
-    config["opticlust"]["sim"] = "sim=true,"
-else:
-    config["opticlust"]["sim"]= ""
-
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
 include: "rules/opticlust.smk"
