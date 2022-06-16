@@ -25,6 +25,17 @@ rule run_lulu:
     script:
         "../scripts/lulu.R"
 
+rule lulu2tab:
+    input:
+        rules.run_lulu.output.otu_map
+    output:
+        "results/lulu/{rundir}/otu_clusters.tsv"
+    params:
+        tmpdir = "$TMPDIR/{rundir}",
+        out = "$TMPDIR/{rundir}/otu_clusters.tsv"
+    script:
+        "../scripts/lulu_utils.py"
+
 rule lulu:
     input:
-        expand("results/lulu/{rundir}/{f}.tsv", rundir = config["rundir"], f = ["otus", "otu_map"])
+        expand("results/lulu/{rundir}/{f}.tsv", rundir = config["rundir"], f = ["otu_clusters"])
