@@ -1,5 +1,7 @@
 localrules:
-    opticlust
+    opticlust,
+    opticlust2tab,
+    reformat_distmat
 
 rule mothur_align:
     input:
@@ -30,9 +32,20 @@ rule mothur_align:
 
 def opticlust_input(wildcards):
     if config["opticlust"]["aligner"] == "vsearch":
-        return f"results/vsearch/{wildcards.rundir}/asv_seqs.dist.gz"
+        return f"results/vsearch/{wildcards.rundir}/asv_seqs.dist.reformat.gz"
     else:
         return f"results/opticlust/{wildcards.rundir}/asv_seqs.dist.gz"
+
+rule reformat_distmat:
+    input:
+        "results/vsearch/{rundir}/asv_seqs.dist.gz"
+    output:
+        "results/vsearch/{rundir}/asv_seqs.dist.reformat.gz"
+    params:
+        out = "$TMPDIR/{rundir}/asv_seqs.dist.reformat.gz",
+        tmpdir = "$TMPDIR/{rundir}"
+    script:
+        "../scripts/opticlust_utils.py"
 
 rule run_opticlust:
     """
@@ -53,9 +66,9 @@ rule run_opticlust:
         counts = "$TMPDIR/opticlust/{rundir}/counts.tsv",
         tmpdir = "$TMPDIR/opticlust/{rundir}",
         outdir = lambda wildcards, output: os.path.dirname(output[0]),
-        sim = config["opticlust"]["sim"],
+        #sim = config["opticlust"]["sim"],
         delta = config["opticlust"]["delta"],
-        cutoff = config["opticlust"]["cutoff"],
+        cutoff = "-".join([str(x) for x in config["opticlust"]["cutoffs"]]),
         initialize = config["opticlust"]["initialize"],
         precision = config["opticlust"]["precision"]
     conda:
@@ -69,7 +82,7 @@ rule run_opticlust:
         gunzip -c {input.dist} > {params.dist} 
         cp {input.total_counts} {params.counts}
         mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log});\
-            cluster(column={params.dist}, count={params.counts}, {params.sim} \
+            cluster(column={params.dist}, count={params.counts}, \
             method=opti, delta={params.delta}, cutoff={params.cutoff}, initialize={params.initialize},\
             precision={params.precision})" >{log.err} 2>&1
         rm {params.dist} {params.counts}
@@ -77,7 +90,17 @@ rule run_opticlust:
         rm -rf {params.tmpdir}
         """
 
+rule opticlust2tab:
+    """
+    Generate a membership style table of clusters
+    """
+    input:
+        "results/opticlust/{rundir}/asv_seqs.opti_mcc.list"
+    output:
+        "results/opticlust/{rundir}/opticlust.clusters.tsv"
+    script:
+        "../scripts/opticlust_utils.py"
+
 rule opticlust:
     input:
-        expand("results/opticlust/{rundir}/asv_seqs.opti_mcc.{suff}",
-            suff = ["list", "sensspec", "steps"], rundir = config["rundir"])
+        expand("results/opticlust/{rundir}/opticlust.clusters.tsv", rundir = config["rundir"])
