@@ -14,9 +14,5 @@ include: "rules/lulu.smk"
 
 rule all:
     input:
-        expand("results/swarm/{rundir}/swarm.txt", rundir = config["rundir"]),
-        expand("results/dbotu3/{rundir}/dbotu3.txt", rundir = config["rundir"]),
-        expand("results/opticlust/{rundir}/asv_seqs.opti_mcc.{suff}",
-            suff=["list", "sensspec", "steps"],rundir=config["rundir"]),
-        expand("results/lulu/{rundir}/{f}.tsv", rundir = config["rundir"], f = ["otus", "otu_map"])
-
+        expand("results/{prog}/{rundir}/asv_clusters.tsv",
+            prog = ["dbotu3", "lulu", "opticlust", "swarm"], rundir = config["rundir"])
