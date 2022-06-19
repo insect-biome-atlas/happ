@@ -96,10 +96,13 @@ rule opticlust2tab:
     input:
         "results/opticlust/{rundir}/asv_seqs.opti_mcc.list"
     output:
-        "results/opticlust/{rundir}/opticlust.clusters.tsv"
+        "results/opticlust/{rundir}/asv_clusters.tsv"
+    params:
+        tmpdir = "$TMPDIR/opticlust/{rundir}",
+        out = "$TMPDIR/opticlust/{rundir}/asv_clusters.tsv"
     script:
         "../scripts/opticlust_utils.py"
 
 rule opticlust:
     input:
-        expand("results/opticlust/{rundir}/opticlust.clusters.tsv", rundir = config["rundir"])
+        expand("results/opticlust/{rundir}/asv_clusters.tsv", rundir = config["rundir"])

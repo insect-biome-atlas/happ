@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import shutil
 
+
 def get_cluster_members(df):
     df.drop("numOtus", axis=1, inplace=True)
     d = {}
@@ -16,7 +17,8 @@ def get_cluster_members(df):
             asv_ids = dataf.loc[otu].split(",")
             for asv_id in asv_ids:
                 d[cutoff][asv_id] = otu
-    return d
+    dataf = pd.DataFrame(d)
+    return dataf
 
 
 def opticlust2tab(sm):
@@ -25,9 +27,11 @@ def opticlust2tab(sm):
     that is easier to work with
     """
     df = pd.read_csv(sm.input[0], sep="\t", index_col=0, header=0)
-    clusters = get_cluster_members(df)
-    cluster_df = pd.DataFrame(clusters)
-    cluster_df.to_csv(sm.output[0], sep="\t")
+    dataf = get_cluster_members(df)
+    os.makedirs(sm.params.tmpdir, exist_ok=True)
+    dataf.to_csv(sm.params.out, sep="\t")
+    shutil.move(sm.params.out, sm.output[0])
+    os.removedirs(sm.params.tmpdir)
 
 
 def reformat_distmat(sm):
@@ -44,7 +48,7 @@ def reformat_distmat(sm):
 
     """
     import gzip as gz
-    os.makedirs(sm.params.tmpdir)
+    os.makedirs(sm.params.tmpdir, exist_ok=True)
     with gz.open(sm.input[0], 'rt') as fhin, gz.open(sm.params.out,
                                                      'wt') as fhout:
         for line in fhin:
