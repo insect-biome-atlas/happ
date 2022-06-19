@@ -52,7 +52,18 @@ rule run_swarm:
         rm -rf {params.tmpdir}
         """
 
+rule swarm2tab:
+    input:
+        "results/swarm/{rundir}/swarm_table.tsv"
+    output:
+        "results/swarm/{rundir}/asv_clusters.tsv"
+    params:
+        tmpdir = "$TMPDIR/swarm/{rundir}",
+        out = "$TMPDIR/swarm/{rundir}/asv_clusters.tsv"
+    script:
+        "../scripts/swarm_utils.py"
+
 rule swarm:
     input:
-        expand("results/swarm/{rundir}/{f}",
-            rundir = config["rundir"], f = ["swarm_table.tsv", "swarm.txt"])
+        expand("results/swarm/{rundir}/asv_clusters.tsv",
+            rundir = config["rundir"])

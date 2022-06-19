@@ -2,6 +2,9 @@
 
 from Bio.SeqIO import parse
 import gzip
+import shutil
+import os
+import pandas as pd
 
 
 def format_swarm(sm):
@@ -31,8 +34,31 @@ def format_swarm(sm):
                 fhout.write(f">{new_rec}\n{record.seq}\n")
 
 
+def get_cluster_members(df):
+    dataf = pd.DataFrame()
+    for col in ["asv1", "asv2"]:
+        _ = df.groupby([col, "cluster"]).first().reset_index().loc[:,
+            [col, "cluster"]]
+        _.columns = ["asv", "cluster"]
+        dataf = pd.concat([dataf, _])
+    dataf["cluster"] = [f"cluster{x}" for x in dataf["cluster"]]
+    dataf.set_index("asv", inplace=True)
+    return dataf
+
+
+def swarm2tab(sm):
+    df = pd.read_csv(sm.input[0], sep="\t", header=None,
+                     names=["asv1", "asv2", "diffs", "cluster",
+                            "cumulative_steps"])
+    dataf = get_cluster_members(df)
+    os.makedirs(sm.params.tmpdir)
+    dataf.to_csv(sm.params.out, sep="\t")
+    shutil.move(sm.params.out, sm.output[0])
+    os.removedirs(sm.params.tmpdir)
+
 def main(sm):
-    toolbox = {'format_swarm': format_swarm}
+    toolbox = {'format_swarm': format_swarm,
+               'swarm2tab': swarm2tab}
     toolbox[sm.rule](sm)
 
 
