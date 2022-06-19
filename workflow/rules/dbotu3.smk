@@ -45,14 +45,14 @@ rule dbotu32tab:
     input:
         rules.run_dbotu3.output.memb
     output:
-        "results/dbotu3/{rundir}/otu_clusters.tsv"
+        "results/dbotu3/{rundir}/asv_clusters.tsv"
     params:
-        tmpdir = "$TMPDIR/{rundir}",
-        out = "$TMPDIR/{rundir}/otu_clusters.tsv"
+        tmpdir = "$TMPDIR/dbotu3/{rundir}",
+        out = "$TMPDIR/dbotu3/{rundir}/asv_clusters.tsv"
     script:
         "../scripts/dbotu3_utils.py"
 
 rule dbotu3:
     input:
-        expand("results/dbotu3/{rundir}/otu_clusters.tsv",
+        expand("results/dbotu3/{rundir}/asv_clusters.tsv",
             rundir = config["rundir"])

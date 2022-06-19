@@ -5,7 +5,10 @@ import shutil
 
 
 def dbotu32tab(sm):
-    os.makedirs(sm.params.tmpdir)
+    """
+    Creates a mapping table of asv -> cluster
+    """
+    os.makedirs(sm.params.tmpdir, exist_ok=True)
     with open(sm.input[0], 'r') as fhin, open(sm.params.out, 'w') as fhout:
         fhout.write("asv\tcluster\n")
         for i, line in enumerate(fhin):
