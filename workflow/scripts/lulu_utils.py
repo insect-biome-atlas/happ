@@ -5,11 +5,9 @@ import os
 import shutil
 
 
-def lulu2tab(sm):
-    df = pd.read_csv(sm.input[0], sep="\t", index_col=0)
-    os.makedirs(sm.params.tmpdir)
+def get_cluster_members(df):
     d = {}
-    dataf = df.loc[df.curated=="merged"].sort_values("rank")
+    dataf = df.loc[df.curated == "merged"].sort_values("rank")
     for row in dataf.iterrows():
         asv, parent, rank = row[0], row[1]["parent_id"], row[1]["rank"]
         d[asv] = {"parent": parent, "rank": rank}
@@ -20,6 +18,14 @@ def lulu2tab(sm):
     dataf = dataf.drop("rank", axis=1).reset_index()
     dataf = dataf.rename(index=lambda x: f"cluster{x}").drop("parent", axis=1)
     dataf.index.name = "cluster"
+    dataf = dataf.reset_index().set_index("asv")
+    return dataf
+
+
+def lulu2tab(sm):
+    df = pd.read_csv(sm.input[0], sep="\t", index_col=0)
+    os.makedirs(sm.params.tmpdir, exist_ok=True)
+    dataf = get_cluster_members(df)
     dataf.to_csv(sm.params.out, sep="\t")
     shutil.move(sm.params.out, sm.output[0])
     os.rmdir(sm.params.tmpdir)
@@ -27,7 +33,7 @@ def lulu2tab(sm):
 
 def main(sm):
     toolbox = {'lulu2tab': lulu2tab}
-    toolbox[sm.rule][sm]
+    toolbox[sm.rule](sm)
 
 
 if __name__ == '__main__':

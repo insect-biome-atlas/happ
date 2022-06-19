@@ -29,13 +29,13 @@ rule lulu2tab:
     input:
         rules.run_lulu.output.otu_map
     output:
-        "results/lulu/{rundir}/otu_clusters.tsv"
+        "results/lulu/{rundir}/asv_clusters.tsv"
     params:
-        tmpdir = "$TMPDIR/{rundir}",
-        out = "$TMPDIR/{rundir}/otu_clusters.tsv"
+        tmpdir = "$TMPDIR/lulu/{rundir}",
+        out = "$TMPDIR/lulu/{rundir}/asv_clusters.tsv"
     script:
         "../scripts/lulu_utils.py"
 
 rule lulu:
     input:
-        expand("results/lulu/{rundir}/{f}.tsv", rundir = config["rundir"], f = ["otu_clusters"])
+        expand("results/lulu/{rundir}/{f}.tsv", rundir = config["rundir"], f = ["asv_clusters"])
