@@ -40,7 +40,7 @@ rule vsearch_align:
     conda:
         "../envs/opticlust.yml"
     resources:
-        runtime = 60 * 24
+        runtime = 60 * 24 * 10
     shell:
         """
         mkdir -p {params.tmpdir}
