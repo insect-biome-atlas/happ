@@ -4,10 +4,10 @@ localrules:
 
 rule format_swarm:
     input:
-        fasta = "results/common/{rundir}/asv_seqs.fasta.gz",
-        counts = "results/common/{rundir}/total_counts.tsv"
+        fasta = "results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
+        counts = "results/common/{rundir}/{tax}/total_counts.tsv"
     output:
-        fasta = "results/swarm/{rundir}/reformat.fasta.gz"
+        fasta = "results/swarm/{rundir}/{tax}/reformat.fasta.gz"
     script:
         "../scripts/swarm_utils.py"
 
@@ -24,18 +24,18 @@ rule run_swarm:
     input:
         rules.format_swarm.output.fasta
     output:
-        expand("results/swarm/{{rundir}}/{f}", f = ["swarm_table.tsv", "swarm.txt"])
+        expand("results/swarm/{{rundir}}/{{tax}}/{f}", f = ["swarm_table.tsv", "swarm.txt"])
     log:
-        "logs/swarm/{rundir}/swarm.log"
+        "logs/swarm/{rundir}/{tax}/swarm.log"
     params:
         fastidious = check_swarm_options(opt="fastidious"),
         differences = config["swarm"]["differences"],
         boundary = config["swarm"]["boundary"],
         no_otu_breaking = check_swarm_options(opt="no-otu-breaking"),
-        tmpdir = "$TMPDIR/swarm/{rundir}",
-        fasta = "$TMPDIR/swarm/{rundir}/reformat.fasta",
-        txt = "$TMPDIR/swarm/{rundir}/swarm.txt",
-        tsv = "$TMPDIR/swarm/{rundir}/swarm_table.tsv",
+        tmpdir = "$TMPDIR/swarm/{rundir}/{tax}",
+        fasta = "$TMPDIR/swarm/{rundir}/{tax}/reformat.fasta",
+        txt = "$TMPDIR/swarm/{rundir}/{tax}/swarm.txt",
+        tsv = "$TMPDIR/swarm/{rundir}/{tax}/swarm_table.tsv",
         outdir = lambda wildcards, output: os.path.dirname(output[0])
     threads: config["swarm"]["threads"]
     conda: "../envs/swarm.yml"
@@ -54,16 +54,16 @@ rule run_swarm:
 
 rule swarm2tab:
     input:
-        "results/swarm/{rundir}/swarm_table.tsv"
+        "results/swarm/{rundir}/{tax}/swarm_table.tsv"
     output:
-        "results/swarm/{rundir}/asv_clusters.tsv"
+        "results/swarm/{rundir}/{tax}/asv_clusters.tsv"
     params:
-        tmpdir = "$TMPDIR/swarm/{rundir}",
-        out = "$TMPDIR/swarm/{rundir}/asv_clusters.tsv"
+        tmpdir = "$TMPDIR/swarm/{rundir}/{tax}",
+        out = "$TMPDIR/swarm/{rundir}/{tax}/asv_clusters.tsv"
     script:
         "../scripts/swarm_utils.py"
 
 rule swarm:
     input:
-        expand("results/swarm/{rundir}/asv_clusters.tsv",
-            rundir = config["rundir"])
+        expand("results/swarm/{rundir}/{tax}/asv_clusters.tsv",
+            rundir = config["rundir"], tax=taxa)

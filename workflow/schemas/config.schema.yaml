@@ -8,6 +8,18 @@ properties:
   rundir:
     type: string
     description: "path to input directory, should contain a 'asv_counts.tsv' and a 'asv_seqs.fasta' file"
+  split_rank:
+    type: string
+    description: "rank at which to split input file prior to clustering"
+    default: "Family"
+    enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+  software:
+    type: array
+    description: "clustering software to run"
+    default: ["swarm","opticlust", "dbotu3", "lulu"]
+    items:
+      type: string
+      enum: ["swarm", "opticlust", "dbotu3", "lulu"]
   swarm:
     type: object
     default:
@@ -62,7 +74,7 @@ properties:
     default:
       aligner: "vsearch"
       delta: 0.0001
-      cutoffs: [0, 0.01, 0.03, 0.05]
+      cutoff: 0.03
       initialize: "singleton"
       precision: 1000
       threads: 10
@@ -76,12 +88,10 @@ properties:
         type: number
         description: "allows to set the stable value for the metric in the opticlust method"
         default: 0.0001
-      cutoffs:
-        type: array
-        description: "the list file is created for the cutoffs you set"
-        default: [0, 0.01, 0.03, 0.05]
-        items:
-          type: number
+      cutoff:
+        type: number
+        description: "the list file is created for the cutoff you set"
+        default: 0.03
       initialize:
         type: string
         description: "The initialize parameter allows to select the initial randomization for the opticlust method"

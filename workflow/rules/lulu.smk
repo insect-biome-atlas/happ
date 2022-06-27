@@ -3,19 +3,19 @@ localrules:
 
 rule run_lulu:
     input:
-        dist = "results/vsearch/{rundir}/asv_seqs.dist.gz",
-        counts = "results/common/{rundir}/asv_counts.tsv.gz"
+        dist = "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
+        counts = "results/common/{rundir}/{tax}/asv_counts.tsv.gz"
     output:
-        curated_table = "results/lulu/{rundir}/otus.tsv",
-        otu_map = "results/lulu/{rundir}/otu_map.tsv"
+        curated_table = "results/lulu/{rundir}/{tax}/otus.tsv",
+        otu_map = "results/lulu/{rundir}/{tax}/otu_map.tsv"
     log:
-        progress = "logs/lulu/{rundir}/progress.txt",
-        log = "logs/lulu/{rundir}/log.txt"
+        progress = "logs/lulu/{rundir}/{tax}/progress.txt",
+        log = "logs/lulu/{rundir}/{tax}/log.txt"
     shadow: "minimal"
     conda: "../envs/lulu.yml"
     params:
-        dist = "$TMPDIR/lulu/{rundir}/asv_seqs.dist",
-        tmpdir = "$TMPDIR/lulu/{rundir}",
+        dist = "$TMPDIR/lulu/{rundir}/{tax}/asv_seqs.dist",
+        tmpdir = "$TMPDIR/lulu/{rundir}/{tax}",
         minimum_ratio_type = config["lulu"]["minimum_ratio_type"],
         minimum_ratio = config["lulu"]["minimum_ratio"],
         minimum_match = config["lulu"]["minimum_match"],
@@ -29,13 +29,14 @@ rule lulu2tab:
     input:
         rules.run_lulu.output.otu_map
     output:
-        "results/lulu/{rundir}/asv_clusters.tsv"
+        "results/lulu/{rundir}/{tax}/asv_clusters.tsv"
     params:
-        tmpdir = "$TMPDIR/lulu/{rundir}",
-        out = "$TMPDIR/lulu/{rundir}/asv_clusters.tsv"
+        tmpdir = "$TMPDIR/lulu/{rundir}/{tax}",
+        out = "$TMPDIR/lulu/{rundir}/{tax}/asv_clusters.tsv"
     script:
         "../scripts/lulu_utils.py"
 
 rule lulu:
     input:
-        expand("results/lulu/{rundir}/{f}.tsv", rundir = config["rundir"], f = ["asv_clusters"])
+        expand("results/lulu/{rundir}/{tax}/{f}.tsv",
+            rundir = config["rundir"], f = ["asv_clusters"], tax=taxa)

@@ -1,11 +1,14 @@
 from snakemake.utils import validate
+from scripts.common import read_taxa
+
 validate(config, schema="schemas/config.schema.yaml", set_default=True)
+taxa = read_taxa(config)
+wildcard_constraints:
+    prog = "(swarm|opticlust|dbotu3|lulu)",
+    taxa = taxa,
+    rundir = config["rundir"]
 
 container: "docker://continuumio/miniconda3:4.11.0"
-
-localrules:
-    all
-
 include: "rules/common.smk"
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
@@ -15,4 +18,12 @@ include: "rules/lulu.smk"
 rule all:
     input:
         expand("results/{prog}/{rundir}/asv_clusters.tsv",
-            prog = ["dbotu3", "lulu", "opticlust", "swarm"], rundir = config["rundir"])
+            rundir = config["rundir"], prog = config["software"])
+
+rule collate:
+    input:
+        expand("results/{{prog}}/{{rundir}}/{tax}/asv_clusters.tsv", tax=taxa)
+    output:
+        "results/{prog}/{rundir}/asv_clusters.tsv"
+    script:
+        "scripts/common.py"
