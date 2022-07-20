@@ -142,7 +142,7 @@ def filter_seqs(sm):
     tax = sm.wildcards.tax
     split_rank = sm.params.split_rank
     dataf = taxdf.loc[taxdf[split_rank] == tax]
-    filtered_ids = write_total(total_counts, sm.output.total_counts, dataf.index)
+    filtered_ids = write_total(total_counts, sm.params.total_counts, dataf.index)
     filtered_ids = write_fasta(sm.input.fasta[0], sm.params.fasta, filtered_ids)
     with gzip.open(sm.params.counts, 'wt') as fhout:
         _ = sum_counts(sm.input.counts[0], fhout=fhout, sum_counts=False, ids=filtered_ids)
