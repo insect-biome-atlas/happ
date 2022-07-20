@@ -40,10 +40,10 @@ rule reformat_distmat:
     input:
         "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz"
     output:
-        "results/vsearch/{rundir}/{tax}/asv_seqs.dist.reformat.gz"
+        out = "results/vsearch/{rundir}/{tax}/asv_seqs.dist.reformat.gz"
     params:
-        out = "$TMPDIR/{rundir}/{tax}/asv_seqs.dist.reformat.gz",
-        tmpdir = "$TMPDIR/{rundir}/{tax}"
+        out = "$TMPDIR/{rundir}_{tax}_reformat_distmat/asv_seqs.dist.reformat.gz",
+        tmpdir = "$TMPDIR/{rundir}_{tax}_reformat_distmat"
     script:
         "../scripts/opticlust_utils.py"
 

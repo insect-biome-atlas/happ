@@ -55,8 +55,8 @@ def reformat_distmat(sm):
             line = line.rstrip()
             asv1, asv2, p = line.split("\t")
             fhout.write(f"{asv1}\t{asv2}\t{(100 - float(p)) / 100}\n")
-    shutil.move(sm.params.out, sm.output[0])
-    os.removedirs(sm.params.tmpdir)
+    shutil.move(sm.params.out, sm.output.out)
+    shutil.rmtree(sm.params.tmpdir)
 
 
 def main(sm):

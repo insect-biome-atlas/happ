@@ -4,6 +4,7 @@ from Bio.SeqIO import parse
 import pandas as pd
 import gzip
 import os
+import shutil
 
 
 def read_taxa(config):
@@ -135,15 +136,20 @@ def filter_seqs(sm):
     :param sm:
     :return:
     """
+    os.makedirs(sm.params.tmpdir, exist_ok=True)
     total_counts = sum_counts(sm.input.counts[0])
     taxdf = pd.read_csv(sm.input.tax[0], sep="\t", index_col=0, header=0)
     tax = sm.wildcards.tax
     split_rank = sm.params.split_rank
     dataf = taxdf.loc[taxdf[split_rank] == tax]
     filtered_ids = write_total(total_counts, sm.output.total_counts, dataf.index)
-    filtered_ids = write_fasta(sm.input.fasta[0], sm.output.fasta, filtered_ids)
-    with gzip.open(sm.output.counts, 'wt') as fhout:
+    filtered_ids = write_fasta(sm.input.fasta[0], sm.params.fasta, filtered_ids)
+    with gzip.open(sm.params.counts, 'wt') as fhout:
         _ = sum_counts(sm.input.counts[0], fhout=fhout, sum_counts=False, ids=filtered_ids)
+    shutil.move(sm.params.total_counts, sm.output.total_counts)
+    shutil.move(sm.params.fasta, sm.output.fasta)
+    shutil.move(sm.params.counts, sm.output.counts)
+    shutil.rmtree(sm.params.tmpdir)
 
 
 def collate(sm):

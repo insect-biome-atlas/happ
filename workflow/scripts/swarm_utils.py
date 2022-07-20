@@ -14,6 +14,7 @@ def format_swarm(sm):
     :param sm:
     :return:
     """
+    os.makedirs(sm.params.tmpdir)
     counts = {}
     # Read total counts from input file
     with open(sm.input.counts, 'r') as fhin:
@@ -24,7 +25,7 @@ def format_swarm(sm):
             except ValueError:
                 continue
     # Open fasta file and append counts as its being read
-    with gzip.open(sm.input.fasta, 'rt') as fhin, gzip.open(sm.output.fasta, 'wt') as fhout:
+    with gzip.open(sm.input.fasta, 'rt') as fhin, gzip.open(sm.params.fasta, 'wt') as fhout:
         for record in parse(fhin, "fasta"):
             try:
                 new_rec = f"{record.id}_{counts[record.id]}"
@@ -32,6 +33,8 @@ def format_swarm(sm):
                 continue
             if counts[record.id] >0:
                 fhout.write(f">{new_rec}\n{record.seq}\n")
+    shutil.move(sm.params.fasta, sm.output.fasta)
+    shutil.rmtree(sm.params.tmpdir)
 
 
 def get_cluster_members(df):

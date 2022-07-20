@@ -12,7 +12,11 @@ rule filter_seqs:
         counts = "results/common/{rundir}/{tax}/asv_counts.tsv.gz",
         fasta = "results/common/{rundir}/{tax}/asv_seqs.fasta.gz"
     params:
-        split_rank = config["split_rank"]
+        split_rank = config["split_rank"],
+        tmpdir = "$TMPDIR/{rundir}_{tax}_filter_seqs",
+        total_counts = "$TMPDIR/{rundir}_{tax}_filter_seqs/total_counts.tsv",
+        counts = "$TMPDIR/{rundir}_{tax}_filter_seqs/asv_counts.tsv.gz",
+        fasta = "$TMPDIR/{rundir}_{tax}_filter_seqs/asv_seqs.fasta.gz"
     script:
         "../scripts/common.py"
 
