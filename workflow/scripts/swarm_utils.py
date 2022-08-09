@@ -14,7 +14,7 @@ def format_swarm(sm):
     :param sm:
     :return:
     """
-    os.makedirs(sm.params.tmpdir)
+    os.makedirs(sm.params.tmpdir, exist_ok=True)
     counts = {}
     # Read total counts from input file
     with open(sm.input.counts, 'r') as fhin:
@@ -54,7 +54,7 @@ def swarm2tab(sm):
                      names=["asv1", "asv2", "diffs", "cluster",
                             "cumulative_steps"])
     dataf = get_cluster_members(df)
-    os.makedirs(sm.params.tmpdir)
+    os.makedirs(sm.params.tmpdir, exist_ok=True)
     dataf.to_csv(sm.params.out, sep="\t")
     shutil.move(sm.params.out, sm.output[0])
     os.removedirs(sm.params.tmpdir)
