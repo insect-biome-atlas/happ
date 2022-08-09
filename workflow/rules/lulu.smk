@@ -1,8 +1,21 @@
 localrules:
     lulu
 
+rule download_lulu:
+    output:
+        src = "src/lulu/Functions.R"
+    log:
+        "logs/lulu/download_lulu.log"
+    params:
+        url = "https://raw.githubusercontent.com/tobiasgf/lulu/master/R/Functions.R"
+    shell:
+        """
+        curl -L -o {output.src} {params.url} > {log} 2>&1
+        """
+
 rule run_lulu:
     input:
+        src = rules.download_lulu.output.src,
         dist = "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
         counts = "results/common/{rundir}/{tax}/asv_counts.tsv.gz"
     output:

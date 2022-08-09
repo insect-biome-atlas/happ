@@ -3,12 +3,7 @@ log <- file(snakemake@log$progress, open="wt")
 sink(log)
 sink(log, type="message")
 
-if (!"lulu"%in%installed.packages()) {
-  library(devtools)
-  install_github("tobiasgf/lulu")
-}
-
-library(lulu)
+source(snakemake@input$src)
 
 tmp <- Sys.getenv("TMPDIR")
 tmpdir <- gsub(x=snakemake@params$tmpdir, pattern="^\\$TMPDIR", replacement=tmp)
