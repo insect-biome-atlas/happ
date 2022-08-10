@@ -1,5 +1,6 @@
 localrules:
     format_swarm,
+    swarm2tab,
     swarm
 
 rule format_swarm:

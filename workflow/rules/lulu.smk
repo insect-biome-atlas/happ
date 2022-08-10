@@ -1,5 +1,6 @@
 localrules:
-    lulu
+    lulu,
+    lulu2tab
 
 rule download_lulu:
     output:
