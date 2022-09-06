@@ -14,6 +14,8 @@ def dbotu32tab(sm):
         for i, line in enumerate(fhin):
             line = line.rstrip()
             asvs = line.rsplit()[1:]
+            if len(asvs) < 2:
+                continue
             for asv in asvs:
                 fhout.write(f"{asv}\tcluster{i}\n")
     shutil.move(sm.params.out, sm.output[0])
