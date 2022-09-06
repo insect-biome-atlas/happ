@@ -13,7 +13,8 @@ def dbotu32tab(sm):
         fhout.write("asv\tcluster\n")
         for i, line in enumerate(fhin):
             line = line.rstrip()
-            for asv in line.rsplit():
+            asvs = line.rsplit()[1:]
+            for asv in asvs:
                 fhout.write(f"{asv}\tcluster{i}\n")
     shutil.move(sm.params.out, sm.output[0])
     os.rmdir(sm.params.tmpdir)
