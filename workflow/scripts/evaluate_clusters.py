@@ -3,35 +3,103 @@
 import pandas as pd
 from argparse import ArgumentParser
 import sys
+from tqdm import tqdm
 
 
-def read_clustfiles(files):
-    clusters = {}
-    clust_num = 0
-    for file in files:
-        with open(file, 'r') as fhin:
-            file_clusters = {}
-            for i, line in enumerate(fhin):
-                if i == 0:
-                    continue
-                asv, cluster = line.rstrip().rsplit()
-                if cluster not in file_clusters.keys():
-                    clust_num += 1
-                    cluster_name = f"cluster{clust_num}"
-                    file_clusters[cluster] = cluster_name
-                else:
-                    cluster_name = file_clusters[cluster]
-                clusters[asv] = cluster_name
-    return pd.DataFrame(clusters, index=["cluster"]).T
+def read_asv_clusters(files):
+    """
+    Read cluster files
+    """
+    res = pd.DataFrame()
+    for f in files:
+        _ = pd.read_csv(f, sep="\t", index_col=0, dtype=str)
+        _ = _.groupby(level=0).first()
+        #cl_size = _.groupby("cluster").size()
+        #_ = _.loc[_["cluster"].isin(cl_size.loc[cl_size>1].index)]
+        res = pd.concat([_, res])
+    return res
 
+
+def merge_cluster_df(clustdf, taxdf):
+    """
+    Merge cluster dataframe with taxonomy
+    """
+    dataf = pd.merge(clustdf, taxdf, left_index=True, right_index=True)
+    dataf["cluster_Family"] = dataf["cluster"] + dataf["Family"]
+    return dataf
+
+
+def pairs(df):
+    """
+    Return all possible pairs from given dataframe
+    """
+    N = float(df.shape[0])
+    return N*(N-1)/2
+
+
+def truepos(res, rank):
+    """
+    Take dataframe as input and groupby rank, then
+    """
+    return res.groupby(rank).apply(pairs)
+
+
+def falseNegatives(df, cluster_col, rank):
+    """
+    Iterates each unique label (e.g. species) and calculates how many that should
+    be clustered but are not
+    """
+    cl_rank_size = pd.DataFrame(df.groupby([cluster_col, rank]).size()).reset_index()
+    FN = 0
+    for doc in tqdm(cl_rank_size[rank].unique(), desc="finding false negatives",
+                    ncols=10, dynamic_ncols=True, unit=f" {rank}"):
+        items = list(cl_rank_size.loc[cl_rank_size[rank]==doc, 0].items())
+        for i, item in enumerate(items):
+            FN+=item[1]*sum([x[1] for x in items[i+1:]])
+    return FN
+
+
+def precision_recall(df, cluster_col, rank):
+    """
+    Calculates true positives, false positives, false negatives and returns
+    precision and recall
+    """
+    totalPositives = sum(df.groupby(cluster_col).apply(pairs))
+    sys.stdout.write(f"Total positives {totalPositives}\n")
+    TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum()
+    sys.stdout.write(f"True positives {TP}\n")
+    FP = totalPositives-TP
+    sys.stdout.write(f"False positives {FP}\n")
+    #totalNegatives = pairs(df) - totalPositives
+    FN = falseNegatives(df, cluster_col, rank)
+    sys.stdout.write(f"True positives {TP}\n")
+    #TN = totalNegatives - FN
+    precision = float(TP)/(TP+FP)
+    recall = float(TP)/(TP+FN)
+    return precision, recall
 
 
 def main(args):
-    taxdf = pd.read_csv(args.taxfile, sep="\t", header=0, index_col=0)
-    clustdf = read_clustfiles(args.clustfiles)
-    merged = pd.merge(clustdf, taxdf, left_index=True, right_index=True)
-    nunique = merged.groupby("cluster").nunique()
-    nunique.to_csv(sys.stdout, sep="\t")
+    # Read taxonomies
+    asv_taxa = pd.read_csv(args.taxfile, sep="\t",
+                           index_col=0)
+    sys.stderr.write(f"#{asv_taxa.shape[0]} ASV taxonomies loaded\n")
+    # Remove ASVs without assignments for args.rank
+    sys.stderr.write(f"#Removing ASVs without assignments for {args.rank}\n")
+    asv_taxa = asv_taxa.loc[(~asv_taxa[args.rank].str.contains('_X+$')) & (
+        ~asv_taxa[args.rank].str.startswith("unclassified."))]
+    sys.stderr.write(f"#{asv_taxa.shape[0]} ASVs remaining\n")
+    # Read cluster files
+    sys.stderr.write(f"#Loading cluster results from {len(args.clustfiles)} files\n")
+    clustdf = read_asv_clusters(args.clustfiles)
+    # Merge with taxonomies
+    sys.stderr.write("#Merging with taxonomic assignments\n")
+    clustdf = merge_cluster_df(clustdf, asv_taxa)
+    sys.stderr.write(f"#{clustdf.shape[0]} ASVs remaining after merging\n")
+    if clustdf.shape[0] == 0:
+        sys.exit("Not enough data to evaluate\n")
+    precision, recall = precision_recall(clustdf, "cluster_Family", args.rank)
+    sys.stdout.write(f"precision\t{precision}\nrecall\t{recall}\n")
 
 
 if __name__ == "__main__":
@@ -42,5 +110,7 @@ if __name__ == "__main__":
                         help="Cluster membership file. Should be tab-separated,"
                              " have a header, and contain ASV ids in the first column and "
                              "cluster name in second column")
+    parser.add_argument("--rank", type=str, default="Species",
+                        help="Evaluate clusters against a 'true' cluster rank")
     args = parser.parse_args()
     main(args)
