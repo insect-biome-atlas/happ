@@ -38,14 +38,10 @@ def format_swarm(sm):
 
 
 def get_cluster_members(df):
-    dataf = pd.DataFrame()
-    for col in ["asv1", "asv2"]:
-        _ = df.groupby([col, "cluster"]).first().reset_index().loc[:,
-            [col, "cluster"]]
-        _.columns = ["asv", "cluster"]
-        dataf = pd.concat([dataf, _])
+    d = df.set_index("asv1")["cluster"].to_dict()
+    d.update(df.set_index("asv2")["cluster"].to_dict())
+    dataf = pd.DataFrame(d, index=["cluster"]).T
     dataf["cluster"] = [f"cluster{x}" for x in dataf["cluster"]]
-    dataf.set_index("asv", inplace=True)
     return dataf
 
 
