@@ -65,7 +65,7 @@ rule precision_recall:
     log:
         "logs/{tool}/{rundir}/precision_recall.log"
     params:
-        src = "../scripts/evaluate_clusters.py",
+        src = "workflow/scripts/evaluate_clusters.py",
         eval_rank = config["evaluation_rank"]
     shell:
         """
