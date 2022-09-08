@@ -13,9 +13,9 @@ def read_asv_clusters(files):
     res = pd.DataFrame()
     for f in files:
         _ = pd.read_csv(f, sep="\t", index_col=0, dtype=str)
+        # Only take first ASV/cluster combination. There shouldn't be more
+        # than one but just in case
         _ = _.groupby(level=0).first()
-        #cl_size = _.groupby("cluster").size()
-        #_ = _.loc[_["cluster"].isin(cl_size.loc[cl_size>1].index)]
         res = pd.concat([_, res])
     return res
 
@@ -34,12 +34,12 @@ def pairs(df):
     Return all possible pairs from given dataframe
     """
     N = float(df.shape[0])
-    return N*(N-1)/2
+    return N * (N - 1) / 2
 
 
 def truepos(res, rank):
     """
-    Take dataframe as input and groupby rank, then
+    Take dataframe as input and groupby rank, then return number of pairs
     """
     return res.groupby(rank).apply(pairs)
 
@@ -49,13 +49,14 @@ def falseNegatives(df, cluster_col, rank):
     Iterates each unique label (e.g. species) and calculates how many that should
     be clustered but are not
     """
-    cl_rank_size = pd.DataFrame(df.groupby([cluster_col, rank]).size()).reset_index()
+    cl_rank_size = pd.DataFrame(
+        df.groupby([cluster_col, rank]).size()).reset_index()
     FN = 0
     for doc in tqdm(cl_rank_size[rank].unique(), desc="finding false negatives",
                     ncols=10, dynamic_ncols=True, unit=f" {rank}"):
-        items = list(cl_rank_size.loc[cl_rank_size[rank]==doc, 0].items())
+        items = list(cl_rank_size.loc[cl_rank_size[rank] == doc, 0].items())
         for i, item in enumerate(items):
-            FN+=item[1]*sum([x[1] for x in items[i+1:]])
+            FN += item[1] * sum([x[1] for x in items[i + 1:]])
     return FN
 
 
@@ -68,21 +69,20 @@ def precision_recall(df, cluster_col, rank):
     sys.stdout.write(f"Total positives {totalPositives}\n")
     TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum()
     sys.stdout.write(f"True positives {TP}\n")
-    FP = totalPositives-TP
+    FP = totalPositives - TP
     sys.stdout.write(f"False positives {FP}\n")
-    #totalNegatives = pairs(df) - totalPositives
+    # totalNegatives = pairs(df) - totalPositives
     FN = falseNegatives(df, cluster_col, rank)
     sys.stdout.write(f"True positives {TP}\n")
-    #TN = totalNegatives - FN
-    precision = float(TP)/(TP+FP)
-    recall = float(TP)/(TP+FN)
+    # TN = totalNegatives - FN
+    precision = float(TP) / (TP + FP)
+    recall = float(TP) / (TP + FN)
     return precision, recall
 
 
 def main(args):
     # Read taxonomies
-    asv_taxa = pd.read_csv(args.taxfile, sep="\t",
-                           index_col=0)
+    asv_taxa = pd.read_csv(args.taxfile, sep="\t", index_col=0)
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASV taxonomies loaded\n")
     # Remove ASVs without assignments for args.rank
     sys.stderr.write(f"#Removing ASVs without assignments for {args.rank}\n")
@@ -90,7 +90,8 @@ def main(args):
         ~asv_taxa[args.rank].str.startswith("unclassified."))]
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASVs remaining\n")
     # Read cluster files
-    sys.stderr.write(f"#Loading cluster results from {len(args.clustfiles)} files\n")
+    sys.stderr.write(
+        f"#Loading cluster results from {len(args.clustfiles)} files\n")
     clustdf = read_asv_clusters(args.clustfiles)
     # Merge with taxonomies
     sys.stderr.write("#Merging with taxonomic assignments\n")
