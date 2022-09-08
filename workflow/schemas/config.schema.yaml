@@ -13,6 +13,11 @@ properties:
     description: "rank at which to split input file prior to clustering"
     default: "Family"
     enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+  evaluation_rank:
+    type: string
+    description: "rank at which to evaluate clusters"
+    default: "Species"
+    enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
   software:
     type: array
     description: "clustering software to run"
