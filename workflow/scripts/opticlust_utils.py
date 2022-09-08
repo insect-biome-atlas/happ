@@ -8,16 +8,15 @@ import shutil
 def get_cluster_members(df):
     df.drop("numOtus", axis=1, inplace=True)
     d = {}
-    for cutoff in df.index:
-        d[cutoff] = {}
-        dataf = df.loc[cutoff]
-        # Skip empty
-        dataf = dataf.loc[dataf == dataf]
-        for otu in dataf.index:
-            asv_ids = dataf.loc[otu].split(",")
-            for asv_id in asv_ids:
-                d[cutoff][asv_id] = otu
-    dataf = pd.DataFrame(d)
+    cutoff = df.index[0]
+    dataf = df.loc[cutoff]
+    # Skip empty
+    dataf = dataf.loc[dataf == dataf]
+    for otu in dataf.index:
+        asv_ids = dataf.loc[otu].split(",")
+        for asv_id in asv_ids:
+            d[asv_id] = otu
+    dataf = pd.DataFrame(d, index=["cluster"]).T
     return dataf
 
 
