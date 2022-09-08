@@ -25,9 +25,8 @@ def get_cluster_members(df):
     asv2 	asv2 	cluster1
     """
     d = {}
-    dataf = df.loc[df.curated == "merged"].sort_values("rank")
     # Loop through dataframe and store parent rank
-    for row in dataf.iterrows():
+    for row in df.iterrows():
         asv, parent, rank = row[0], row[1]["parent_id"], row[1]["rank"]
         d[asv] = {"parent": parent}
         d[parent] = {"parent": parent}
