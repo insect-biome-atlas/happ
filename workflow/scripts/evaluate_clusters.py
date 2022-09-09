@@ -65,6 +65,10 @@ def precision_recall(df, cluster_col, rank):
     Calculates true positives, false positives, false negatives and returns
     precision and recall
     """
+    totalClusters = len(df[cluster_col].unique())
+    sys.stdout.write(f"Total clusters {totalClusters}\n")
+    totalTaxa = len(df[rank].unique())
+    sys.stdout.write(f"Total number of {rank} {totalTaxa}\n")
     totalPositives = sum(df.groupby(cluster_col).apply(pairs))
     sys.stdout.write(f"Total positives {totalPositives}\n")
     TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum()
