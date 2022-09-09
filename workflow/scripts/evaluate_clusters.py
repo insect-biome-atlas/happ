@@ -66,14 +66,14 @@ def precision_recall(df, cluster_col, rank):
     precision and recall
     """
     totalPositives = sum(df.groupby(cluster_col).apply(pairs))
-    sys.stdout.write(f"Total positives {totalPositives}\n")
+    sys.stdout.write(f"Total positives: {totalPositives}\n")
     TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum()
-    sys.stdout.write(f"True positives {TP}\n")
+    sys.stdout.write(f"True positives: {TP}\n")
     FP = totalPositives - TP
-    sys.stdout.write(f"False positives {FP}\n")
+    sys.stdout.write(f"False positives: {FP}\n")
     # totalNegatives = pairs(df) - totalPositives
     FN = falseNegatives(df, cluster_col, rank)
-    sys.stdout.write(f"True positives {TP}\n")
+    sys.stdout.write(f"False negatives: {FN}\n")
     # TN = totalNegatives - FN
     precision = float(TP) / (TP + FP)
     recall = float(TP) / (TP + FN)
