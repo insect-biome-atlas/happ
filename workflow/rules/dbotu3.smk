@@ -12,11 +12,11 @@ rule run_dbotu3:
         fasta = "results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
         counts = "results/common/{rundir}/{tax}/asv_counts.tsv.gz"
     output:
-        tsv = "results/dbotu3/{rundir}/{tax}/dbotu3.tsv",
-        memb = "results/dbotu3/{rundir}/{tax}/dbotu3.clusters.tsv"
+        tsv = "results/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.tsv",
+        memb = "results/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.clusters.tsv"
     log:
-        log = "logs/dbotu3/{rundir}/{tax}/dbotu3.log",
-        err = "logs/dbotu3/{rundir}/{tax}/dbotu3.err"
+        log = "logs/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.log",
+        err = "logs/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.err"
     params:
         dist = config["dbotu3"]["dist"],
         abund = config["dbotu3"]["abund"],
@@ -43,9 +43,9 @@ rule run_dbotu3:
 
 rule dbotu32tab:
     input:
-        rules.run_dbotu3.output.memb
+        "results/dbotu3/{rundir}}/{tax}/{run_name}/dbotu3.clusters.tsv"
     output:
-        "results/dbotu3/{rundir}/{tax}/asv_clusters.tsv"
+        "results/dbotu3/{rundir}/{tax}/{run_name}/asv_clusters.tsv"
     params:
         tmpdir = "$TMPDIR/dbotu3/{rundir}/{tax}",
         out = "$TMPDIR/dbotu3/{rundir}/{tax}/asv_clusters.tsv"
@@ -54,5 +54,5 @@ rule dbotu32tab:
 
 rule dbotu3:
     input:
-        expand("results/dbotu3/{rundir}/{tax}/asv_clusters.tsv",
-            rundir = config["rundir"], tax = taxa)
+        expand("results/dbotu3/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+            rundir = config["rundir"], tax = taxa, run_name = config["dbotu3"]["run_name"])

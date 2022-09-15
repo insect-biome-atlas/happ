@@ -28,9 +28,9 @@ rule run_swarm:
     input:
         rules.format_swarm.output.fasta
     output:
-        expand("results/swarm/{{rundir}}/{{tax}}/{f}", f = ["swarm_table.tsv", "swarm.txt"])
+        expand("results/swarm/{{rundir}}/{{tax}}/{{run_name}}/{f}", f = ["swarm_table.tsv", "swarm.txt"])
     log:
-        "logs/swarm/{rundir}/{tax}/swarm.log"
+        "logs/swarm/{rundir}/{tax}/swarm.{run_name}.log"
     params:
         fastidious = check_swarm_options(opt="fastidious"),
         differences = config["swarm"]["differences"],
@@ -58,9 +58,9 @@ rule run_swarm:
 
 rule swarm2tab:
     input:
-        "results/swarm/{rundir}/{tax}/swarm.txt"
+        "results/swarm/{rundir}/{tax}/{run_name}/swarm.txt"
     output:
-        "results/swarm/{rundir}/{tax}/asv_clusters.tsv"
+        "results/swarm/{rundir}/{tax}/{run_name}/asv_clusters.tsv"
     params:
         tmpdir = "$TMPDIR/swarm/{rundir}/{tax}",
         out = "$TMPDIR/swarm/{rundir}/{tax}/asv_clusters.tsv"
@@ -69,5 +69,5 @@ rule swarm2tab:
 
 rule swarm:
     input:
-        expand("results/swarm/{rundir}/{tax}/asv_clusters.tsv",
-            rundir = config["rundir"], tax=taxa)
+        expand("results/swarm/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+            rundir = config["rundir"], tax=taxa, run_name = config["swarm"]["run_name"])

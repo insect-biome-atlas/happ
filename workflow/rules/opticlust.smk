@@ -55,11 +55,11 @@ rule run_opticlust:
         dist = opticlust_input,
         total_counts = "results/common/{rundir}/{tax}/total_counts.tsv"
     output:
-        expand("results/opticlust/{{rundir}}/{{tax}}/asv_seqs.opti_mcc.{suff}",
+        expand("results/opticlust/{{rundir}}/{{tax}}/{{run_name}}/asv_seqs.opti_mcc.{suff}",
             suff = ["list", "sensspec", "steps"])
     log:
-        log = "logs/opticlust/{rundir}/{tax}/opticlust.log",
-        err = "logs/opticlust/{rundir}/{tax}/opticlust.err"
+        log = "logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.log",
+        err = "logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.err"
     shadow: "minimal"
     params:
         dist = "$TMPDIR/opticlust/{rundir}/{tax}/asv_seqs.dist",
@@ -94,9 +94,9 @@ rule opticlust2tab:
     Generate a membership style table of clusters
     """
     input:
-        "results/opticlust/{rundir}/{tax}/asv_seqs.opti_mcc.list"
+        "results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.list"
     output:
-        "results/opticlust/{rundir}/{tax}/asv_clusters.tsv"
+        "results/opticlust/{rundir}/{tax}/{run_name}/asv_clusters.tsv"
     params:
         tmpdir = "$TMPDIR/opticlust/{rundir}/{tax}",
         out = "$TMPDIR/opticlust/{rundir}/{tax}/asv_clusters.tsv"
@@ -105,5 +105,5 @@ rule opticlust2tab:
 
 rule opticlust:
     input:
-        expand("results/opticlust/{rundir}/{tax}/asv_clusters.tsv",
-            rundir = config["rundir"], tax=taxa)
+        expand("results/opticlust/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+            rundir = config["rundir"], tax=taxa, run_name = config["opticlust"]["run_name"])

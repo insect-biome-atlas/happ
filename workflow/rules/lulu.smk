@@ -20,11 +20,11 @@ rule run_lulu:
         dist = "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
         counts = "results/common/{rundir}/{tax}/asv_counts.tsv.gz"
     output:
-        curated_table = "results/lulu/{rundir}/{tax}/otus.tsv",
-        otu_map = "results/lulu/{rundir}/{tax}/otu_map.tsv"
+        curated_table = "results/lulu/{rundir}/{tax}/{run_name}/otus.tsv",
+        otu_map = "results/lulu/{rundir}/{tax}/{run_name}/otu_map.tsv"
     log:
-        progress = "logs/lulu/{rundir}/{tax}/progress.txt",
-        log = "logs/lulu/{rundir}/{tax}/log.txt"
+        progress = "logs/lulu/{rundir}/{tax}/{run_name}/progress.txt",
+        log = "logs/lulu/{rundir}/{tax}/{run_name}/log.txt"
     shadow: "minimal"
     conda: "../envs/lulu.yml"
     params:
