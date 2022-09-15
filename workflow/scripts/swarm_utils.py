@@ -37,19 +37,21 @@ def format_swarm(sm):
     shutil.rmtree(sm.params.tmpdir)
 
 
-def get_cluster_members(df):
-    d = df.set_index("asv1")["cluster"].to_dict()
-    d.update(df.set_index("asv2")["cluster"].to_dict())
-    dataf = pd.DataFrame(d, index=["cluster"]).T
-    dataf["cluster"] = [f"cluster{x}" for x in dataf["cluster"]]
-    return dataf
+def get_cluster_members(f):
+    col1 = []
+    col2 = []
+    with open(f, 'r') as fhin:
+        for i, line in enumerate(fhin, start=1):
+            items = line.rstrip().rsplit()
+            col1 += [x.split("_")[0] for x in items]
+            col2 += [f"cluster{i}"] * len(items)
+    dataf = pd.DataFrame(data={'ASV': col1, 'cluster': col2})
+    return dataf.set_index("ASV")
 
 
 def swarm2tab(sm):
-    df = pd.read_csv(sm.input[0], sep="\t", header=None,
-                     names=["asv1", "asv2", "diffs", "cluster",
-                            "cumulative_steps"])
-    dataf = get_cluster_members(df)
+    f = sm.input[0]
+    dataf = get_cluster_members(f)
     os.makedirs(sm.params.tmpdir, exist_ok=True)
     dataf.to_csv(sm.params.out, sep="\t")
     shutil.move(sm.params.out, sm.output[0])
