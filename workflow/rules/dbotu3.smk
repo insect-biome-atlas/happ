@@ -43,7 +43,7 @@ rule run_dbotu3:
 
 rule dbotu32tab:
     input:
-        "results/dbotu3/{rundir}}/{tax}/{run_name}/dbotu3.clusters.tsv"
+        "results/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.clusters.tsv"
     output:
         "results/dbotu3/{rundir}/{tax}/{run_name}/asv_clusters.tsv"
     params:
