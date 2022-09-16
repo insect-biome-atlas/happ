@@ -20,9 +20,18 @@ rule all:
         expand("results/{prog}/{rundir}/asv_clusters.tsv",
             rundir = config["rundir"], prog = config["software"])
 
+def cluster_files(wildcards, taxa):
+    input = []
+    rundir = config["rundir"]
+    for prog in config["software"]:
+        run_name = config[prog]["run_name"]
+        for tax in taxa:
+            input.append(f"results/{prog}/{rundir}/{tax}/{run_name}/asv_clusters.tsv")
+    return input
+
 rule collate:
     input:
-        expand("results/{{prog}}/{{rundir}}/{tax}/asv_clusters.tsv", tax=taxa)
+        cluster_files(taxa)
     output:
         "results/{prog}/{rundir}/asv_clusters.tsv"
     script:
