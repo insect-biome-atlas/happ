@@ -55,19 +55,3 @@ rule vsearch_align:
         gzip {params.dist}
         mv {params.dist}.gz {output.dist} 
         """
-
-rule precision_recall:
-    input:
-        clust_files = expand("results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv", tax = taxa),
-        tax = expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"])
-    output:
-        "results/{tool}/{rundir}/{run_name}/precision_recall.txt"
-    log:
-        "logs/{tool}/{rundir}/{run_name}/precision_recall.log"
-    params:
-        src = "workflow/scripts/evaluate_clusters.py",
-        eval_rank = config["evaluation_rank"]
-    shell:
-        """
-        python {params.src} {input.tax} {input.clust_files} --rank {params.eval_rank} > {output} 2>{log}
-        """

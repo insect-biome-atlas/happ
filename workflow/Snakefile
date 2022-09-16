@@ -15,24 +15,31 @@ include: "rules/dbotu3.smk"
 include: "rules/opticlust.smk"
 include: "rules/lulu.smk"
 
-rule all:
-    input:
-        expand("results/{prog}/{rundir}/asv_clusters.tsv",
-            rundir = config["rundir"], prog = config["software"])
 
 def cluster_files(wildcards):
     input = []
     rundir = config["rundir"]
     for prog in config["software"]:
         run_name = config[prog]["run_name"]
-        for tax in taxa:
-            input.append(f"results/{prog}/{rundir}/{tax}/{run_name}/asv_clusters.tsv")
+        input.append(f"results/{prog}/{rundir}/{run_name}/precision_recall.txt")
     return input
 
 rule collate:
     input:
         cluster_files
+
+rule precision_recall:
+    input:
+        clust_files = expand("results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv", tax = taxa),
+        tax = expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"])
     output:
-        "results/{prog}/{rundir}/asv_clusters.tsv"
-    script:
-        "scripts/common.py"
+        "results/{tool}/{rundir}/{run_name}/precision_recall.txt"
+    log:
+        "logs/{tool}/{rundir}/{run_name}/precision_recall.log"
+    params:
+        src = "workflow/scripts/evaluate_clusters.py",
+        eval_rank = config["evaluation_rank"]
+    shell:
+        """
+        python {params.src} {input.tax} {input.clust_files} --rank {params.eval_rank} > {output} 2>{log}
+        """
