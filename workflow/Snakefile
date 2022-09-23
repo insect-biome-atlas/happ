@@ -15,6 +15,9 @@ include: "rules/dbotu3.smk"
 include: "rules/opticlust.smk"
 include: "rules/lulu.smk"
 
+localrules:
+    precision_recall,
+    collate
 
 def cluster_files(wildcards):
     input = []
