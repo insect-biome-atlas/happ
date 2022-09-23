@@ -27,9 +27,42 @@ def cluster_files(wildcards):
         input.append(f"results/{prog}/{rundir}/{run_name}/precision_recall.txt")
     return input
 
+def log_files(wildcards):
+    input = []
+    rundir = config["rundir"]
+    for prog in config["software"]:
+        run_name = config[prog]["run_name"]
+        input.append(f"logs/{tool}/{rundir}/{run_name}/precision_recall.log")
+    return input
+
+
 rule collate:
     input:
-        cluster_files
+        txt = cluster_files,
+        log = log_files
+    output:
+        expand("results/stats/{rundir}/{run_name}.tsv", rundir = config["rundir"], run_name = config["run_nam"])
+    run:
+        stats = {}
+        for f in input.txt:
+            tool = f.split("/")[1]
+            with open(f, 'r') as fhin:
+                items = {}
+                for i, line in enumerate(fhin):
+                    items[i] = line.rstrip().split(" ")[-1]
+                stats[tool] = {'clusters': items[0], 'species': items[1],
+                               'precision': items[6], 'recall': items[7]}
+        for f in input.log:
+            tool = f.split("/")[1]
+            with open(f, 'r') as fhin:
+                for line in fhin:
+                    line = line.rstrip()
+                    if line.endswith("ASVs remaining after merging"):
+                        stats[tool]['ASVs'] = line.split(" ")[0].lstrip("#")
+        df = pd.DataFrame(stats).T
+        df.to_csv(output[0], sep="\t")
+
+
 
 rule precision_recall:
     input:
