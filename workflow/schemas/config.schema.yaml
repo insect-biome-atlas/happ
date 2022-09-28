@@ -33,7 +33,27 @@ properties:
       fastidious: True
       boundary: 3
       threads: 10
+      match-reward: 5
+      mismatch-penalty: 4
+      gap-opening-penalty: 12
+      gap-extension-penalty: 4
     properties:
+      match-reward:
+        type: integer
+        description: "reward for a nucleotide match"
+        default: 5
+      mismatch-penalty:
+        type: integer
+        description: "penalty for a nucleotide mismatch"
+        default: 4
+      gap-opening-penalty:
+        type: integer
+        description: "penalty for a gap opening"
+        default: 12
+      gap-extension-penalty:
+        type: integer
+        description: "penalty for extending a gap"
+        default: 4
       differences:
         type: integer
         description: "maximum number of differences allowed between two amplicons"
