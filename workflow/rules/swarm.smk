@@ -34,7 +34,7 @@ rule run_swarm:
     params:
         fastidious = check_swarm_options(opt="fastidious"),
         differences = config["swarm"]["differences"],
-        boundary = config["swarm"]["boundary"],
+        boundary = f"-b {config['swarm']['boundary']}" if config["swarm"]["boundary"] >0 else "",
         no_otu_breaking = check_swarm_options(opt="no-otu-breaking"),
         tmpdir = "$TMPDIR/swarm/{rundir}/{tax}",
         fasta = "$TMPDIR/swarm/{rundir}/{tax}/reformat.fasta",
@@ -44,12 +44,12 @@ rule run_swarm:
     threads: config["swarm"]["threads"]
     conda: "../envs/swarm.yml"
     resources:
-        runtime = 60 * 24 * 10
+        runtime = 60 * 24
     shell:
         """
         mkdir -p {params.tmpdir}
         gunzip -c {input} > {params.fasta}
-        swarm {params.fastidious} {params.no_otu_breaking} -d {params.differences} -b {params.boundary} \
+        swarm {params.fastidious} {params.no_otu_breaking} -d {params.differences}  \
             {params.fasta} -o {params.txt} -i {params.tsv} -t {threads} > {log} 2>&1
         mv {params.txt} {params.outdir}
         mv {params.tsv} {params.outdir}
