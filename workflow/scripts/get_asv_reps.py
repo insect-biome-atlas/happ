@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import sys
 from Bio.SeqIO import parse
+import tqdm
 
 
 def calc_counts(counts, method):
@@ -41,8 +42,8 @@ def get_seqs(seqsfile, reps, ranks, rank):
             continue
         rank_name = row[rank]
         lineage = ";".join([x for x in row.loc[ranks]])
-        desc = f"{lineage} {record.id}"
-        header = f">{rank_name} {desc}"
+        desc = f"{lineage}"
+        header = f">{record.id} {desc}"
         if rank_name not in seqs.keys():
             seqs[rank_name] = {"recid": header, "seq": record.seq}
         else:
