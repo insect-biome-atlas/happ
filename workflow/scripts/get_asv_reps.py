@@ -21,8 +21,14 @@ def calc_counts(counts, method):
     return asv_counts
 
 
-def get_rep(df, method):
-    return df.loc[df[method] == df.max()[method]]
+def get_reps(df, method, rank):
+    reps = pd.DataFrame()
+    for rank_name in tqdm.tqdm(
+        df[rank].unique(), unit=" taxa", total=len(df[rank].unique()), ncols=50
+    ):
+        rows = df.loc[df[rank] == rank_name]
+        reps = pd.concat([reps, rows.loc[rows[method] == rows.max()[method]]])
+    return reps
 
 
 def filter_taxa(taxa, rank):
@@ -74,13 +80,11 @@ def main(args):
     counts.index.name = "ASV"
     asv_counts = calc_counts(counts, method=args.method)
     dataframe = pd.merge(filtered, asv_counts, left_index=True, right_index=True)
-    reps = dataframe.groupby(args.rank).apply(get_rep, method=args.method)
-    reps = reps.drop(args.rank, axis=1).reset_index()
+    reps = get_reps(dataframe, args.method, args.rank)
     rep_size = reps.groupby(args.rank).size()
     sys.stderr.write(
         f"{rep_size.loc[rep_size>1].shape[0]} {args.rank} reps with >1 ASV\n"
     )
-    reps.set_index("ASV", inplace=True)
     seqs = get_seqs(args.seqs, reps, ranks, args.rank)
     write_seqs(seqs, args.outfile)
 
