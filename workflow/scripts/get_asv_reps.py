@@ -9,9 +9,9 @@ import tqdm
 from subprocess import check_output
 
 
-def read_counts(f, method):
+def read_counts(f, method, ids):
     l = check_output(["wc", "-l", f])
-    lines = int(l.decode().lstrip(" ").split(" ")[0])-1
+    lines = int(l.decode().lstrip(" ").split(" ")[0]) - 1
     if method == "sum":
         func = np.sum
     elif method == "median":
@@ -26,6 +26,8 @@ def read_counts(f, method):
             line = line.rstrip()
             items = line.split("\t")
             asv = items[0]
+            if asv not in ids:
+                continue
             v = func([int(x) for x in items[1:]])
             d[asv] = v
     return pd.DataFrame(d, index=[method]).T
@@ -90,7 +92,7 @@ def main(args):
     sys.stderr.write(
         f"Reading countsfile {args.counts} and calculating abundance of ASVs using {args.method} across samples\n"
     )
-    counts = read_counts(args.counts, args.method)
+    counts = read_counts(args.counts, args.method, list(filtered.index))
     counts.index.name = "ASV"
     dataframe = pd.merge(filtered, counts, left_index=True, right_index=True)
     sys.stderr.write(f"Finding representatives for rank {args.rank}\n")
