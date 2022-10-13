@@ -105,7 +105,7 @@ if __name__ == "__main__":
         "--method",
         type=str,
         choices=["sum", "median", "mean"],
-        default="median",
+        default="sum",
         help="Method to select representative base on counts. Defaults to 'sum' across samples",
     )
     args = parser.parse_args()
