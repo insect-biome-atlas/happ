@@ -41,7 +41,7 @@ def filter_taxa(taxa, rank):
 
 def get_seqs(seqsfile, reps, ranks, rank):
     seqs = {}
-    for record in parse(seqsfile, "fasta"):
+    for record in tqdm.tqdm(parse(seqsfile, "fasta"), unit=" records", ncols=50):
         try:
             row = reps.loc[record.id]
         except KeyError:
@@ -72,19 +72,27 @@ def write_seqs(seqs, outfile):
 
 
 def main(args):
+    sys.stderr.write(f"Reading taxfile {args.taxa}\n")
     taxa = pd.read_csv(args.taxa, index_col=0, sep="\t")
+    sys.stderr.write(f"Read {taxa.shape[0]} records\n")
     taxa.index.name = "ASV"
     ranks = list(taxa.columns)
+    sys.stderr.write(f"Filtering taxonomy to remove unassigned\n")
     filtered = filter_taxa(taxa, args.rank)
+    sys.stderr.write(f"{filtered.shape[0]} records remaining\n")
+    sys.stderr.write(f"Reading countsfile {args.counts}\n")
     counts = pd.read_csv(args.counts, index_col=0, sep="\t")
     counts.index.name = "ASV"
+    sys.stderr.write(f"Calculating abundance of ASVs using {args.method} across samples\n")
     asv_counts = calc_counts(counts, method=args.method)
     dataframe = pd.merge(filtered, asv_counts, left_index=True, right_index=True)
+    sys.stderr.write(f"Finding representatives for rank {args.rank}\n")
     reps = get_reps(dataframe, args.method, args.rank)
     rep_size = reps.groupby(args.rank).size()
     sys.stderr.write(
         f"{rep_size.loc[rep_size>1].shape[0]} {args.rank} reps with >1 ASV\n"
     )
+    sys.stderr.write(f"Reading sequences from {args.seqs}\n")
     seqs = get_seqs(args.seqs, reps, ranks, args.rank)
     write_seqs(seqs, args.outfile)
 
