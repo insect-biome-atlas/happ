@@ -6,9 +6,12 @@ import numpy as np
 import sys
 from Bio.SeqIO import parse
 import tqdm
+from subprocess import check_output
 
 
 def read_counts(f, method):
+    l = check_output(["wc", "-l", f])
+    lines = int(l.decode().lstrip(" ").split(" ")[0])-1
     if method == "sum":
         func = np.sum
     elif method == "median":
@@ -17,7 +20,7 @@ def read_counts(f, method):
         func = np.mean
     d = {}
     with open(f, "r") as fhin:
-        for i, line in enumerate(tqdm.tqdm(fhin, unit=" lines", ncols=50)):
+        for i, line in enumerate(tqdm.tqdm(fhin, unit=" lines", ncols=50, total=lines)):
             if i == 0:
                 continue
             line = line.rstrip()
