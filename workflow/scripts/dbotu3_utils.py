@@ -9,7 +9,7 @@ def dbotu32tab(sm):
     Creates a mapping table of asv -> cluster
     """
     os.makedirs(sm.params.tmpdir, exist_ok=True)
-    with open(sm.input[0], 'r') as fhin, open(sm.params.out, 'w') as fhout:
+    with open(sm.input[0], "r") as fhin, open(sm.params.out, "w") as fhout:
         fhout.write("asv\tcluster\n")
         for i, line in enumerate(fhin):
             line = line.rstrip()
@@ -21,9 +21,9 @@ def dbotu32tab(sm):
 
 
 def main(sm):
-    toolbox = {'dbotu32tab': dbotu32tab}
+    toolbox = {"dbotu32tab": dbotu32tab}
     toolbox[sm.rule](sm)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(snakemake)

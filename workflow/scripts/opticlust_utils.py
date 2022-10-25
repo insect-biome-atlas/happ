@@ -47,9 +47,9 @@ def reformat_distmat(sm):
 
     """
     import gzip as gz
+
     os.makedirs(sm.params.tmpdir, exist_ok=True)
-    with gz.open(sm.input[0], 'rt') as fhin, gz.open(sm.params.out,
-                                                     'wt') as fhout:
+    with gz.open(sm.input[0], "rt") as fhin, gz.open(sm.params.out, "wt") as fhout:
         for line in fhin:
             line = line.rstrip()
             asv1, asv2, p = line.split("\t")
@@ -59,10 +59,9 @@ def reformat_distmat(sm):
 
 
 def main(sm):
-    toolbox = {'reformat_distmat': reformat_distmat,
-               'opticlust2tab': opticlust2tab}
+    toolbox = {"reformat_distmat": reformat_distmat, "opticlust2tab": opticlust2tab}
     toolbox[sm.rule](sm)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(snakemake)

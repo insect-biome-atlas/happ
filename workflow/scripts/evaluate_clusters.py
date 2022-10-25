@@ -49,14 +49,18 @@ def falseNegatives(df, cluster_col, rank):
     Iterates each unique label (e.g. species) and calculates how many that should
     be clustered but are not
     """
-    cl_rank_size = pd.DataFrame(
-        df.groupby([cluster_col, rank]).size()).reset_index()
+    cl_rank_size = pd.DataFrame(df.groupby([cluster_col, rank]).size()).reset_index()
     FN = 0
-    for doc in tqdm(cl_rank_size[rank].unique(), desc="finding false negatives",
-                    ncols=10, dynamic_ncols=True, unit=f" {rank}"):
+    for doc in tqdm(
+        cl_rank_size[rank].unique(),
+        desc="finding false negatives",
+        ncols=10,
+        dynamic_ncols=True,
+        unit=f" {rank}",
+    ):
         items = list(cl_rank_size.loc[cl_rank_size[rank] == doc, 0].items())
         for i, item in enumerate(items):
-            FN += item[1] * sum([x[1] for x in items[i + 1:]])
+            FN += item[1] * sum([x[1] for x in items[i + 1 :]])
     return FN
 
 
@@ -90,12 +94,13 @@ def main(args):
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASV taxonomies loaded\n")
     # Remove ASVs without assignments for args.rank
     sys.stderr.write(f"#Removing ASVs without assignments for {args.rank}\n")
-    asv_taxa = asv_taxa.loc[(~asv_taxa[args.rank].str.contains('_X+$')) & (
-        ~asv_taxa[args.rank].str.startswith("unclassified."))]
+    asv_taxa = asv_taxa.loc[
+        (~asv_taxa[args.rank].str.contains("_X+$"))
+        & (~asv_taxa[args.rank].str.startswith("unclassified."))
+    ]
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASVs remaining\n")
     # Read cluster files
-    sys.stderr.write(
-        f"#Loading cluster results from {len(args.clustfiles)} files\n")
+    sys.stderr.write(f"#Loading cluster results from {len(args.clustfiles)} files\n")
     clustdf = read_asv_clusters(args.clustfiles)
     # Merge with taxonomies
     sys.stderr.write("#Merging with taxonomic assignments\n")
@@ -109,13 +114,22 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("taxfile", type=str,
-                        help="File with taxonomic assignments for ASVs")
-    parser.add_argument("clustfiles", type=str, nargs="+",
-                        help="Cluster membership file. Should be tab-separated,"
-                             " have a header, and contain ASV ids in the first column and "
-                             "cluster name in second column")
-    parser.add_argument("--rank", type=str, default="Species",
-                        help="Evaluate clusters against a 'true' cluster rank")
+    parser.add_argument(
+        "taxfile", type=str, help="File with taxonomic assignments for ASVs"
+    )
+    parser.add_argument(
+        "clustfiles",
+        type=str,
+        nargs="+",
+        help="Cluster membership file. Should be tab-separated,"
+        " have a header, and contain ASV ids in the first column and "
+        "cluster name in second column",
+    )
+    parser.add_argument(
+        "--rank",
+        type=str,
+        default="Species",
+        help="Evaluate clusters against a 'true' cluster rank",
+    )
     args = parser.parse_args()
     main(args)
