@@ -41,7 +41,7 @@ rule collate:
         txt = cluster_files,
         log = log_files
     output:
-        expand("results/stats/{rundir}/{run_name}.tsv", rundir = config["rundir"], run_name = config["run_nam"])
+        expand("results/stats/{rundir}/{run_name}.tsv", rundir = config["rundir"], run_name = config["run_name"])
     run:
         stats = {}
         for f in input.txt:
