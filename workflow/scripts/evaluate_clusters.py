@@ -24,7 +24,7 @@ def merge_cluster_df(clustdf, taxdf):
     """
     Merge cluster dataframe with taxonomy
     """
-    dataf = pd.merge(clustdf, taxdf, left_index=True, right_index=True)
+    dataf = pd.merge(clustdf, taxdf, left_index=True, right_index=True, how="inner")
     dataf["cluster_Family"] = dataf["cluster"] + dataf["Family"]
     return dataf
 
