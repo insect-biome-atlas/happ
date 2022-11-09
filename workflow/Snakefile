@@ -4,24 +4,31 @@ from scripts.common import read_taxa
 
 validate(config, schema="schemas/config.schema.yaml", set_default=True)
 taxa = read_taxa(config)
+
+
 wildcard_constraints:
-    prog = "(swarm|opticlust|dbotu3|lulu)",
-    taxa = taxa,
-    rundir = config["rundir"]
+    prog="(swarm|opticlust|dbotu3|lulu)",
+    taxa=taxa,
+    rundir=config["rundir"],
+
 
 container: "docker://continuumio/miniconda3:4.11.0"
+
+
 include: "rules/common.smk"
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
 include: "rules/opticlust.smk"
 include: "rules/lulu.smk"
 
+
 localrules:
     all,
     precision_recall,
     evaluate,
     merge_cluster_tables,
-    write_asv_reps
+    write_asv_reps,
+
 
 def cluster_files(wildcards):
     input = []
@@ -31,6 +38,7 @@ def cluster_files(wildcards):
         input.append(f"results/{prog}/{rundir}/{run_name}/precision_recall.txt")
     return input
 
+
 def log_files(wildcards):
     input = []
     rundir = config["rundir"]
@@ -39,93 +47,109 @@ def log_files(wildcards):
         input.append(f"logs/{prog}/{rundir}/{run_name}/precision_recall.log")
     return input
 
+
 rule all:
     input:
-        expand("results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
-            tool = config["software"], rundir = config["rundir"],
-            run_name = config["run_name"])
+        expand(
+            "results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
+            tool=config["software"],
+            rundir=config["rundir"],
+            run_name=config["run_name"],
+        ),
 
 
 rule evaluate:
     input:
-        txt = cluster_files,
-        log = log_files
+        txt=cluster_files,
+        log=log_files,
     output:
-        expand("results/stats/{rundir}/{run_name}.tsv", rundir = config["rundir"], run_name = config["run_name"])
+        expand(
+            "results/stats/{rundir}/{run_name}.tsv",
+            rundir=config["rundir"],
+            run_name=config["run_name"],
+        ),
     run:
         import pandas as pd
+
         stats = {}
         for f in input.txt:
             tool = f.split("/")[1]
-            with open(f, 'r') as fhin:
+            with open(f, "r") as fhin:
                 items = {}
                 for i, line in enumerate(fhin):
                     items[i] = line.rstrip().split(" ")[-1]
-                stats[tool] = {'clusters': items[0], 'species': items[1],
-                               'precision': items[6].split("\t")[-1], 'recall': items[7].split("\t")[-1]}
+                stats[tool] = {
+                    "clusters": items[0],
+                    "species": items[1],
+                    "precision": items[6].split("\t")[-1],
+                    "recall": items[7].split("\t")[-1],
+                }
         for f in input.log:
             tool = f.split("/")[1]
-            with open(f, 'r') as fhin:
+            with open(f, "r") as fhin:
                 for line in fhin:
                     line = line.rstrip()
                     if line.endswith("ASVs remaining after merging"):
-                        stats[tool]['ASVs'] = line.split(" ")[0].lstrip("#")
+                        stats[tool]["ASVs"] = line.split(" ")[0].lstrip("#")
         df = pd.DataFrame(stats).T
         df.to_csv(output[0], sep="\t")
 
 
-
 rule precision_recall:
     input:
-        clust_files = expand("results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv", tax = taxa),
-        tax = expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"])
+        clust_files=expand(
+            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv", tax=taxa
+        ),
+        tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
     output:
-        "results/{tool}/{rundir}/{run_name}/precision_recall.txt"
+        "results/{tool}/{rundir}/{run_name}/precision_recall.txt",
     log:
-        "logs/{tool}/{rundir}/{run_name}/precision_recall.log"
+        "logs/{tool}/{rundir}/{run_name}/precision_recall.log",
     params:
-        src = "workflow/scripts/evaluate_clusters.py",
-        eval_rank = config["evaluation_rank"]
+        src="workflow/scripts/evaluate_clusters.py",
+        eval_rank=config["evaluation_rank"],
     shell:
         """
         python {params.src} {input.tax} {input.clust_files} --rank {params.eval_rank} > {output} 2>{log}
         """
 
+
 def merge_asv_cluster_files(input):
     df = pd.DataFrame()
     for f in input:
         tax = f.split("/")[-3]
-        _df = pd.read_csv(f,sep="\t",index_col=0)
+        _df = pd.read_csv(f, sep="\t", index_col=0)
         _df.columns = ["cluster"]
         _df.index.name = "ASV"
         _df["cluster"] = [f"{tax}_{x}" for x in _df["cluster"]]
         df = pd.concat([df, _df])
     return df
 
+
 rule merge_cluster_tables:
     output:
         "results/{tool}/{rundir}/{run_name}/asv_clusters.tsv",
     input:
-        expand("results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv",
-            tax=taxa)
+        expand(
+            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv", tax=taxa
+        ),
     run:
         df = merge_asv_cluster_files(input)
         df.to_csv(output[0], sep="\t")
 
+
 rule write_asv_reps:
     output:
-        "results/{tool}/{rundir}/{run_name}/asv_reps.fasta"
+        "results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
     log:
-        "logs/{tool}/{rundir}/{run_name}/write_asv_reps.log"
+        "logs/{tool}/{rundir}/{run_name}/write_asv_reps.log",
     input:
-        taxa = rules.merge_cluster_tables.output[0],
-        counts = expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
-        seqs = expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"])
+        taxa=rules.merge_cluster_tables.output[0],
+        counts=expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
+        seqs=expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"]),
     params:
-        src="workflow/scripts/get_asv_reps.py"
+        src="workflow/scripts/get_asv_reps.py",
     shell:
         """
         python {params.src} --rank cluster {input.taxa} {input.counts} {input.seqs} > {output} 2>{log}
         """
-
-
