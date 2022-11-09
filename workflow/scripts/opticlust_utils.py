@@ -21,9 +21,9 @@ def get_cluster_members(df):
 
 
 def write_asvs(input, output):
-    with open(input, 'r') as fhin, open(output, 'w') as fhout:
+    with open(input, "r") as fhin, open(output, "w") as fhout:
         for i, line in enumerate(fhin):
-            if i==0:
+            if i == 0:
                 fhout.write("\tcluster\n")
                 continue
             asv = line.rstrip()
@@ -36,7 +36,7 @@ def opticlust2tab(sm):
     Transform opticlust cluster membership file (*.list) to a table
     that is easier to work with
     """
-    with open(sm.input[0], 'r') as fhin:
+    with open(sm.input[0], "r") as fhin:
         line = fhin.readline().rstrip()
     if line == "No results":
         write_asvs(sm.input[0], sm.output[0])

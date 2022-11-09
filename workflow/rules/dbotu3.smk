@@ -1,6 +1,7 @@
 localrules:
     dbotu3,
-    dbotu32tab
+    dbotu32tab,
+
 
 rule run_dbotu3:
     """
@@ -9,27 +10,27 @@ rule run_dbotu3:
     sequences are > 0
     """
     input:
-        fasta = "results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
-        counts = "results/common/{rundir}/{tax}/asv_counts.tsv.gz"
+        fasta="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
+        counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
     output:
-        tsv = "results/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.tsv",
-        memb = "results/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.clusters.tsv"
+        tsv="results/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.tsv",
+        memb="results/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.clusters.tsv",
     log:
-        log = "logs/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.log",
-        err = "logs/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.err"
+        log="logs/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.log",
+        err="logs/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.err",
     params:
-        dist = config["dbotu3"]["dist"],
-        abund = config["dbotu3"]["abund"],
-        pval = config["dbotu3"]["pval"],
-        tmpdir = "$TMPDIR/dbotu3/{rundir}/{tax}",
-        fasta = "$TMPDIR/dbotu3/{rundir}/{tax}/asv_seqs.fasta",
-        counts = "$TMPDIR/dbotu3/{rundir}/{tax}/asv_counts.tsv",
-        tsv = "$TMPDIR/dbotu3/{rundir}/{tax}/dbotu3.tsv",
-        memb = "$TMPDIR/dbotu3/{rundir}/{tax}/dbotu3.clusters.tsv"
-    conda: "../envs/dbotu3.yml"
+        dist=config["dbotu3"]["dist"],
+        abund=config["dbotu3"]["abund"],
+        pval=config["dbotu3"]["pval"],
+        tmpdir="$TMPDIR/dbotu3/{rundir}/{tax}",
+        fasta="$TMPDIR/dbotu3/{rundir}/{tax}/asv_seqs.fasta",
+        counts="$TMPDIR/dbotu3/{rundir}/{tax}/asv_counts.tsv",
+        tsv="$TMPDIR/dbotu3/{rundir}/{tax}/dbotu3.tsv",
+        memb="$TMPDIR/dbotu3/{rundir}/{tax}/dbotu3.clusters.tsv",
+    conda:
+        "../envs/dbotu3.yml"
     resources:
         runtime = 60 * 24
-    threads: 20
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -42,18 +43,24 @@ rule run_dbotu3:
         rm -rf {params.tmpdir}
         """
 
+
 rule dbotu32tab:
     input:
-        "results/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.clusters.tsv"
+        "results/dbotu3/{rundir}/{tax}/{run_name}/dbotu3.clusters.tsv",
     output:
-        "results/dbotu3/{rundir}/{tax}/{run_name}/asv_clusters.tsv"
+        "results/dbotu3/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir = "$TMPDIR/dbotu3/{rundir}/{tax}",
-        out = "$TMPDIR/dbotu3/{rundir}/{tax}/asv_clusters.tsv"
+        tmpdir="$TMPDIR/dbotu3/{rundir}/{tax}",
+        out="$TMPDIR/dbotu3/{rundir}/{tax}/asv_clusters.tsv",
     script:
         "../scripts/dbotu3_utils.py"
 
+
 rule dbotu3:
     input:
-        expand("results/dbotu3/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
-            rundir = config["rundir"], tax = taxa, run_name = config["dbotu3"]["run_name"])
+        expand(
+            "results/dbotu3/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+            rundir=config["rundir"],
+            tax=taxa,
+            run_name=config["dbotu3"]["run_name"],
+        ),
