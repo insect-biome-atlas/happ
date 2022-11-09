@@ -95,16 +95,19 @@ def merge_asv_cluster_files(input):
 
 rule merge_cluster_tables:
     output:
-        "results/{tool}/{rundir}/asv_clusters.tsv",
+        "results/{tool}/{rundir}/{run_name}/asv_clusters.tsv",
     input:
-        expand("results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv")
+        expand("results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv",
+            tax=taxa)
     run:
         df = merge_asv_cluster_files(input)
         df.to_csv(output[0], sep="\t")
 
 rule write_asv_reps:
     output:
-        "results/{tool}/{rundir}/asv_reps.tsv"
+        "results/{tool}/{rundir}/{run_name}/asv_reps.fasta"
+    log:
+        "logs/{tool}/{rundir}/{run_name}/write_asv_reps.log"
     input:
         taxa = rules.merge_cluster_tables.output[0],
         counts = expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
@@ -113,7 +116,7 @@ rule write_asv_reps:
         src="workflow/scripts/get_asv_reps.py"
     shell:
         """
-        python {params.src} --rank cluster {input.taxa} {input.count} {input.seqs} > {output}
+        python {params.src} --rank cluster {input.taxa} {input.counts} {input.seqs} > {output} 2>{log}
         """
 
 
