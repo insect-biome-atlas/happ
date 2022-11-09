@@ -38,8 +38,14 @@ def log_files(wildcards):
         input.append(f"logs/{prog}/{rundir}/{run_name}/precision_recall.log")
     return input
 
+rule all:
+    input:
+        expand("results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
+            tool = config["software"], rundir = config["rundir"],
+            run_name = config["run_name"])
 
-rule collate:
+
+rule evaluate:
     input:
         txt = cluster_files,
         log = log_files
