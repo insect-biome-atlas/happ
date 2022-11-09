@@ -17,8 +17,9 @@ include: "rules/opticlust.smk"
 include: "rules/lulu.smk"
 
 localrules:
+    all,
     precision_recall,
-    collate,
+    evaluate,
     merge_cluster_tables,
     write_asv_reps
 
