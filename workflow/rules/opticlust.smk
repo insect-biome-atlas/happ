@@ -55,8 +55,9 @@ rule run_opticlust:
         dist = opticlust_input,
         total_counts = "results/common/{rundir}/{tax}/total_counts.tsv"
     output:
-        expand("results/opticlust/{{rundir}}/{{tax}}/{{run_name}}/asv_seqs.opti_mcc.{suff}",
-            suff = ["list", "sensspec", "steps"])
+        list="results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.list",
+        sens="results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.sensspec",
+        step="results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.steps",
     log:
         log = "logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.log",
         err = "logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.err"
@@ -77,16 +78,24 @@ rule run_opticlust:
         runtime = 60 * 24 * 10
     shell:
         """
-        mkdir -p {params.tmpdir}
-        gunzip -c {input.dist} > {params.dist} 
-        cp {input.total_counts} {params.counts}
-        mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log});\
-            cluster(column={params.dist}, count={params.counts}, \
-            method=opti, delta={params.delta}, cutoff={params.cutoff}, initialize={params.initialize},\
-            precision={params.precision})" >{log.err} 2>&1
-        rm {params.dist} {params.counts}
-        mv {params.tmpdir}/* {params.outdir}
-        rm -rf {params.tmpdir}
+        # Check lines in input
+        lines=$(gunzip -c {input.dist} | head | wc -l)
+        if [ $lines -lt 1 ]; then
+            echo "No results" > {output.list}
+            cut -f1 {input.total_counts} | egrep -v "^Representative_Sequence" >> {output.list}
+            touch {output.sens} {output.step} {log.log} {log.err}
+        else
+            mkdir -p {params.tmpdir}
+            gunzip -c {input.dist} > {params.dist} 
+            cp {input.total_counts} {params.counts}
+            mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log});\
+                cluster(column={params.dist}, count={params.counts}, \
+                method=opti, delta={params.delta}, cutoff={params.cutoff}, initialize={params.initialize},\
+                precision={params.precision})" >{log.err} 2>&1
+            rm {params.dist} {params.counts}
+            mv {params.tmpdir}/* {params.outdir}
+            rm -rf {params.tmpdir}
+        fi
         """
 
 rule opticlust2tab:
