@@ -1,3 +1,4 @@
+import pandas as pd
 from snakemake.utils import validate
 from scripts.common import read_taxa
 
@@ -79,3 +80,39 @@ rule precision_recall:
         """
         python {params.src} {input.tax} {input.clust_files} --rank {params.eval_rank} > {output} 2>{log}
         """
+
+def merge_asv_cluster_files(input):
+    df = pd.DataFrame()
+    for f in input:
+        tax = f.split("/")[-3]
+        _df = pd.read_csv(f,sep="\t",index_col=0)
+        _df.columns = ["cluster"]
+        _df.index.name = "ASV"
+        _df["cluster"] = [f"{tax}_{x}" for x in _df["cluster"]]
+        df = pd.concat([df, _df])
+    return df
+
+rule merge_cluster_tables:
+    output:
+        "results/{tool}/{rundir}/asv_clusters.tsv",
+    input:
+        expand("results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv")
+    run:
+        df = merge_asv_cluster_files(input)
+        df.to_csv(output[0], sep="\t")
+
+rule write_asv_reps:
+    output:
+        "results/{tool}/{rundir}/asv_reps.tsv"
+    input:
+        taxa = rules.merge_cluster_tables.output[0],
+        counts = expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
+        seqs = expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"])
+    params:
+        src="workflow/scripts/get_asv_reps.py"
+    shell:
+        """
+        python {params.src} --rank cluster {input.taxa} {input.count} {input.seqs} > {output}
+        """
+
+
