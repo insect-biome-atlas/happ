@@ -8,8 +8,9 @@ taxa = read_taxa(config)
 
 wildcard_constraints:
     prog="(swarm|opticlust|dbotu3|lulu)",
-    taxa=taxa,
+    tax="('|'.join(taxa))",
     rundir=config["rundir"],
+    run_name=config["run_name"]
 
 
 container: "docker://continuumio/miniconda3:4.11.0"
