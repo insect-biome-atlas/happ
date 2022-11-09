@@ -18,7 +18,9 @@ include: "rules/lulu.smk"
 
 localrules:
     precision_recall,
-    collate
+    collate,
+    merge_cluster_tables,
+    write_asv_reps
 
 def cluster_files(wildcards):
     input = []
