@@ -20,11 +20,27 @@ def get_cluster_members(df):
     return dataf
 
 
+def write_asvs(input, output):
+    with open(input, 'r') as fhin, open(output, 'w') as fhout:
+        for i, line in enumerate(fhin):
+            if i==0:
+                fhout.write("\tcluster\n")
+                continue
+            asv = line.rstrip()
+            fhout.write(f"{asv}\tOtu{i}\n")
+    return
+
+
 def opticlust2tab(sm):
     """
     Transform opticlust cluster membership file (*.list) to a table
     that is easier to work with
     """
+    with open(sm.input[0], 'r') as fhin:
+        line = fhin.readline().rstrip()
+    if line == "No results":
+        write_asvs(sm.input[0], sm.output[0])
+        return
     df = pd.read_csv(sm.input[0], sep="\t", index_col=0, header=0)
     dataf = get_cluster_members(df)
     os.makedirs(sm.params.tmpdir, exist_ok=True)
@@ -47,9 +63,9 @@ def reformat_distmat(sm):
 
     """
     import gzip as gz
+
     os.makedirs(sm.params.tmpdir, exist_ok=True)
-    with gz.open(sm.input[0], 'rt') as fhin, gz.open(sm.params.out,
-                                                     'wt') as fhout:
+    with gz.open(sm.input[0], "rt") as fhin, gz.open(sm.params.out, "wt") as fhout:
         for line in fhin:
             line = line.rstrip()
             asv1, asv2, p = line.split("\t")
@@ -59,10 +75,9 @@ def reformat_distmat(sm):
 
 
 def main(sm):
-    toolbox = {'reformat_distmat': reformat_distmat,
-               'opticlust2tab': opticlust2tab}
+    toolbox = {"reformat_distmat": reformat_distmat, "opticlust2tab": opticlust2tab}
     toolbox[sm.rule](sm)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(snakemake)

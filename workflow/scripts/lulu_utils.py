@@ -34,7 +34,12 @@ def get_cluster_members(df):
     dataf = pd.DataFrame(d).T
     dataf.index.name = "asv"
     # Create a dictionary with unique parent ids as keys and cluster ids as values
-    cluster_nums = dict(zip(dataf.parent.unique(), [f"cluster{i}" for i in range(0,len(dataf.parent.unique())+1)]))
+    cluster_nums = dict(
+        zip(
+            dataf.parent.unique(),
+            [f"cluster{i}" for i in range(0, len(dataf.parent.unique()) + 1)],
+        )
+    )
     # Make dictionary into a dataframe and merge with asv ids
     cluster_df = pd.DataFrame(cluster_nums, index=["cluster"]).T
     dataf = pd.merge(dataf, cluster_df, left_on="parent", right_index=True)
@@ -51,9 +56,9 @@ def lulu2tab(sm):
 
 
 def main(sm):
-    toolbox = {'lulu2tab': lulu2tab}
+    toolbox = {"lulu2tab": lulu2tab}
     toolbox[sm.rule](sm)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(snakemake)
