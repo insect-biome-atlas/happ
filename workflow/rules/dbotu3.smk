@@ -28,7 +28,8 @@ rule run_dbotu3:
         memb = "$TMPDIR/dbotu3/{rundir}/{tax}/dbotu3.clusters.tsv"
     conda: "../envs/dbotu3.yml"
     resources:
-        runtime = 60 * 24 * 10
+        runtime = 60 * 24
+    threads: 20
     shell:
         """
         mkdir -p {params.tmpdir}
