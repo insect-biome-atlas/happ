@@ -75,7 +75,7 @@ rule run_opticlust:
         "../envs/opticlust.yml"
     threads: config["opticlust"]["threads"]
     resources:
-        runtime = 60 * 24 * 10
+        runtime = 60 * 24
     shell:
         """
         # Check lines in input
