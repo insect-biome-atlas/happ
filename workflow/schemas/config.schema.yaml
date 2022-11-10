@@ -13,6 +13,11 @@ properties:
     description: "rank at which to split input file prior to clustering"
     default: "Family"
     enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+  rep_method:
+    type: string
+    description: "method to calculate representative for clusters"
+    default: "median"
+    enum: ["median", "mean", "sum"]
   evaluation_rank:
     type: string
     description: "rank at which to evaluate clusters"
