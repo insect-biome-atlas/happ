@@ -4,12 +4,22 @@ from argparse import ArgumentParser
 import pandas as pd
 import numpy as np
 import sys
+from os.path import splitext
 from Bio.SeqIO import parse
 import tqdm
 from subprocess import check_output
 
 
-def read_counts(f, method, ids):
+def normalize_row(vals, header, colsums):
+    return [
+        float(vals[i]) / float(colsums.loc[header[i]])
+        if colsums.loc[header[i]] > 0
+        else 0
+        for i in list(range(0, len(vals)))
+    ]
+
+
+def read_counts(f, method, ids, colsums=None):
     l = check_output(["wc", "-l", f])
     lines = int(l.decode().lstrip(" ").split(" ")[0]) - 1
     if method == "sum":
@@ -21,14 +31,18 @@ def read_counts(f, method, ids):
     d = {}
     with open(f, "r") as fhin:
         for i, line in enumerate(tqdm.tqdm(fhin, unit=" lines", ncols=50, total=lines)):
-            if i == 0:
-                continue
             line = line.rstrip()
             items = line.split("\t")
+            if i == 0:
+                header = items[1:]
+                continue
             asv = items[0]
             if asv not in ids:
                 continue
-            v = func([int(x) for x in items[1:]])
+            vals = [int(x) for x in items[1:]]
+            if colsums is not None:
+                vals = normalize_row(vals, header, colsums)
+            v = func(vals)
             d[asv] = v
     return pd.DataFrame(d, index=[method]).T
 
@@ -39,7 +53,8 @@ def get_reps(df, method, rank):
         df[rank].unique(), unit=" taxa", total=len(df[rank].unique()), ncols=50
     ):
         rows = df.loc[df[rank] == rank_name]
-        reps = pd.concat([reps, rows.loc[rows[method] == rows.max()[method]]])
+        _reps = rows.loc[rows[method] == rows.max()[method]].head(1)
+        reps = pd.concat([reps, _reps])
     return reps
 
 
@@ -80,19 +95,36 @@ def write_seqs(seqs, outfile):
             fhout.write(f"{d['recid']}\n{d['seq']}\n")
 
 
+def calc_colsum(f):
+    colsums = []
+    data = pd.read_csv(f, sep="\t", index_col=0, chunksize=100000)
+    for item in tqdm.tqdm(
+        data, unit=" chunks", ncols=50, desc="Reading counts file in chunks"
+    ):
+        colsums.append(item.sum(axis=0))
+    return sum(colsums)
+
+
 def main(args):
     sys.stderr.write(f"Reading taxfile {args.taxa}\n")
     taxa = pd.read_csv(args.taxa, index_col=0, sep="\t")
     sys.stderr.write(f"Read {taxa.shape[0]} records\n")
     taxa.index.name = "ASV"
     ranks = list(taxa.columns)
-    sys.stderr.write(f"Filtering taxonomy to remove unassigned\n")
-    filtered = filter_taxa(taxa, args.rank)
-    sys.stderr.write(f"{filtered.shape[0]} records remaining\n")
+    if args.no_unclassified:
+        sys.stderr.write(f"Filtering taxonomy to remove unassigned\n")
+        filtered = filter_taxa(taxa, args.rank)
+        sys.stderr.write(f"{filtered.shape[0]} records remaining\n")
+    else:
+        filtered = taxa
+    colsums = None
+    if args.normalize:
+        sys.stderr.write(f"Calculating column sums for normalization\n")
+        colsums = calc_colsum(args.counts)
     sys.stderr.write(
         f"Reading countsfile {args.counts} and calculating abundance of ASVs using {args.method} across samples\n"
     )
-    counts = read_counts(args.counts, args.method, list(filtered.index))
+    counts = read_counts(args.counts, args.method, list(filtered.index), colsums)
     counts.index.name = "ASV"
     dataframe = pd.merge(filtered, counts, left_index=True, right_index=True)
     sys.stderr.write(f"Finding representatives for rank {args.rank}\n")
@@ -101,6 +133,16 @@ def main(args):
     sys.stderr.write(
         f"{rep_size.loc[rep_size>1].shape[0]} {args.rank} reps with >1 ASV\n"
     )
+    if args.taxa_table:
+        sys.stderr.write(f"Adding additional taxonomic info from {args.taxa_table}\n")
+        extra_taxdf = pd.read_csv(args.taxa_table, sep="\t", index_col=0)
+        taxdf = pd.merge(dataframe, extra_taxdf, left_index=True, right_index=True)
+        taxdf = taxdf.assign(
+            representative=pd.Series([0] * taxdf.shape[0], index=taxdf.index)
+        )
+        taxdf.loc[reps.index, "representative"] = 1
+        taxaout = f"{splitext(args.outfile)[0]}.taxonomy.tsv"
+        taxdf.to_csv(taxaout, sep="\t")
     sys.stderr.write(f"Reading sequences from {args.seqs}\n")
     seqs = get_seqs(args.seqs, reps, ranks, args.rank)
     write_seqs(seqs, args.outfile)
@@ -114,10 +156,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("seqs", type=str, help="Sequence file for ASVs")
     parser.add_argument(
-        "-o",
-        "--outfile",
+        "outfile",
         type=str,
-        help="Write representatives to outfile. Defaults to stdout",
+        help="Write representatives to outfile",
     )
     parser.add_argument(
         "--rank", type=str, default="BOLD_bin", help="What level o group TAX ids"
@@ -128,6 +169,21 @@ if __name__ == "__main__":
         choices=["sum", "median", "mean"],
         default="median",
         help="Method to select representative base on counts. Defaults to 'sum' across samples",
+    )
+    parser.add_argument(
+        "--normalize",
+        action="store_true",
+        help="Normalize counts before applying method",
+    )
+    parser.add_argument(
+        "--no-unclassified",
+        action="store_true",
+        help="Remove ASVs marked as 'unclassified' or suffixed with '_X'",
+    )
+    parser.add_argument(
+        "--taxa-table",
+        type=str,
+        help="Additional taxonomy table to merge representatives with",
     )
     args = parser.parse_args()
     main(args)
