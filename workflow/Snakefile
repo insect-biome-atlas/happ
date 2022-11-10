@@ -142,6 +142,8 @@ rule merge_cluster_tables:
 rule calc_colsums:
     output:
         "results/common/{rundir}/colsums.tsv"
+    log:
+        "logs/common/{rundir}/calc_colsums.log"
     input:
         expand("data/{rundir}/asv_counts.tsv",rundir=config["rundir"]),
     run:
@@ -170,6 +172,7 @@ rule write_asv_reps:
         method=config["rep_method"]
     shell:
         """
-        python {params.src} --method {params.method} --prefix {wildcards.tax} --normalize --colsums {input.colsums} \
-            --rank cluster {input.taxa} {input.counts} {input.seqs} > {output} 2>{log}
+        python {params.src} --method {params.method} --prefix {wildcards.tax} --normalize \
+            --colsums {input.colsums} --taxa-table {input.extra_taxa} --rank cluster \
+            {input.taxa} {input.counts} {input.seqs} > {output} 2>{log}
         """
