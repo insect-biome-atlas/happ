@@ -179,4 +179,5 @@ rule write_asv_reps:
         python {params.src} --method {params.method} --prefix {wildcards.tax} --normalize \
             --colsums {input.colsums} --taxa-table {input.extra_taxa} --rank cluster \
             {input.taxa} {params.tmpdir}/counts.tsv {params.tmpdir}/seqs.fasta {output.fasta} 2>{log}
+        rm -rf {params.tmpdir}
         """
