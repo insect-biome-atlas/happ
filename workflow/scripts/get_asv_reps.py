@@ -113,6 +113,8 @@ def calc_colsum(f):
 def main(args):
     sys.stderr.write(f"Reading taxfile {args.taxa}\n")
     taxa = pd.read_csv(args.taxa, index_col=0, sep="\t")
+    if args.prefix:
+        taxa[args.rank] = [f"{args.prefix}_{x}" for x in taxa[args.rank]]
     sys.stderr.write(f"Read {taxa.shape[0]} records\n")
     taxa.index.name = "ASV"
     ranks = list(taxa.columns)
@@ -125,15 +127,11 @@ def main(args):
     colsums = None
     if args.normalize:
         if args.colsums:
-            sys.stderr.write(
-                f"Reading column sums from {args.colsums}\n"
-            )
+            sys.stderr.write(f"Reading column sums from {args.colsums}\n")
             colsums = pd.read_csv(args.colsums, sep="\t", index_col=0)
             colsums = colsums.squeeze()
         else:
-            sys.stderr.write(
-                f"Calculating column sums for normalization\n"
-            )
+            sys.stderr.write(f"Calculating column sums for normalization\n")
             colsums = calc_colsum(args.counts)
     sys.stderr.write(
         f"Reading countsfile {args.counts} and calculating abundance of ASVs using {args.method} across samples\n"
@@ -178,10 +176,7 @@ if __name__ == "__main__":
         "--rank", type=str, default="BOLD_bin", help="What level o group TAX ids"
     )
     parser.add_argument(
-        "--prefix",
-        type=str,
-        help="Prefix cluster name with string",
-        default=""
+        "--prefix", type=str, help="Prefix cluster name with string"
     )
     parser.add_argument(
         "--method",
@@ -198,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--colsums",
         type=str,
-        help="File with pre-calculated read count sums for samples"
+        help="File with pre-calculated read count sums for samples",
     )
     parser.add_argument(
         "--no-unclassified",
