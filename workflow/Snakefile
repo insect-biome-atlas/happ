@@ -7,7 +7,7 @@ taxa = read_taxa(config)
 
 wildcard_constraints:
     prog="(swarm|opticlust|dbotu3|lulu)",
-    tax="('|'.join(taxa))",
+    tax=f"({'|'.join(taxa)})",
     rundir=config["rundir"],
     run_name=config["run_name"]
 
@@ -23,7 +23,6 @@ if "opticlust" in config["software"]:
     include: "rules/opticlust.smk"
 if "lulu" in config["software"]:
     include: "rules/lulu.smk"
-print(taxa)
 
 localrules:
     all,
@@ -148,10 +147,11 @@ rule calc_colsums:
     run:
         import pandas as pd
         colsums = []
-        data = pd.read_csv(f,sep="\t",index_col=0,chunksize=100000)
+        data = pd.read_csv(input[0],sep="\t",index_col=0,chunksize=100000)
         for item in data:
             colsums.append(item.sum(axis=0))
-        colsums.to_csv()
+        colsums = sum(colsums)
+        colsums.to_csv(output[0], sep="\t")
 
 rule write_asv_reps:
     output:
