@@ -42,6 +42,7 @@ if "lulu" in config["software"]:
 localrules:
     all,
     precision_recall,
+    calc_colsums,
     evaluate,
     merge_rep_files,
     write_asv_reps,
