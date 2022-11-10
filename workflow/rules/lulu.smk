@@ -48,7 +48,7 @@ rule lulu2tab:
     input:
         rules.run_lulu.output.otu_map,
     output:
-        "results/lulu/{rundir}/{tax}/asv_clusters.tsv",
+        "results/lulu/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
     params:
         tmpdir="$TMPDIR/lulu/{rundir}/{tax}",
         out="$TMPDIR/lulu/{rundir}/{tax}/asv_clusters.tsv",
@@ -59,8 +59,9 @@ rule lulu2tab:
 rule lulu:
     input:
         expand(
-            "results/lulu/{rundir}/{tax}/{f}.tsv",
+            "results/lulu/{rundir}/{tax}/{run_name}/{f}.tsv",
             rundir=config["rundir"],
+            run_name=config["run_name"],
             f=["asv_clusters"],
             tax=taxa,
         ),

@@ -62,5 +62,5 @@ rule dbotu3:
             "results/dbotu3/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
             rundir=config["rundir"],
             tax=taxa,
-            run_name=config["dbotu3"]["run_name"],
+            run_name=config["run_name"],
         ),

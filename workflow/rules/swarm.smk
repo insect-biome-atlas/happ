@@ -89,5 +89,5 @@ rule swarm:
             "results/swarm/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
             rundir=config["rundir"],
             tax=taxa,
-            run_name=config["swarm"]["run_name"],
+            run_name=config["run_name"],
         ),
