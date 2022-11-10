@@ -3,6 +3,7 @@
 from argparse import ArgumentParser
 import pandas as pd
 import numpy as np
+import gzip as gz
 import sys
 from os.path import splitext
 from Bio.SeqIO import parse
@@ -29,7 +30,11 @@ def read_counts(f, method, ids, colsums=None):
     elif method == "mean":
         func = np.mean
     d = {}
-    with open(f, "r") as fhin:
+    if f.endswith(".gz"):
+        open_func = gz.open
+    else:
+        open_func = open
+    with open_func(f, "rt") as fhin:
         for i, line in enumerate(tqdm.tqdm(fhin, unit=" lines", ncols=50, total=lines)):
             line = line.rstrip()
             items = line.split("\t")
