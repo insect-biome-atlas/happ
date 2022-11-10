@@ -3,6 +3,7 @@
 from argparse import ArgumentParser
 import pandas as pd
 import numpy as np
+import gzip as gz
 import sys
 from os.path import splitext
 from Bio.SeqIO import parse
@@ -29,7 +30,11 @@ def read_counts(f, method, ids, colsums=None):
     elif method == "mean":
         func = np.mean
     d = {}
-    with open(f, "r") as fhin:
+    if f.endswith(".gz"):
+        open_func = gz.open
+    else:
+        open_func = open
+    with open_func(f, "rt") as fhin:
         for i, line in enumerate(tqdm.tqdm(fhin, unit=" lines", ncols=50, total=lines)):
             line = line.rstrip()
             items = line.split("\t")
@@ -108,6 +113,8 @@ def calc_colsum(f):
 def main(args):
     sys.stderr.write(f"Reading taxfile {args.taxa}\n")
     taxa = pd.read_csv(args.taxa, index_col=0, sep="\t")
+    if args.prefix:
+        taxa[args.rank] = [f"{args.prefix}_{x}" for x in taxa[args.rank]]
     sys.stderr.write(f"Read {taxa.shape[0]} records\n")
     taxa.index.name = "ASV"
     ranks = list(taxa.columns)
@@ -119,8 +126,13 @@ def main(args):
         filtered = taxa
     colsums = None
     if args.normalize:
-        sys.stderr.write(f"Calculating column sums for normalization\n")
-        colsums = calc_colsum(args.counts)
+        if args.colsums:
+            sys.stderr.write(f"Reading column sums from {args.colsums}\n")
+            colsums = pd.read_csv(args.colsums, sep="\t", index_col=0)
+            colsums = colsums.squeeze()
+        else:
+            sys.stderr.write(f"Calculating column sums for normalization\n")
+            colsums = calc_colsum(args.counts)
     sys.stderr.write(
         f"Reading countsfile {args.counts} and calculating abundance of ASVs using {args.method} across samples\n"
     )
@@ -164,6 +176,9 @@ if __name__ == "__main__":
         "--rank", type=str, default="BOLD_bin", help="What level o group TAX ids"
     )
     parser.add_argument(
+        "--prefix", type=str, help="Prefix cluster name with string"
+    )
+    parser.add_argument(
         "--method",
         type=str,
         choices=["sum", "median", "mean"],
@@ -174,6 +189,11 @@ if __name__ == "__main__":
         "--normalize",
         action="store_true",
         help="Normalize counts before applying method",
+    )
+    parser.add_argument(
+        "--colsums",
+        type=str,
+        help="File with pre-calculated read count sums for samples",
     )
     parser.add_argument(
         "--no-unclassified",

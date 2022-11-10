@@ -8,26 +8,43 @@ taxa = read_taxa(config)
 
 wildcard_constraints:
     prog="(swarm|opticlust|dbotu3|lulu)",
-    tax="('|'.join(taxa))",
+    tax=f"({'|'.join(taxa)})",
     rundir=config["rundir"],
-    run_name=config["run_name"]
+    run_name=config["run_name"],
 
 
 container: "docker://continuumio/miniconda3:4.11.0"
 
 
 include: "rules/common.smk"
-include: "rules/swarm.smk"
-include: "rules/dbotu3.smk"
-include: "rules/opticlust.smk"
-include: "rules/lulu.smk"
+
+
+if "swarm" in config["software"]:
+
+    include: "rules/swarm.smk"
+
+
+if "dbotu3" in config["software"]:
+
+    include: "rules/dbotu3.smk"
+
+
+if "opticlust" in config["software"]:
+
+    include: "rules/opticlust.smk"
+
+
+if "lulu" in config["software"]:
+
+    include: "rules/lulu.smk"
 
 
 localrules:
     all,
     precision_recall,
+    calc_colsums,
     evaluate,
-    merge_cluster_tables,
+    merge_rep_files,
     write_asv_reps,
 
 
@@ -35,7 +52,7 @@ def cluster_files(wildcards):
     input = []
     rundir = config["rundir"]
     for prog in config["software"]:
-        run_name = config[prog]["run_name"]
+        run_name = config["run_name"]
         input.append(f"results/{prog}/{rundir}/{run_name}/precision_recall.txt")
     return input
 
@@ -44,7 +61,7 @@ def log_files(wildcards):
     input = []
     rundir = config["rundir"]
     for prog in config["software"]:
-        run_name = config[prog]["run_name"]
+        run_name = config["run_name"]
         input.append(f"logs/{prog}/{rundir}/{run_name}/precision_recall.log")
     return input
 
@@ -52,10 +69,11 @@ def log_files(wildcards):
 rule all:
     input:
         expand(
-            "results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
+            "results/{tool}/{rundir}/{run_name}/asv_reps.{suff}",
             tool=config["software"],
             rundir=config["rundir"],
             run_name=config["run_name"],
+            suff=["taxonomy.tsv", "fasta"],
         ),
 
 
@@ -115,42 +133,68 @@ rule precision_recall:
         """
 
 
-def merge_asv_cluster_files(input):
-    df = pd.DataFrame()
-    for f in input:
-        tax = f.split("/")[-3]
-        _df = pd.read_csv(f, sep="\t", index_col=0)
-        _df.columns = ["cluster"]
-        _df.index.name = "ASV"
-        _df["cluster"] = [f"{tax}_{x}" for x in _df["cluster"]]
-        df = pd.concat([df, _df])
-    return df
-
-
-rule merge_cluster_tables:
+rule calc_colsums:
     output:
-        "results/{tool}/{rundir}/{run_name}/asv_clusters.tsv",
+        "results/common/{rundir}/colsums.tsv",
+    log:
+        "logs/common/{rundir}/calc_colsums.log",
     input:
-        expand(
-            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv", tax=taxa
-        ),
+        expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
     run:
-        df = merge_asv_cluster_files(input)
-        df.to_csv(output[0], sep="\t")
+        import pandas as pd
+
+        colsums = []
+        data = pd.read_csv(input[0], sep="\t", index_col=0, chunksize=100000)
+        for item in data:
+            colsums.append(item.sum(axis=0))
+        colsums = sum(colsums)
+        colsums.to_csv(output[0], sep="\t")
 
 
 rule write_asv_reps:
     output:
-        "results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
+        fasta="results/{tool}/{rundir}/{tax}/{run_name}/asv_reps.fasta",
+        taxinfo="results/{tool}/{rundir}/{tax}/{run_name}/asv_reps.taxonomy.tsv",
     log:
-        "logs/{tool}/{rundir}/{run_name}/write_asv_reps.log",
+        "logs/{tool}/{rundir}/{tax}/{run_name}/write_asv_reps.log",
     input:
-        taxa=rules.merge_cluster_tables.output[0],
-        counts=expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
-        seqs=expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"]),
+        taxa="results/{tool}/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+        extra_taxa=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
+        counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
+        colsums=rules.calc_colsums.output[0],
+        seqs="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
     params:
         src="workflow/scripts/get_asv_reps.py",
+        method=config["rep_method"],
+        tmpdir="$TMPDIR/{tool}.{rundir}.{tax}.{run_name}.write_asv_reps",
     shell:
         """
-        python {params.src} --rank cluster {input.taxa} {input.counts} {input.seqs} > {output} 2>{log}
+        mkdir -p {params.tmpdir}
+        gunzip -c {input.counts} > {params.tmpdir}/counts.tsv
+        gunzip -c {input.seqs} > {params.tmpdir}/seqs.fasta
+        python {params.src} --method {params.method} --prefix {wildcards.tax} --normalize \
+            --colsums {input.colsums} --taxa-table {input.extra_taxa} --rank cluster \
+            {input.taxa} {params.tmpdir}/counts.tsv {params.tmpdir}/seqs.fasta {output.fasta} 2>{log}
+        rm -rf {params.tmpdir}
         """
+
+
+rule merge_rep_files:
+    output:
+        taxinfo="results/{tool}/{rundir}/{run_name}/asv_reps.taxonomy.tsv",
+        fasta="results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
+    input:
+        fasta=expand(
+            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.fasta", tax=taxa
+        ),
+        taxinfo=expand(
+            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
+            tax=taxa,
+        ),
+    run:
+        taxinfo = pd.DataFrame()
+        for f in input.taxinfo:
+            _df = pd.read_csv(f, sep="\t", index_col=0)
+            taxinfo = pd.concat([taxinfo, _df])
+        taxinfo.to_csv(output.taxinfo, sep="\t")
+        shell("cat {input.fasta} > {output.fasta}")

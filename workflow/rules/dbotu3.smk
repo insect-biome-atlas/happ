@@ -30,7 +30,7 @@ rule run_dbotu3:
     conda:
         "../envs/dbotu3.yml"
     resources:
-        runtime = 60 * 24
+        runtime=60 * 24,
     shell:
         """
         mkdir -p {params.tmpdir}
