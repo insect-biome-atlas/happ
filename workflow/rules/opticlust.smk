@@ -125,5 +125,5 @@ rule opticlust:
             "results/opticlust/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
             rundir=config["rundir"],
             tax=taxa,
-            run_name=config["opticlust"]["run_name"],
+            run_name=config["run_name"],
         ),
