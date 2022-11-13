@@ -7,7 +7,7 @@ taxa = read_taxa(config)
 
 
 wildcard_constraints:
-    prog="(swarm|opticlust|dbotu3|lulu)",
+    tool="(swarm|opticlust|dbotu3|lulu)",
     tax=f"({'|'.join(taxa)})",
     rundir=config["rundir"],
     run_name=config["run_name"],
@@ -51,18 +51,18 @@ localrules:
 def cluster_files(wildcards):
     input = []
     rundir = config["rundir"]
-    for prog in config["software"]:
+    for tool in config["software"]:
         run_name = config["run_name"]
-        input.append(f"results/{prog}/{rundir}/{run_name}/precision_recall.txt")
+        input.append(f"results/{tool}/{rundir}/{run_name}/precision_recall.txt")
     return input
 
 
 def log_files(wildcards):
     input = []
     rundir = config["rundir"]
-    for prog in config["software"]:
+    for tool in config["software"]:
         run_name = config["run_name"]
-        input.append(f"logs/{prog}/{rundir}/{run_name}/precision_recall.log")
+        input.append(f"logs/{tool}/{rundir}/{run_name}/precision_recall.log")
     return input
 
 
@@ -73,7 +73,7 @@ rule all:
             tool=config["software"],
             rundir=config["rundir"],
             run_name=config["run_name"],
-            suff=["taxonomy.tsv", "fasta"],
+            suff=["taxonomy.tsv", "fasta", "counts.tsv"],
         ),
 
 
@@ -179,10 +179,43 @@ rule write_asv_reps:
         """
 
 
+rule sum_rep_counts:
+    output:
+        "results/{tool}/{rundir}/{tax}/{run_name}/asv_reps.counts.tsv",
+    input:
+        taxinfo=rules.write_asv_reps.output.taxinfo,
+        counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
+    run:
+        import pandas as pd
+
+        taxdf = pd.read_csv(input.taxinfo, sep="\t", index_col=0)
+        countsdf = pd.read_csv(input.counts, sep="\t", index_col=0)
+        repdf = taxdf.loc[taxdf.representative == 1, ["cluster"]]
+        repdict = dict(zip(repdf["cluster"], repdf.index))
+        dataf = pd.merge(
+            taxdf.loc[:, ["cluster"]], countsdf, left_index=True, right_index=True
+        )
+        clustsum = dataf.groupby("cluster").sum()
+        clustsum.rename(index=repdict, inplace=True)
+        clustsum.to_csv(output[0], sep="\t")
+
+
+def merge_dataframes(input):
+    df = pd.DataFrame()
+    for i, f in enumerate(input):
+        _df = pd.read_csv(f, sep="\t", index_col=0)
+        if i == 0:
+            columns = _df.columns
+        _df = _df[columns]
+        df = pd.concat([df, _df])
+    return df
+
+
 rule merge_rep_files:
     output:
         taxinfo="results/{tool}/{rundir}/{run_name}/asv_reps.taxonomy.tsv",
         fasta="results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
+        counts="results/{tool}/{rundir}/{run_name}/asv_reps.counts.tsv",
     input:
         fasta=expand(
             "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.fasta", tax=taxa
@@ -191,10 +224,13 @@ rule merge_rep_files:
             "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
             tax=taxa,
         ),
+        counts=expand(
+            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.counts.tsv",
+            tax=taxa,
+        ),
     run:
-        taxinfo = pd.DataFrame()
-        for f in input.taxinfo:
-            _df = pd.read_csv(f, sep="\t", index_col=0)
-            taxinfo = pd.concat([taxinfo, _df])
+        taxinfo = merge_dataframes(input.taxinfo)
         taxinfo.to_csv(output.taxinfo, sep="\t")
+        countsdf = merge_dataframes(input.counts)
+        countsdf.to_csv(output.counts, sep="\t")
         shell("cat {input.fasta} > {output.fasta}")
