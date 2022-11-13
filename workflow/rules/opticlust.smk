@@ -68,9 +68,9 @@ rule run_opticlust:
     shadow:
         "minimal"
     params:
-        dist="$TMPDIR/opticlust/{rundir}/{tax}/asv_seqs.dist",
-        counts="$TMPDIR/opticlust/{rundir}/{tax}/counts.tsv",
-        tmpdir="$TMPDIR/opticlust/{rundir}/{tax}",
+        dist="$TMPDIR/opticlust.{rundir}.{tax}/asv_seqs.dist",
+        counts="$TMPDIR/opticlust.{rundir}.{tax}/counts.tsv",
+        tmpdir="$TMPDIR/opticlust.{rundir}.{tax}",
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         delta=config["opticlust"]["delta"],
         cutoff=config["opticlust"]["cutoff"],
@@ -85,20 +85,16 @@ rule run_opticlust:
         """
         # Check lines in input
         lines=$(gunzip -c {input.dist} | head | wc -l)
-        if [ $lines -lt 1 ]; then
+        if [ $lines -lt 1 ] ; then
             echo "No results" > {output.list}
             cut -f1 {input.total_counts} | egrep -v "^Representative_Sequence" >> {output.list}
             touch {output.sens} {output.step} {log.log} {log.err}
         else
-            mkdir -p {params.tmpdir}
+            mkdir -p {params.tmpdir} {params.outdir}
             gunzip -c {input.dist} > {params.dist} 
             cp {input.total_counts} {params.counts}
-            mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log});\
-                cluster(column={params.dist}, count={params.counts}, \
-                method=opti, delta={params.delta}, cutoff={params.cutoff}, initialize={params.initialize},\
-                precision={params.precision})" >{log.err} 2>&1
-            rm {params.dist} {params.counts}
-            mv {params.tmpdir}/* {params.outdir}
+            mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log});cluster(column={params.dist}, count={params.counts},method=opti, delta={params.delta}, cutoff={params.cutoff}, initialize={params.initialize},precision={params.precision})"
+            mv {params.tmpdir}/asv_seqs.opti_mcc.list {params.tmpdir}/asv_seqs.opti_mcc.sensspec {params.tmpdir}/asv_seqs.opti_mcc.steps {params.outdir}/
             rm -rf {params.tmpdir}
         fi
         """
