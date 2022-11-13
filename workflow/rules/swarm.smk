@@ -44,10 +44,10 @@ rule run_swarm:
         if config["swarm"]["boundary"] > 0
         else "",
         no_otu_breaking=check_swarm_options(opt="no-otu-breaking"),
-        match_reward=config["swarm"]["match-reward"],
-        mismatch_penalty=config["swarm"]["mismatch-penalty"],
-        gap_opening_penalty=config["swarm"]["gap-opening-penalty"],
-        gap_extension_penalty=config["swarm"]["gap-extension-penalty"],
+        match_reward=f"-m {config['swarm']['match-reward']}" if config["swarm"]["differences"]>1 else "",
+        mismatch_penalty=f"-p {config['swarm']['mismatch-penalty']}" if config["swarm"]["differences"]>1 else "",
+        gap_opening_penalty=f"-g {config['swarm']['gap-opening-penalty']}" if config["swarm"]["differences"]>1 else "",
+        gap_extension_penalty=f"-e {config['swarm']['gap-extension-penalty']}" if config["swarm"]["differences"]>1 else "",
         tmpdir="$TMPDIR/swarm/{rundir}/{tax}",
         fasta="$TMPDIR/swarm/{rundir}/{tax}/reformat.fasta",
         txt="$TMPDIR/swarm/{rundir}/{tax}/swarm.txt",
@@ -63,7 +63,7 @@ rule run_swarm:
         mkdir -p {params.tmpdir}
         gunzip -c {input} > {params.fasta}
         swarm {params.fastidious} {params.no_otu_breaking} -d {params.differences} {params.boundary} \
-            -m {params.match_reward} -p {params.mismatch_penalty} -g {params.gap_opening_penalty} -e {params.gap_extension_penalty} \
+            {params.match_reward} {params.mismatch_penalty} {params.gap_opening_penalty} {params.gap_extension_penalty} \
             {params.fasta} -o {params.txt} -i {params.tsv} -t {threads} > {log} 2>&1
         mv {params.txt} {params.outdir}
         mv {params.tsv} {params.outdir}
