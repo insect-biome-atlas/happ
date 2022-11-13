@@ -1,0 +1,6 @@
+rundir: "test"
+run_name: "testrun"
+software:
+  - "opticlust"
+  - "swarm"
+  - "dbotu3"

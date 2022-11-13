@@ -1,0 +1,7 @@
+keep-going: True
+use-conda: True
+printshellcmds: True
+local-cores: 1
+configfile: test/configfile.yml
+reason: True
+cores: 1
