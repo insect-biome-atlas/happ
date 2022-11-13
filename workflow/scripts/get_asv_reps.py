@@ -14,15 +14,22 @@ from subprocess import check_output
 def normalize_row(vals, header, colsums):
     return [
         float(vals[i]) / float(colsums.loc[header[i]])
-        if colsums.loc[header[i]] > 0
+        if colsums.loc[header[i]].values[0] > 0
         else 0
         for i in list(range(0, len(vals)))
     ]
 
 
-def read_counts(f, method, ids, colsums=None):
-    l = check_output(["wc", "-l", f])
+def check_lines(f):
+    if f.endswith(".gz"):
+        return None
+    command = ["wc","-l",f]
+    l = check_output(command)
     lines = int(l.decode().lstrip(" ").split(" ")[0]) - 1
+    return lines
+
+def read_counts(f, method, ids, colsums=None):
+    lines = check_lines(f)
     if method == "sum":
         func = np.sum
     elif method == "median":
@@ -129,7 +136,6 @@ def main(args):
         if args.colsums:
             sys.stderr.write(f"Reading column sums from {args.colsums}\n")
             colsums = pd.read_csv(args.colsums, sep="\t", index_col=0)
-            colsums = colsums.squeeze()
         else:
             sys.stderr.write(f"Calculating column sums for normalization\n")
             colsums = calc_colsum(args.counts)
