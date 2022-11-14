@@ -46,6 +46,7 @@ localrules:
     evaluate,
     merge_rep_files,
     write_asv_reps,
+    sum_rep_counts
 
 
 def cluster_files(wildcards):
