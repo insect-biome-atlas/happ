@@ -65,8 +65,7 @@ rule run_opticlust:
     log:
         log="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.log",
         err="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.err",
-    shadow:
-        "minimal"
+    shadow:"full"
     params:
         dist="$TMPDIR/opticlust.{rundir}.{tax}/asv_seqs.dist",
         counts="$TMPDIR/opticlust.{rundir}.{tax}/counts.tsv",
@@ -76,6 +75,7 @@ rule run_opticlust:
         cutoff=config["opticlust"]["cutoff"],
         initialize=config["opticlust"]["initialize"],
         precision=config["opticlust"]["precision"],
+        src="workflow/scripts/run_opticlust.py"
     conda:
         "../envs/opticlust.yml"
     threads: config["opticlust"]["threads"]
@@ -83,20 +83,13 @@ rule run_opticlust:
         runtime=60 * 24,
     shell:
         """
-        # Check lines in input
-        lines=$(gunzip -c {input.dist} | head | wc -l)
-        if [ $lines -lt 1 ] ; then
-            echo "No results" > {output.list}
-            cut -f1 {input.total_counts} | egrep -v "^Representative_Sequence" >> {output.list}
-            touch {output.sens} {output.step} {log.log} {log.err}
-        else
-            mkdir -p {params.tmpdir} {params.outdir}
-            gunzip -c {input.dist} > {params.dist} 
-            cp {input.total_counts} {params.counts}
-            mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log});cluster(column={params.dist}, count={params.counts},method=opti, delta={params.delta}, cutoff={params.cutoff}, initialize={params.initialize},precision={params.precision})"
-            mv {params.tmpdir}/asv_seqs.opti_mcc.list {params.tmpdir}/asv_seqs.opti_mcc.sensspec {params.tmpdir}/asv_seqs.opti_mcc.steps {params.outdir}/
-            rm -rf {params.tmpdir}
-        fi
+        mkdir -p {params.tmpdir} {params.outdir}
+        gunzip -c {input.dist} > {params.dist} 
+        cp {input.total_counts} {params.counts}
+        python {params.src} {params.dist} {params.counts} --outdir {params.outdir} \
+            --delta {params.delta} --initialize {params.initialize} --cutoff {params.cutoff} \
+            --precision {params.precision} > {log.log}
+        rm -rf {params.tmpdir}
         """
 
 
