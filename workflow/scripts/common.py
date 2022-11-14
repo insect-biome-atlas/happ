@@ -38,8 +38,8 @@ def read_taxa(config):
     # Count size of remaining taxa
     rank_size = dataf.groupby(split_rank).size()
     # Filter to taxa with at least 2 sequences
-    #filtered_taxa = list(rank_size.loc[rank_size > 1].index)
-    #dataf = dataf.loc[dataf[split_rank].isin(filtered_taxa)]
+    # filtered_taxa = list(rank_size.loc[rank_size > 1].index)
+    # dataf = dataf.loc[dataf[split_rank].isin(filtered_taxa)]
     taxa = list(dataf[split_rank].unique())
     if not os.path.exists(f"data/{rundir}/{split_rank}.txt"):
         with open(f"data/{rundir}/{split_rank}.txt", "w") as fhout:

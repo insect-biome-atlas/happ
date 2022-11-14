@@ -65,7 +65,8 @@ rule run_opticlust:
     log:
         log="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.log",
         err="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.err",
-    shadow:"full"
+    shadow:
+        "full"
     params:
         dist="$TMPDIR/opticlust.{rundir}.{tax}/asv_seqs.dist",
         counts="$TMPDIR/opticlust.{rundir}.{tax}/counts.tsv",
@@ -75,7 +76,7 @@ rule run_opticlust:
         cutoff=config["opticlust"]["cutoff"],
         initialize=config["opticlust"]["initialize"],
         precision=config["opticlust"]["precision"],
-        src="workflow/scripts/run_opticlust.py"
+        src="workflow/scripts/run_opticlust.py",
     conda:
         "../envs/opticlust.yml"
     threads: config["opticlust"]["threads"]

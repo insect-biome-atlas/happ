@@ -44,10 +44,18 @@ rule run_swarm:
         if config["swarm"]["boundary"] > 0
         else "",
         no_otu_breaking=check_swarm_options(opt="no-otu-breaking"),
-        match_reward=f"-m {config['swarm']['match-reward']}" if config["swarm"]["differences"]>1 else "",
-        mismatch_penalty=f"-p {config['swarm']['mismatch-penalty']}" if config["swarm"]["differences"]>1 else "",
-        gap_opening_penalty=f"-g {config['swarm']['gap-opening-penalty']}" if config["swarm"]["differences"]>1 else "",
-        gap_extension_penalty=f"-e {config['swarm']['gap-extension-penalty']}" if config["swarm"]["differences"]>1 else "",
+        match_reward=f"-m {config['swarm']['match-reward']}"
+        if config["swarm"]["differences"] > 1
+        else "",
+        mismatch_penalty=f"-p {config['swarm']['mismatch-penalty']}"
+        if config["swarm"]["differences"] > 1
+        else "",
+        gap_opening_penalty=f"-g {config['swarm']['gap-opening-penalty']}"
+        if config["swarm"]["differences"] > 1
+        else "",
+        gap_extension_penalty=f"-e {config['swarm']['gap-extension-penalty']}"
+        if config["swarm"]["differences"] > 1
+        else "",
         tmpdir="$TMPDIR/swarm/{rundir}/{tax}",
         fasta="$TMPDIR/swarm/{rundir}/{tax}/reformat.fasta",
         txt="$TMPDIR/swarm/{rundir}/{tax}/swarm.txt",

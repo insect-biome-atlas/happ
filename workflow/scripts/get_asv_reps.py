@@ -23,10 +23,11 @@ def normalize_row(vals, header, colsums):
 def check_lines(f):
     if f.endswith(".gz"):
         return None
-    command = ["wc","-l",f]
+    command = ["wc", "-l", f]
     l = check_output(command)
     lines = int(l.decode().lstrip(" ").split(" ")[0]) - 1
     return lines
+
 
 def read_counts(f, method, ids, colsums=None):
     lines = check_lines(f)
@@ -181,9 +182,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--rank", type=str, default="BOLD_bin", help="What level o group TAX ids"
     )
-    parser.add_argument(
-        "--prefix", type=str, help="Prefix cluster name with string"
-    )
+    parser.add_argument("--prefix", type=str, help="Prefix cluster name with string")
     parser.add_argument(
         "--method",
         type=str,
