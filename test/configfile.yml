@@ -4,3 +4,21 @@ software:
   - "opticlust"
   - "swarm"
   - "dbotu3"
+
+swarm:
+  threads: 4
+  differences: 23
+  no-otu-breaking: False
+  fastidious: False
+  boundary: 0
+dbotu3:
+  dist: 0.1
+  abund: 10.0
+  pval: 0.0005
+opticlust:
+  threads: 20
+  aligner: "vsearch"
+  delta: 0.0001
+  cutoff: 0.03
+  initialize: "singleton"
+  precision: 1000
