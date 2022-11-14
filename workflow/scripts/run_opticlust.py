@@ -8,26 +8,28 @@ from pathlib import Path
 def check_lines(f):
     command = ["wc", "-l", f]
     l = check_output(command)
-    lines = int(l.decode().lstrip(" ").split(" ")[0]) - 1
+    lines = int(l.decode().lstrip(" ").split(" ")[0])
     return lines
 
 
 def handle_empty(outdir, counts):
-    with open(f"{outdir}/asv_seqs.opti_mcc.list", "w") as fhout, open(counts, "r") as fhin:
+    with open(f"{outdir}/asv_seqs.opti_mcc.list", "w") as fhout, open(
+        counts, "r"
+    ) as fhin:
         fhout.write("No results\n")
         for i, line in enumerate(fhin):
             if i == 0:
                 continue
             asv = line.rstrip().split("\t")[0]
             fhout.write(f"{asv}\n")
-    Path.touch(f"{outdir}/asv_seqs.opti_mcc.sensspec")
-    Path.touch(f"{outdir}/asv_seqs.opti_mcc.steps")
+    Path(f"{outdir}/asv_seqs.opti_mcc.sensspec").touch()
+    Path(f"{outdir}/asv_seqs.opti_mcc.steps").touch()
     return
 
 
 def main(args):
     lines = check_lines(args.dist)
-    if lines == 1:
+    if lines == 0:
         handle_empty(args.outdir, args.counts)
         return
     command = f"""
