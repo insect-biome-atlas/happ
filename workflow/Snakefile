@@ -254,12 +254,20 @@ rule calculate_mean_dist:
             for line in fhin:
                 dist = float(line.rstrip().split("\t")[-1])
                 taxdist.append(dist)
-        res = {
-            "mean": np.mean(taxdist),
-            "median": np.median(taxdist),
-            "min": np.min(taxdist),
-            "max": np.max(taxdist),
-        }
+        if len(taxdist) > 0:
+            res = {
+                "mean": np.mean(taxdist),
+                "median": np.median(taxdist),
+                "min": np.min(taxdist),
+                "max": np.max(taxdist),
+            }
+        else:
+            res = {
+                "mean": np.nan,
+                "median": np.nan,
+                "min": np.nan,
+                "max": np.nan
+            }
         df = pd.DataFrame(res, index=[wildcards.tax]).loc[
             :, ["mean", "median", "min", "max"]
         ]
