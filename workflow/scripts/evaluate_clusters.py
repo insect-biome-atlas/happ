@@ -75,7 +75,11 @@ def precision_recall(df, cluster_col, rank):
     sys.stdout.write(f"Total number of {rank} {totalTaxa}\n")
     totalPositives = sum(df.groupby(cluster_col).apply(pairs))
     sys.stdout.write(f"Total positives: {totalPositives}\n")
-    TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum()
+    #results/opticlust/MBs_merged/Polyxenidae/params2/asv_clusters.tsv 1 Species
+    if totalTaxa ==1:
+        TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum().values[0]
+    else:
+        TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum()
     sys.stdout.write(f"True positives: {TP}\n")
     FP = totalPositives - TP
     sys.stdout.write(f"False positives: {FP}\n")
