@@ -125,6 +125,7 @@ def main(args):
     precision, recall = precision_recall(clustdf, "cluster_Family", args.rank)
     homogeneity, completeness = homcom(clustdf, "cluster_Family", args.rank)
     sys.stdout.write(f"precision\t{precision}\nrecall\t{recall}\n")
+    sys.stdout.write(f"homogeneity\t{homogeneity}\ncompleteness\t{completeness}\n")
 
 
 if __name__ == "__main__":
