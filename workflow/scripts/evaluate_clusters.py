@@ -4,6 +4,8 @@ import pandas as pd
 from argparse import ArgumentParser
 import sys
 from tqdm import tqdm
+from sklearn.metrics import homogeneity_score as homscore
+from sklearn.metrics import completeness_score as comscore
 
 
 def read_asv_clusters(files):
@@ -75,8 +77,8 @@ def precision_recall(df, cluster_col, rank):
     sys.stdout.write(f"Total number of {rank} {totalTaxa}\n")
     totalPositives = sum(df.groupby(cluster_col).apply(pairs))
     sys.stdout.write(f"Total positives: {totalPositives}\n")
-    #results/opticlust/MBs_merged/Polyxenidae/params2/asv_clusters.tsv 1 Species
-    if totalTaxa ==1:
+    # results/opticlust/MBs_merged/Polyxenidae/params2/asv_clusters.tsv 1 Species
+    if totalTaxa == 1:
         TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum().values[0]
     else:
         TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum()
@@ -90,6 +92,14 @@ def precision_recall(df, cluster_col, rank):
     precision = float(TP) / (TP + FP)
     recall = float(TP) / (TP + FN)
     return precision, recall
+
+
+def homcom(clustdf, clust_col, rank):
+    labels_true = clustdf[rank]
+    labels_pred = clustdf[clust_col]
+    homogeneity = homscore(labels_true, labels_pred)
+    completeness = comscore(labels_true, labels_pred)
+    return homogeneity, completeness
 
 
 def main(args):
@@ -113,6 +123,7 @@ def main(args):
     if clustdf.shape[0] == 0:
         sys.exit("Not enough data to evaluate\n")
     precision, recall = precision_recall(clustdf, "cluster_Family", args.rank)
+    homogeneity, completeness = homcom(clustdf, "cluster_Family", args.rank)
     sys.stdout.write(f"precision\t{precision}\nrecall\t{recall}\n")
 
 
