@@ -27,7 +27,19 @@ conda activate ASV-clustering
 
 ## Running the workflow
 
-There are several parameters that can be set for the different tools, but the
+There are several parameters that can be set for the different tools.
+
+We analysed the following parameters:
+
+| tool      | default                  | params1                 | params2                  | params3                 | params4                        | params5                  | params6*                 | params7               | params8    | params9    | params10   | params11   |
+|-----------|--------------------------|-------------------------|--------------------------|-------------------------|--------------------------------|--------------------------|--------------------------|-----------------------|------------|------------|------------|------------|
+| swarm     | -d 1 --fastidious -b 3   | -d 2 -b 0               | -d 3 -b 0                | -d 4 -b 0               | -d 5 -b 0                      | -d 4 -m 6 -p 3 -b 0      | -d 13 -b 0               | -d 15 -b 0            | -d 17 -b 0 | -d 20 -b 0 | -d 25 -b 0 | -d 23 -b 0 |
+| dbotu3    | -d 0.1 -a 10.0 -p 0.0005 | -d 0.1 -a 0.0 -p 0.0005 | -d 0.2 -a 10.0 -p 0.0005 | -d 0.2 -a 0.0 -p 0.0005 | -d 0.1 -a 20.0 -p 0.0005       | -d 0.3 -a 10.0 -p 0.0005 | -d 0.2 -a 20.0 -p 0.0005 | -d 0.2 -a 0.0 -p 0.05 |            |            |            |            |
+| opticlust | cutoff=0.03              | cutoff=0.05             | cutoff=0.07              | cutoff=0.1              | cutoff=0.1 initialize="oneotu" | cutoff=0.15              | cutoff=0.2               | cutoff=0.25           |            |            |            |            |
+
+* not families Cecidomyiidae Mycetophilidae Chironomidae
+
+, but the
 minimum required information needed is `rundir:` which should be the name of a 
 subdirectory under `data/` that should contain a file `asv_seqs.fasta`, a fasta
 file with sequences for ASVs, and `asv_counts.tsv`, a tab-separated file with 
