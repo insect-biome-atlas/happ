@@ -1,3 +1,4 @@
+rerun-triggers: "mtime"
 keep-going: True
 use-conda: True
 printshellcmds: True
