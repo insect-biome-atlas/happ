@@ -5,7 +5,6 @@ from scripts.common import read_taxa
 validate(config, schema="schemas/config.schema.yaml", set_default=True)
 taxa = read_taxa(config)
 
-
 wildcard_constraints:
     tool="(swarm|opticlust|dbotu3|lulu)",
     tax=f"({'|'.join(taxa)})",
@@ -284,6 +283,7 @@ rule collate_mean_dist:
 
         df = pd.DataFrame()
         for f in input:
-            _df = pd.read_csv(input, sep="\t")
+            _df = pd.read_csv(f, sep="\t", index_col=0)
+            _df.index.name="tax"
             df = pd.concat([_df, df])
         df.to_csv(output[0], sep="\t")
