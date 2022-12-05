@@ -5,7 +5,6 @@ from scripts.common import read_taxa
 validate(config, schema="schemas/config.schema.yaml", set_default=True)
 taxa = read_taxa(config)
 
-
 wildcard_constraints:
     tool="(swarm|opticlust|dbotu3|lulu)",
     tax=f"({'|'.join(taxa)})",
