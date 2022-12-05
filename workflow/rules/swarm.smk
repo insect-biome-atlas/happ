@@ -68,11 +68,13 @@ rule run_swarm:
         runtime=60 * 24,
     shell:
         """
+        exec &>{log}
         mkdir -p {params.tmpdir}
         gunzip -c {input} > {params.fasta}
+        #swarm -d 0 -w {params.tmpdir}/derep.fasta -o /dev/null {params.fasta} 
         swarm {params.fastidious} {params.no_otu_breaking} -d {params.differences} {params.boundary} \
             {params.match_reward} {params.mismatch_penalty} {params.gap_opening_penalty} {params.gap_extension_penalty} \
-            {params.fasta} -o {params.txt} -i {params.tsv} -t {threads} > {log} 2>&1
+            {params.fasta} -o {params.txt} -i {params.tsv} -t {threads}
         mv {params.txt} {params.outdir}
         mv {params.tsv} {params.outdir}
         rm -rf {params.tmpdir}
