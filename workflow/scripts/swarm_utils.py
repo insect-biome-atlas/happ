@@ -24,17 +24,27 @@ def format_swarm(sm):
                 counts[key] = int(value)
             except ValueError:
                 continue
-    # Open fasta file and append counts as its being read
-    with gzip.open(sm.input.fasta, "rt") as fhin, gzip.open(
+    # Store sequences from fasta
+    seqs = {}
+    with gzip.open(sm.input.fasta, "rt")as fhin, gzip.open(
         sm.params.fasta, "wt"
     ) as fhout:
         for record in parse(fhin, "fasta"):
             try:
                 new_rec = f"{record.id}_{counts[record.id]}"
+                if str(record.seq) in seqs.keys():
+                    seqs[str(record.seq)].append(new_rec)
+                    continue
+                else:
+                    seqs[str(record.seq)] = [new_rec]
             except KeyError:
                 continue
             if counts[record.id] > 0:
                 fhout.write(f">{new_rec}\n{record.seq}\n")
+    # Write dereplicated results (if any)
+    with open(sm.output.derep, 'w') as fhout:
+        for k, v in seqs.items():
+            fhout.write(f"{' '.join(v)}\n")
     shutil.move(sm.params.fasta, sm.output.fasta)
     shutil.rmtree(sm.params.tmpdir)
 
