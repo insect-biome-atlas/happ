@@ -65,8 +65,8 @@ rule run_opticlust:
     log:
         log="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.log",
         err="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.err",
-    shadow:
-        "full"
+    #shadow:
+    #    "full"
     params:
         dist="$TMPDIR/opticlust.{rundir}.{tax}/asv_seqs.dist",
         counts="$TMPDIR/opticlust.{rundir}.{tax}/counts.tsv",
@@ -91,6 +91,7 @@ rule run_opticlust:
             --delta {params.delta} --initialize {params.initialize} --cutoff {params.cutoff} \
             --precision {params.precision} > {log.log}
         rm -rf {params.tmpdir}
+        rm -f mothur.*.logfile
         """
 
 
