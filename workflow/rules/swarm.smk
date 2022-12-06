@@ -85,6 +85,7 @@ rule run_swarm:
 rule swarm2tab:
     input:
         "results/swarm/{rundir}/{tax}/{run_name}/swarm.txt",
+        "results/swarm/{rundir}/{tax}/derep.txt"
     output:
         "results/swarm/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
     params:

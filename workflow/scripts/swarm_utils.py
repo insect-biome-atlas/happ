@@ -5,7 +5,7 @@ import gzip
 import shutil
 import os
 import pandas as pd
-
+import re
 
 def format_swarm(sm):
     """
@@ -52,18 +52,38 @@ def format_swarm(sm):
 def get_cluster_members(f):
     col1 = []
     col2 = []
+    regex = re.compile("_\d+$")
     with open(f, "r") as fhin:
         for i, line in enumerate(fhin, start=1):
             items = line.rstrip().rsplit()
-            col1 += [x.split("_")[0] for x in items]
+            col1 += [regex.sub("", x) for x in items]
             col2 += [f"cluster{i}"] * len(items)
     dataf = pd.DataFrame(data={"ASV": col1, "cluster": col2})
     return dataf.set_index("ASV")
 
 
+def read_derep(f, dataf):
+    derep = {}
+    regex = re.compile("_\d+$")
+    with open(f, 'r') as fhin:
+        for line in fhin:
+            items = [regex.sub("", x) for x in line.rstrip().rsplit()]
+            rep = items[0]
+            clust = dataf.loc[rep, "cluster"]
+            if len(items) > 1:
+                for item in items[1:]:
+                    derep[item] = clust
+    derepdf = pd.DataFrame(derep, index=["cluster"]).T
+    derepdf.index.name="ASV"
+    return derepdf
+
+
 def swarm2tab(sm):
     f = sm.input[0]
+    f2 = sm.input[1]
     dataf = get_cluster_members(f)
+    derepdf = read_derep(f2, dataf)
+    dataf = pd.concat([dataf, derepdf])
     os.makedirs(sm.params.tmpdir, exist_ok=True)
     dataf.to_csv(sm.params.out, sep="\t")
     shutil.move(sm.params.out, sm.output[0])
