@@ -58,6 +58,14 @@ def cluster_files(wildcards):
         input.append(f"results/{tool}/{rundir}/{run_name}/precision_recall.txt")
     return input
 
+def cluster_order_files(wildcards):
+    input = []
+    rundir = config["rundir"]
+    for tool in config["software"]:
+        run_name = config["run_name"]
+        input.append(f"results/{tool}/{rundir}/{run_name}/precision_recall.order.txt")
+    return input
+
 
 def log_files(wildcards):
     input = []
@@ -82,6 +90,7 @@ rule all:
 rule evaluate:
     input:
         txt=cluster_files,
+        txt_o=cluster_order_files,
         log=log_files,
     output:
         expand(
@@ -104,6 +113,8 @@ rule evaluate:
                     "species": items[1],
                     "precision": items[6].split("\t")[-1],
                     "recall": items[7].split("\t")[-1],
+                    "homogeneity": items[8].split("\t")[-1],
+                    "completeness": items[9].split("\t")[-1]
                 }
         for f in input.log:
             tool = f.split("/")[1]
@@ -124,6 +135,7 @@ rule precision_recall:
         tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
     output:
         "results/{tool}/{rundir}/{run_name}/precision_recall.txt",
+        "results/{tool}/{rundir}/{run_name}/precision_recall.order.txt"
     log:
         "logs/{tool}/{rundir}/{run_name}/precision_recall.log",
     params:
@@ -131,7 +143,7 @@ rule precision_recall:
         eval_rank=config["evaluation_rank"],
     shell:
         """
-        python {params.src} {input.tax} {input.clust_files} --rank {params.eval_rank} > {output} 2>{log}
+        python {params.src} {input.tax} {input.clust_files} --rank {params.eval_rank} --order_level {output[1]} > {output[0]} 2>{log}
         """
 
 
