@@ -93,14 +93,18 @@ rule evaluate:
         txt_o=cluster_order_files,
         log=log_files,
     output:
-        expand(
+        tsv=expand(
             "results/stats/{rundir}/{run_name}.tsv",
             rundir=config["rundir"],
             run_name=config["run_name"],
         ),
+        ordertsv=expand(
+            "results/stats/{rundir}/{run_name}.order.tsv",
+            rundir=config["rundir"],
+            run_name=config["run_name"]
+        ),
     run:
         import pandas as pd
-
         stats = {}
         for f in input.txt:
             tool = f.split("/")[1]
@@ -124,7 +128,17 @@ rule evaluate:
                     if line.endswith("ASVs remaining after merging"):
                         stats[tool]["ASVs"] = line.split(" ")[0].lstrip("#")
         df = pd.DataFrame(stats).T
-        df.to_csv(output[0], sep="\t")
+        df.to_csv(output.tsv[0], sep="\t")
+        orderdf = pd.DataFrame()
+        cols = ["precision","recall","homogeneity","completeness",config["evaluation_rank"],"ASVs","tool"]
+        for f in input.txt_o:
+            tool = f.split("/")[1]
+            _df = pd.read_csv(f, sep="\t", index_col=0)
+            _df = _df.assign(tool=pd.Series([tool]*_df.shape[0], index=_df.index))
+            _df = _df.loc[:, cols]
+            orderdf = pd.concat([orderdf, _df])
+        orderdf.to_csv(output.ordertsv[0], sep="\t")
+
 
 
 rule precision_recall:
