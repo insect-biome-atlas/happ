@@ -79,15 +79,17 @@ def read_derep(f, dataf):
 
 
 def swarm2tab(sm):
+    tmpdir = os.path.expandvars(sm.params.tmpdir)
+    tmpout = os.path.expandvars(sm.params.out)
     f = sm.input[0]
     f2 = sm.input[1]
     dataf = get_cluster_members(f)
     derepdf = read_derep(f2, dataf)
     dataf = pd.concat([dataf, derepdf])
-    os.makedirs(sm.params.tmpdir, exist_ok=True)
-    dataf.to_csv(sm.params.out, sep="\t")
-    shutil.move(sm.params.out, sm.output[0])
-    os.removedirs(sm.params.tmpdir)
+    os.makedirs(tmpdir, exist_ok=True)
+    dataf.to_csv(tmpout, sep="\t")
+    shutil.move(tmpout, sm.output[0])
+    os.removedirs(tmpdir)
 
 
 def main(sm):
