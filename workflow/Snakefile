@@ -130,7 +130,7 @@ rule evaluate:
         df = pd.DataFrame(stats).T
         df.to_csv(output.tsv[0], sep="\t")
         orderdf = pd.DataFrame()
-        cols = ["precision","recall","homogeneity","completeness",config["evaluation_rank"],"ASVs","tool"]
+        cols = ["precision","recall","homogeneity","completeness",config["evaluation_rank"],"ASVs","tool","clusters"]
         for f in input.txt_o:
             tool = f.split("/")[1]
             _df = pd.read_csv(f, sep="\t", index_col=0)
