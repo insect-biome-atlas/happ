@@ -109,12 +109,14 @@ def calc_order_level(clustdf, rank):
     for o in tqdm(orders, desc="calculating stats", ncols=10,
                   dynamic_ncols=True, unit=f" Order", ):
         _dataf = clustdf.loc[clustdf.Order == o]
+        totalClusters = len(_dataf["cluster_Family"].unique())
         n_rank = len(_dataf[rank].unique())
         n_asv = _dataf.shape[0]
         p, r = precision_recall(_dataf, "cluster_Family", rank, silent=True)
         h, c = homcom(_dataf, "cluster_Family", rank)
         order_level[o] = {'precision': p, 'recall': r, 'homogeneity': h,
-                          'completeness': c, rank: n_rank, 'ASVs': n_asv}
+                          'completeness': c, rank: n_rank, 'ASVs': n_asv,
+                          "clusters": totalClusters}
     order_leveldf = pd.DataFrame(order_level).T
     order_leveldf.index.name = "Order"
     return order_leveldf
