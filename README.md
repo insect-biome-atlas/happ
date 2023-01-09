@@ -187,18 +187,43 @@ run_name="default"
 You can see that each tool gets its own subdirectory under `results/`,
 and that `rundir` (in this case "run1") 
 
+### 7. Evaluation
+True and false positives, as well as true and false negatives can be evaluated
+for each clustering results using the taxonomic assignments of ASVs. The `evaluation_rank`
+config parameter (default = "Species") determines what to evaluate the clustering
+against (whatever assignment is given for this rank that is taken as the ground
+truth for an ASV). 
+
+- Precision is calculated as: `precision = TP/(TP + FP)`
+- Recall is calculated as: `recall = TP/(TP + FN)`
+
+where
+
+- True positives (TP) is calculated by counting the number of times two ASVs belonging 
+  to the same OTU cluster also share the same taxa at `evaluation_rank`
+- False positives (FP) is calculated as: `FP = totalPositives - TP`
+- False negatives (FN) is calculated by counting the number of times ASVs that share
+  the same taxa at `evaluation_rank` are placed into different OTU clusters
+
+The evaluation script used in this workflow beings by calculating the total number
+of positives from a given dataframe. This is formulated as: `totalPositives = N * (N - 1) / 2`
+where `N` is the total number of ASVs.
+
+Given `x` clusters and `N` ASVs
+
 
 ## Benchmark
-We have analysed the following parameters:
 
-| tool      | default                  | params1                 | params2                  | params3                 | params4                        | params5                  | params6*                 | params7               | params8    | params9    | params10   | params11   |
-|-----------|--------------------------|-------------------------|--------------------------|-------------------------|--------------------------------|--------------------------|--------------------------|-----------------------|------------|------------|------------|------------|
-| swarm     | -d 1 --fastidious -b 3   | -d 2 -b 0               | -d 3 -b 0                | -d 4 -b 0               | -d 5 -b 0                      | -d 4 -m 6 -p 3 -b 0      | -d 13 -b 0               | -d 15 -b 0            | -d 17 -b 0 | -d 20 -b 0 | -d 25 -b 0 | -d 23 -b 0 |
-| dbotu3    | -d 0.1 -a 10.0 -p 0.0005 | -d 0.1 -a 0.0 -p 0.0005 | -d 0.2 -a 10.0 -p 0.0005 | -d 0.2 -a 0.0 -p 0.0005 | -d 0.1 -a 20.0 -p 0.0005       | -d 0.3 -a 10.0 -p 0.0005 | -d 0.2 -a 20.0 -p 0.0005 | -d 0.2 -a 0.0 -p 0.05 |            |            |            |            |
-| opticlust | cutoff=0.03              | cutoff=0.05             | cutoff=0.07              | cutoff=0.1              | cutoff=0.1 initialize="oneotu" | cutoff=0.15              | cutoff=0.2               | cutoff=0.25           |            |            |            |            |
+### FINBOL
 
-* not families Cecidomyiidae Mycetophilidae Chironomidae
+We benchmarked the FINBOL database with the following parameters
 
+| tool      | default                  | params1     | params2      | params3     | params4      | params5             | params6     | params7     | params8     | params9     | params10    | params11    | params12   |
+|-----------|--------------------------|-------------|--------------|-------------|--------------|---------------------|-------------|-------------|-------------|-------------|-------------|-------------|------------|
+| swarm     | -d 1 --fastidious -b 3   | -d 2 -b 0   | -d 3 -b 0    | -d 4 -b 0   | -d 5 -b 0    | -d 4 -m 6 -p 3 -b 0 | -d 13 -b 0  | -d 15 -b 0  | -d 17 -b 0  | -d 20 -b 0  | -d 22 -b 0  | -d 23 -b 0  | -d 25 -b 0 |
+| opticlust | cutoff=0.03              | cutoff=0.01 | cutoff=0.015 | cutoff=0.02 | cutoff=0.025 | cutoff=0.035        | cutoff=0.04 | cutoff=0.05 | cutoff=0.06 | cutoff=0.07 | cutoff=0.08 | cutoff=0.09 | cutoff=0.1 |
+
+Our analysis showed that `params4` with opticlust gave the highest precision/recall.
 
 ## More references
 
