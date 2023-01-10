@@ -2,7 +2,7 @@ rerun-triggers: "mtime"
 keep-going: True
 use-conda: True
 printshellcmds: True
-local-cores: 1
+local-cores: 4
 configfile: test/configfile.yml
 reason: True
-cores: 1
+cores: 4
