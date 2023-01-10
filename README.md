@@ -29,10 +29,15 @@ conda activate ASV-clustering
 
 There are several parameters that can be set for the different tools, but the
 minimum required information needed is `rundir:` which should be the name of a 
-subdirectory under `data/` that should contain a file `asv_seqs.fasta`, a fasta
-file with sequences for ASVs, and `asv_counts.tsv`, a tab-separated file with 
-ASV ids as rows and sample names as columns that describes the counts of ASVs
-in the different samples.
+subdirectory under `data/` that should contain:
+
+1. a file `asv_seqs.fasta` which should be a fasta file with sequences for ASVs, 
+2. a file `asv_counts.tsv` which should be a tab-separated file with ASV ids as rows and sample names as columns giving the counts of ASVs  in the different samples.
+3. a file `asv_taxa.tsv` which should be a tab-separated file with taxonomic assignments for ASVs
+
+Note that the `asv_taxa.tsv` file should have ranks in the header that match with
+the configuration settings for `split_rank` and `evaluation_rank` (`Family` and `Species`
+by default, respectively).
 
 As an example, with the subdirectory `project1` under `data/` like so:
 
@@ -41,6 +46,7 @@ data/
 ├── project1
 │ ├── asv_counts.tsv
 │ ├── asv_seqs.fasta
+│ ├── asv_taxa.tsv
 ```
 
 you should set `rundir: project1`. This can be done either in a configuration
@@ -53,6 +59,14 @@ rundir: project1
 which you then point to with `--configfile <your-config-file>.yml` in the 
 snakemake call. Or you can set it directly with `--config rundir=project1` when
 you start the workflow.
+
+### Test run
+You can try the workflow out by running it on a small test dataset under `data/test/`.
+To do so, simply run:
+
+```bash
+snakemake --profile test
+```
 
 ## Workflow overview
 The idea with this workflow is to make it easy to run OTU clustering with many 
@@ -73,6 +87,10 @@ file yourself if you want, which will override the default behaviour and cause
 the workflow to only run on taxa listed. For example, if you list (one per row)
 only your families of interest in `data/{rundir}/Family.txt` then the workflow
 will only run with sequences belonging to those families.
+Note that if you do not specify a file with ranks, _e.g._ `Family.txt` then the
+workflow will read the `asv_taxa.tsv` file, identify taxa at `{split_rank}` but 
+only output those that have at least one ASV with a total count > 0 in the counts
+file **and** that have a sequence in the `asv_seqs.fasta` file.
 
 ### 2. Filtering and formatting
 Initially, the counts for each sequence is summed across samples and any potential 
@@ -185,7 +203,10 @@ run_name="default"
 ```
 
 You can see that each tool gets its own subdirectory under `results/`,
-and that `rundir` (in this case "run1") 
+and that `rundir` (in this case "run1") in turn is created under each tool.
+In addition, `run_name` is created as a subdirectory under each taxa directory. 
+This way the underlying data (ASV sequences, counts and taxonomic info) found in 
+the `data/<rundir>` directory can be used for any number of `run_name` settings.
 
 ### 7. Evaluation
 True and false positives, as well as true and false negatives can be evaluated
@@ -205,14 +226,12 @@ where
 - False negatives (FN) is calculated by counting the number of times ASVs that share
   the same taxa at `evaluation_rank` are placed into different OTU clusters
 
-The evaluation script used in this workflow beings by calculating the total number
+The evaluation script used in this workflow begins by calculating the total number
 of positives from a given dataframe. This is formulated as: `totalPositives = N * (N - 1) / 2`
 where `N` is the total number of ASVs.
 
-Given `x` clusters and `N` ASVs
 
-
-## Benchmark
+## Benchmarking
 
 ### FINBOL
 
