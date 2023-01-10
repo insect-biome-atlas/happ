@@ -3,11 +3,10 @@ run_name: "testrun"
 software:
   - "opticlust"
   - "swarm"
-  - "dbotu3"
 
 swarm:
   threads: 4
-  differences: 23
+  differences: 1
   no-otu-breaking: False
   fastidious: False
   boundary: 0
@@ -16,7 +15,7 @@ dbotu3:
   abund: 10.0
   pval: 0.0005
 opticlust:
-  threads: 20
+  threads: 4
   aligner: "vsearch"
   delta: 0.0001
   cutoff: 0.03

@@ -7,7 +7,7 @@ type: object
 properties:
   rundir:
     type: string
-    description: "path to input directory, should contain a 'asv_counts.tsv' and a 'asv_seqs.fasta' file"
+    description: "names of input directories, each should contain a 'asv_counts.tsv', a 'asv_seqs.fasta' file and a 'asv_taxa.tsv' file"
   split_rank:
     type: string
     description: "rank at which to split input file prior to clustering"
