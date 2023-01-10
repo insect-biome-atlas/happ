@@ -1,41 +1,67 @@
 localrules:
-    lulu
+    lulu,
+    lulu2tab,
+
+
+rule download_lulu:
+    output:
+        src="src/lulu/Functions.R",
+    log:
+        "logs/lulu/download_lulu.log",
+    params:
+        url="https://raw.githubusercontent.com/tobiasgf/lulu/master/R/Functions.R",
+    shell:
+        """
+        curl -L -o {output.src} {params.url} > {log} 2>&1
+        """
+
 
 rule run_lulu:
     input:
-        dist = "results/vsearch/{rundir}/asv_seqs.dist.gz",
-        counts = "results/common/{rundir}/asv_counts.tsv.gz"
+        src=rules.download_lulu.output.src,
+        dist="results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
+        counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
     output:
-        curated_table = "results/lulu/{rundir}/otus.tsv",
-        otu_map = "results/lulu/{rundir}/otu_map.tsv"
+        curated_table="results/lulu/{rundir}/{tax}/{run_name}/otus.tsv",
+        otu_map="results/lulu/{rundir}/{tax}/{run_name}/otu_map.tsv",
     log:
-        progress = "logs/lulu/{rundir}/progress.txt",
-        log = "logs/lulu/{rundir}/log.txt"
-    shadow: "minimal"
-    conda: "../envs/lulu.yml"
+        progress="logs/lulu/{rundir}/{tax}/{run_name}/progress.txt",
+        log="logs/lulu/{rundir}/{tax}/{run_name}/log.txt",
+    shadow:
+        "minimal"
+    conda:
+        "../envs/lulu.yml"
     params:
-        dist = "$TMPDIR/lulu/{rundir}/asv_seqs.dist",
-        tmpdir = "$TMPDIR/lulu/{rundir}",
-        minimum_ratio_type = config["lulu"]["minimum_ratio_type"],
-        minimum_ratio = config["lulu"]["minimum_ratio"],
-        minimum_match = config["lulu"]["minimum_match"],
-        minimum_relative_cooccurence = config["lulu"]["minimum_relative_cooccurence"]
+        dist="$TMPDIR/lulu/{rundir}/{tax}/asv_seqs.dist",
+        tmpdir="$TMPDIR/lulu/{rundir}/{tax}",
+        minimum_ratio_type=config["lulu"]["minimum_ratio_type"],
+        minimum_ratio=config["lulu"]["minimum_ratio"],
+        minimum_match=config["lulu"]["minimum_match"],
+        minimum_relative_cooccurence=config["lulu"]["minimum_relative_cooccurence"],
     resources:
-        runtime = 60 * 24 * 10
+        runtime=60 * 24 * 10,
     script:
         "../scripts/lulu.R"
 
+
 rule lulu2tab:
     input:
-        rules.run_lulu.output.otu_map
+        rules.run_lulu.output.otu_map,
     output:
-        "results/lulu/{rundir}/asv_clusters.tsv"
+        "results/lulu/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir = "$TMPDIR/lulu/{rundir}",
-        out = "$TMPDIR/lulu/{rundir}/asv_clusters.tsv"
+        tmpdir="$TMPDIR/lulu/{rundir}/{tax}",
+        out="$TMPDIR/lulu/{rundir}/{tax}/asv_clusters.tsv",
     script:
         "../scripts/lulu_utils.py"
 
+
 rule lulu:
     input:
-        expand("results/lulu/{rundir}/{f}.tsv", rundir = config["rundir"], f = ["asv_clusters"])
+        expand(
+            "results/lulu/{rundir}/{tax}/{run_name}/{f}.tsv",
+            rundir=config["rundir"],
+            run_name=config["run_name"],
+            f=["asv_clusters"],
+            tax=taxa,
+        ),

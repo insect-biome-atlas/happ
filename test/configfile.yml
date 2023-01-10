@@ -1,0 +1,24 @@
+rundir: "test"
+run_name: "testrun"
+split_rank: "Family"
+software:
+  - "opticlust"
+  - "swarm"
+
+swarm:
+  threads: 4
+  differences: 1
+  no-otu-breaking: False
+  fastidious: False
+  boundary: 0
+dbotu3:
+  dist: 0.1
+  abund: 10.0
+  pval: 0.0005
+opticlust:
+  threads: 4
+  aligner: "vsearch"
+  delta: 0.0001
+  cutoff: 0.03
+  initialize: "singleton"
+  precision: 1000

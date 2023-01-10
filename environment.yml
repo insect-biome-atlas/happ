@@ -5,6 +5,8 @@ channels:
   - defaults
   - r
 dependencies:
-  - python=3.10
-  - snakemake=7.8.0
+  - python
+  - snakemake=7.18.2
+  - scikit-learn
   - biopython
+  - tqdm

@@ -8,17 +8,27 @@ import shutil
 def get_cluster_members(df):
     df.drop("numOtus", axis=1, inplace=True)
     d = {}
-    for cutoff in df.index:
-        d[cutoff] = {}
-        dataf = df.loc[cutoff]
-        # Skip empty
-        dataf = dataf.loc[dataf == dataf]
-        for otu in dataf.index:
-            asv_ids = dataf.loc[otu].split(",")
-            for asv_id in asv_ids:
-                d[cutoff][asv_id] = otu
-    dataf = pd.DataFrame(d)
+    cutoff = df.index[0]
+    dataf = df.loc[cutoff]
+    # Skip empty
+    dataf = dataf.loc[dataf == dataf]
+    for otu in dataf.index:
+        asv_ids = dataf.loc[otu].split(",")
+        for asv_id in asv_ids:
+            d[asv_id] = otu
+    dataf = pd.DataFrame(d, index=["cluster"]).T
     return dataf
+
+
+def write_asvs(input, output):
+    with open(input, "r") as fhin, open(output, "w") as fhout:
+        for i, line in enumerate(fhin):
+            if i == 0:
+                fhout.write("\tcluster\n")
+                continue
+            asv = line.rstrip()
+            fhout.write(f"{asv}\tOtu{i}\n")
+    return
 
 
 def opticlust2tab(sm):
@@ -26,6 +36,11 @@ def opticlust2tab(sm):
     Transform opticlust cluster membership file (*.list) to a table
     that is easier to work with
     """
+    with open(sm.input[0], "r") as fhin:
+        line = fhin.readline().rstrip()
+    if line == "No results":
+        write_asvs(sm.input[0], sm.output[0])
+        return
     df = pd.read_csv(sm.input[0], sep="\t", index_col=0, header=0)
     dataf = get_cluster_members(df)
     os.makedirs(sm.params.tmpdir, exist_ok=True)
@@ -48,22 +63,21 @@ def reformat_distmat(sm):
 
     """
     import gzip as gz
+
     os.makedirs(sm.params.tmpdir, exist_ok=True)
-    with gz.open(sm.input[0], 'rt') as fhin, gz.open(sm.params.out,
-                                                     'wt') as fhout:
+    with gz.open(sm.input[0], "rt") as fhin, gz.open(sm.params.out, "wt") as fhout:
         for line in fhin:
             line = line.rstrip()
             asv1, asv2, p = line.split("\t")
             fhout.write(f"{asv1}\t{asv2}\t{(100 - float(p)) / 100}\n")
-    shutil.move(sm.params.out, sm.output[0])
-    os.removedirs(sm.params.tmpdir)
+    shutil.move(sm.params.out, sm.output.out)
+    shutil.rmtree(sm.params.tmpdir)
 
 
 def main(sm):
-    toolbox = {'reformat_distmat': reformat_distmat,
-               'opticlust2tab': opticlust2tab}
+    toolbox = {"reformat_distmat": reformat_distmat, "opticlust2tab": opticlust2tab}
     toolbox[sm.rule](sm)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(snakemake)

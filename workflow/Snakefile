@@ -1,18 +1,315 @@
+import pandas as pd
 from snakemake.utils import validate
+from scripts.common import read_taxa
+
 validate(config, schema="schemas/config.schema.yaml", set_default=True)
+taxa = read_taxa(config)
+
+wildcard_constraints:
+    tool="(swarm|opticlust|dbotu3|lulu)",
+    tax=f"({'|'.join(taxa)})",
+    rundir=config["rundir"],
+    run_name=config["run_name"],
+
 
 container: "docker://continuumio/miniconda3:4.11.0"
 
-localrules:
-    all
 
 include: "rules/common.smk"
-include: "rules/swarm.smk"
-include: "rules/dbotu3.smk"
-include: "rules/opticlust.smk"
-include: "rules/lulu.smk"
+
+
+if "swarm" in config["software"]:
+
+    include: "rules/swarm.smk"
+
+
+if "dbotu3" in config["software"]:
+
+    include: "rules/dbotu3.smk"
+
+
+if "opticlust" in config["software"]:
+
+    include: "rules/opticlust.smk"
+
+
+if "lulu" in config["software"]:
+
+    include: "rules/lulu.smk"
+
+
+localrules:
+    all,
+    precision_recall,
+    calc_colsums,
+    evaluate,
+    merge_rep_files,
+    write_asv_reps,
+    sum_rep_counts,
+    calculate_mean_dist,
+    collate_mean_dist,
+
+
+def cluster_files(wildcards):
+    input = []
+    rundir = config["rundir"]
+    for tool in config["software"]:
+        run_name = config["run_name"]
+        input.append(f"results/{tool}/{rundir}/{run_name}/precision_recall.txt")
+    return input
+
+def cluster_order_files(wildcards):
+    input = []
+    rundir = config["rundir"]
+    for tool in config["software"]:
+        run_name = config["run_name"]
+        input.append(f"results/{tool}/{rundir}/{run_name}/precision_recall.order.txt")
+    return input
+
+
+def log_files(wildcards):
+    input = []
+    rundir = config["rundir"]
+    for tool in config["software"]:
+        run_name = config["run_name"]
+        input.append(f"logs/{tool}/{rundir}/{run_name}/precision_recall.log")
+    return input
+
 
 rule all:
     input:
-        expand("results/{prog}/{rundir}/asv_clusters.tsv",
-            prog = ["dbotu3", "lulu", "opticlust", "swarm"], rundir = config["rundir"])
+        expand(
+            "results/{tool}/{rundir}/{run_name}/asv_reps.{suff}",
+            tool=config["software"],
+            rundir=config["rundir"],
+            run_name=config["run_name"],
+            suff=["taxonomy.tsv", "fasta", "counts.tsv"],
+        ),
+
+
+rule evaluate:
+    input:
+        txt=cluster_files,
+        txt_o=cluster_order_files,
+        log=log_files,
+    output:
+        tsv=expand(
+            "results/stats/{rundir}/{run_name}.tsv",
+            rundir=config["rundir"],
+            run_name=config["run_name"],
+        ),
+        ordertsv=expand(
+            "results/stats/{rundir}/{run_name}.order.tsv",
+            rundir=config["rundir"],
+            run_name=config["run_name"]
+        ),
+    run:
+        import pandas as pd
+        stats = {}
+        for f in input.txt:
+            tool = f.split("/")[1]
+            with open(f, "r") as fhin:
+                items = {}
+                for i, line in enumerate(fhin):
+                    items[i] = line.rstrip().split(" ")[-1]
+                stats[tool] = {
+                    "clusters": items[0],
+                    "species": items[1],
+                    "precision": items[6].split("\t")[-1],
+                    "recall": items[7].split("\t")[-1],
+                    "homogeneity": items[8].split("\t")[-1],
+                    "completeness": items[9].split("\t")[-1]
+                }
+        for f in input.log:
+            tool = f.split("/")[1]
+            with open(f, "r") as fhin:
+                for line in fhin:
+                    line = line.rstrip()
+                    if line.endswith("ASVs remaining after merging"):
+                        stats[tool]["ASVs"] = line.split(" ")[0].lstrip("#")
+        df = pd.DataFrame(stats).T
+        df.to_csv(output.tsv[0], sep="\t")
+        orderdf = pd.DataFrame()
+        cols = ["precision","recall","homogeneity","completeness",config["evaluation_rank"],"ASVs","tool","clusters"]
+        for f in input.txt_o:
+            tool = f.split("/")[1]
+            _df = pd.read_csv(f, sep="\t", index_col=0)
+            _df = _df.assign(tool=pd.Series([tool]*_df.shape[0], index=_df.index))
+            _df = _df.loc[:, cols]
+            orderdf = pd.concat([orderdf, _df])
+        orderdf.to_csv(output.ordertsv[0], sep="\t")
+
+
+
+rule precision_recall:
+    input:
+        clust_files=expand(
+            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv", tax=taxa
+        ),
+        tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
+    output:
+        "results/{tool}/{rundir}/{run_name}/precision_recall.txt",
+        "results/{tool}/{rundir}/{run_name}/precision_recall.order.txt"
+    log:
+        "logs/{tool}/{rundir}/{run_name}/precision_recall.log",
+    params:
+        src="workflow/scripts/evaluate_clusters.py",
+        eval_rank=config["evaluation_rank"],
+    shell:
+        """
+        python {params.src} {input.tax} {input.clust_files} --rank {params.eval_rank} --order_level {output[1]} > {output[0]} 2>{log}
+        """
+
+
+rule calc_colsums:
+    output:
+        "results/common/{rundir}/colsums.tsv",
+    log:
+        "logs/common/{rundir}/calc_colsums.log",
+    input:
+        expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
+    run:
+        import pandas as pd
+
+        colsums = []
+        data = pd.read_csv(input[0], sep="\t", index_col=0, chunksize=100000)
+        for item in data:
+            colsums.append(item.sum(axis=0))
+        colsums = sum(colsums)
+        colsums.to_csv(output[0], sep="\t")
+
+
+rule write_asv_reps:
+    output:
+        fasta="results/{tool}/{rundir}/{tax}/{run_name}/asv_reps.fasta",
+        taxinfo="results/{tool}/{rundir}/{tax}/{run_name}/asv_reps.taxonomy.tsv",
+    log:
+        "logs/{tool}/{rundir}/{tax}/{run_name}/write_asv_reps.log",
+    input:
+        taxa="results/{tool}/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+        extra_taxa=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
+        counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
+        colsums=rules.calc_colsums.output[0],
+        seqs="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
+    params:
+        src="workflow/scripts/get_asv_reps.py",
+        method=config["rep_method"],
+        tmpdir="$TMPDIR/{tool}.{rundir}.{tax}.{run_name}.write_asv_reps",
+    shell:
+        """
+        mkdir -p {params.tmpdir}
+        gunzip -c {input.counts} > {params.tmpdir}/counts.tsv
+        gunzip -c {input.seqs} > {params.tmpdir}/seqs.fasta
+        python {params.src} --method {params.method} --prefix {wildcards.tax} --normalize \
+            --colsums {input.colsums} --taxa-table {input.extra_taxa} --rank cluster \
+            {input.taxa} {params.tmpdir}/counts.tsv {params.tmpdir}/seqs.fasta {output.fasta} 2>{log}
+        rm -rf {params.tmpdir}
+        """
+
+
+rule sum_rep_counts:
+    output:
+        "results/{tool}/{rundir}/{tax}/{run_name}/asv_reps.counts.tsv",
+    input:
+        taxinfo=rules.write_asv_reps.output.taxinfo,
+        counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
+    run:
+        import pandas as pd
+
+        taxdf = pd.read_csv(input.taxinfo, sep="\t", index_col=0)
+        countsdf = pd.read_csv(input.counts, sep="\t", index_col=0)
+        repdf = taxdf.loc[taxdf.representative == 1, ["cluster"]]
+        repdict = dict(zip(repdf["cluster"], repdf.index))
+        dataf = pd.merge(
+            taxdf.loc[:, ["cluster"]], countsdf, left_index=True, right_index=True
+        )
+        clustsum = dataf.groupby("cluster").sum()
+        clustsum.rename(index=repdict, inplace=True)
+        clustsum.to_csv(output[0], sep="\t")
+
+
+def merge_dataframes(input):
+    df = pd.DataFrame()
+    for i, f in enumerate(input):
+        _df = pd.read_csv(f, sep="\t", index_col=0)
+        if i == 0:
+            columns = _df.columns
+        _df = _df[columns]
+        df = pd.concat([df, _df])
+    return df
+
+
+rule merge_rep_files:
+    output:
+        taxinfo="results/{tool}/{rundir}/{run_name}/asv_reps.taxonomy.tsv",
+        fasta="results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
+        counts="results/{tool}/{rundir}/{run_name}/asv_reps.counts.tsv",
+    input:
+        fasta=expand(
+            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.fasta", tax=taxa
+        ),
+        taxinfo=expand(
+            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
+            tax=taxa,
+        ),
+        counts=expand(
+            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.counts.tsv",
+            tax=taxa,
+        ),
+    run:
+        taxinfo = merge_dataframes(input.taxinfo)
+        taxinfo.to_csv(output.taxinfo, sep="\t")
+        countsdf = merge_dataframes(input.counts)
+        countsdf.to_csv(output.counts, sep="\t")
+        shell("cat {input.fasta} > {output.fasta}")
+
+
+rule calculate_mean_dist:
+    output:
+        "results/vsearch/{rundir}/{tax}/asv_seqs.average_dist.tsv",
+    input:
+        "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
+    run:
+        import gzip as gz
+        import numpy as np
+        import pandas as pd
+
+        taxdist = []
+        with gz.open(input[0], "rt") as fhin:
+            for line in fhin:
+                dist = float(line.rstrip().split("\t")[-1])
+                taxdist.append(dist)
+        if len(taxdist) > 0:
+            res = {
+                "mean": np.mean(taxdist),
+                "median": np.median(taxdist),
+                "min": np.min(taxdist),
+                "max": np.max(taxdist),
+            }
+        else:
+            res = {
+                "mean": np.nan,
+                "median": np.nan,
+                "min": np.nan,
+                "max": np.nan
+            }
+        df = pd.DataFrame(res, index=[wildcards.tax]).loc[
+            :, ["mean", "median", "min", "max"]
+        ]
+        df.to_csv(output[0], sep="\t")
+
+
+rule collate_mean_dist:
+    output:
+        "results/vsearch/{rundir}/asv_seqs.average_dist.tsv",
+    input:
+        expand("results/vsearch/{{rundir}}/{tax}/asv_seqs.average_dist.tsv", tax=taxa),
+    run:
+        import pandas as pd
+
+        df = pd.DataFrame()
+        for f in input:
+            _df = pd.read_csv(f, sep="\t", index_col=0)
+            _df.index.name="tax"
+            df = pd.concat([_df, df])
+        df.to_csv(output[0], sep="\t")

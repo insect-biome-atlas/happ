@@ -1,3 +1,10 @@
+use-conda: True
+conda-frontend: "mamba"
+rerun-triggers: "mtime"
+keep-going: True
+rerun-incomplete: True
+printshellcmds: True
+reason: True
 restart-times: 1
 jobscript: "slurm-jobscript.sh"
 cluster: "slurm-submit.py"
