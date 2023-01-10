@@ -1,5 +1,6 @@
 rundir: "test"
 run_name: "testrun"
+split_rank: "Family"
 software:
   - "opticlust"
   - "swarm"
