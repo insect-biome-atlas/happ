@@ -61,3 +61,12 @@ rule vsearch_align:
         gzip {params.dist}
         mv {params.dist}.gz {output.dist} 
         """
+
+
+rule vsearch:
+    input:
+        expand(
+            "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
+            rundir=config["rundir"],
+            tax=taxa,
+        ),
