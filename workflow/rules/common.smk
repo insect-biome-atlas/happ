@@ -1,3 +1,4 @@
+import os.path
 
 localrules:
     filter_seqs,
@@ -12,12 +13,14 @@ rule filter_seqs:
         total_counts="results/common/{rundir}/{tax}/total_counts.tsv",
         counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
         fasta="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
+    log:
+        "logs/filter_seqs/{rundir}/{tax}.filter.log"
     params:
         split_rank=config["split_rank"],
-        tmpdir="$TMPDIR/{rundir}_{tax}_filter_seqs",
-        total_counts="$TMPDIR/{rundir}_{tax}_filter_seqs/total_counts.tsv",
-        counts="$TMPDIR/{rundir}_{tax}_filter_seqs/asv_counts.tsv.gz",
-        fasta="$TMPDIR/{rundir}_{tax}_filter_seqs/asv_seqs.fasta.gz",
+        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{tax}_filter_seqs"),
+        total_counts=os.path.expandvars("$TMPDIR/{rundir}_{tax}_filter_seqs/total_counts.tsv"),
+        counts=os.path.expandvars("$TMPDIR/{rundir}_{tax}_filter_seqs/asv_counts.tsv.gz"),
+        fasta=os.path.expandvars("$TMPDIR/{rundir}_{tax}_filter_seqs/asv_seqs.fasta.gz"),
     script:
         "../scripts/common.py"
 
