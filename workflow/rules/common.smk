@@ -2,6 +2,7 @@ import os.path
 
 localrules:
     filter_seqs,
+    append_size
 
 
 rule filter_seqs:
@@ -34,6 +35,62 @@ rule filter:
             f=["total_counts.tsv", "asv_counts.tsv.gz", "asv_seqs.fasta.gz"],
         ),
 
+rule sum_asvs:
+    input:
+        counts="data/{rundir}/asv_counts.tsv",
+    output:
+        sums="data/{rundir}/asv_sums.tsv"
+    log:
+        "logs/sum_asvs/{rundir}.log"
+    resources:
+        runtime=60
+    threads: 10
+    params:
+        src=srcdir("scripts/sum_counts.py")
+    conda:
+        "../envs/polars.yml"
+    shell:
+        """
+        python {params.src} {input.counts} > {output.sums} 2>{log}
+        """
+
+rule append_size:
+    input:
+        sums=rules.sum_asvs.output.sums,
+        fasta="data/{rundir}/asv_seqs.fasta",
+    output:
+        fasta="data/{rundir}/asv_seqs_size.fasta",
+    log:
+        "logs/append_size/{rundir}.log"
+    params:
+        src=srcdir("scripts/add_size_to_fastaheader.py")
+    shell:
+        """
+        python {params.src} {input.fasta} {input.sums} > {output.fasta} 2>{log}
+        """
+
+rule chimeras:
+    input:
+        fasta=rules.append_size.output.fasta,
+    output:
+        chim="results/chimera/{rundir}/{algo}/chimeras.fasta",
+        nochim="results/chimera/{rundir}/{algo}/nonchimeras.fasta",
+        border="results/chimera/{rundir}/{algo}/borderline.fasta",
+        uchimeout="results/chimera/{rundir}/{algo}/uchimeout.txt",
+    log:
+        "logs/chimeras/{rundir}.{algo}.log"
+    conda:
+        "../envs/vsearch.yml"
+    threads: 1
+    resources:
+        runtime=60*24
+    params:
+        algorithm="--{algo}"
+    shell:
+        """
+        vsearch --chimeras {output.chim} --borderline {output.border} --nonchimeras {output.nochim} \
+            {params.algorithm} {input.fasta} --uchimeout {output.uchimeout} >{log} 2>&1
+        """
 
 rule vsearch_align:
     input:
