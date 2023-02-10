@@ -39,7 +39,7 @@ rule sum_asvs:
     input:
         counts="data/{rundir}/asv_counts.tsv",
     output:
-        sums="data/{rundir}/asv_sums.tsv"
+        sums="data/{rundir}/asv_sum.tsv"
     log:
         "logs/sum_asvs/{rundir}.log"
     resources:
