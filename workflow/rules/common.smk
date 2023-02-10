@@ -46,7 +46,7 @@ rule sum_asvs:
         runtime=60
     threads: 10
     params:
-        src=srcdir("scripts/sum_counts.py")
+        src=srcdir("../scripts/sum_counts.py")
     conda:
         "../envs/polars.yml"
     shell:
@@ -63,7 +63,7 @@ rule append_size:
     log:
         "logs/append_size/{rundir}.log"
     params:
-        src=srcdir("scripts/add_size_to_fastaheader.py")
+        src=srcdir("../scripts/add_size_to_fastaheader.py")
     shell:
         """
         python {params.src} {input.fasta} {input.sums} > {output.fasta} 2>{log}
