@@ -23,6 +23,15 @@ properties:
     description: "rank at which to evaluate clusters"
     default: "Species"
     enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+  chimera_removal:
+    type: boolean
+    description: "should chimeras be removed from input fasta prior to clustering?"
+    default: False
+  chimera_algorithm:
+    type: string
+    description: "what algorithm to use for chimera removal with vsearch"
+    default: "uchime3_denovo"
+    enum: ["uchime_denovo", "uchime2_denovo", "uchime3_denovo"]
   software:
     type: array
     description: "clustering software to run"

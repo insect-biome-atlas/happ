@@ -5,10 +5,25 @@ localrules:
     append_size
 
 
+def get_filter_input(wildcards):
+    if config["chimera_removal"]:
+        f = expand(
+                "results/chimera/{rundir}/{algo}/nonchimeras.fasta",
+                rundir=wildcards.rundir,
+                algo=config["chimera_algorithm"],
+        ),
+    else:
+        f = expand(
+                "data/{rundir}/asv_seqs.fasta",
+                rundir=wildcards.rundir,
+        )
+    return f[0]
+
 rule filter_seqs:
     input:
         counts=expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
-        fasta=expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"]),
+        #fasta=expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"]),
+        fasta=get_filter_input,
         tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
     output:
         total_counts="results/common/{rundir}/{tax}/total_counts.tsv",
