@@ -19,16 +19,10 @@ def read_taxa(config):
                 taxa.append(line.rstrip())
         return taxa
     # Set file paths
-    counts_file = f"data/{rundir}/asv_counts.tsv"
     fasta_file = f"data/{rundir}/asv_seqs.fasta"
     tax_file = f"data/{rundir}/asv_taxa.tsv"
     # Read taxonomy dataframe
     tax_df = pd.read_csv(tax_file, sep="\t", index_col=0)
-    # Read counts and sum
-    total_counts = sum_counts(counts_file)
-    dataf = pd.DataFrame(total_counts, index=["count"]).T
-    # Filter dataframe to asvs with sum >0
-    dataf = dataf.loc[dataf["count"] > 0]
     filtered_ids = []
     # Go through fasta file and make sure to filter to ids present there
     with open(fasta_file, "r") as fhin:
