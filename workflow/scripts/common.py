@@ -100,6 +100,8 @@ def filter_seqs(sm):
     dataf = taxdf.loc[taxdf[split_rank] == tax]
     logging.info(f"Indexing {sm.input.fasta[0]}")
     record_dict = SeqIO.index(sm.input.fasta[0], "fasta")
+    if ";size=" in list(record_dict.keys())[0]:
+        record_dict = {k.split(";")[0] if ";" in k else k:v for k,v in record_dict.items()}
     logging.info(f"Writing sequences to {sm.params.fasta}")
     filtered_ids = write_fasta(record_dict, sm.params.fasta, list(dataf.index))
     logging.info(f"Extracting counts from {sm.input.counts[0]} and writing to {sm.params.total_counts} and {sm.params.counts}")
