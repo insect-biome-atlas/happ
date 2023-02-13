@@ -6,14 +6,14 @@ localrules:
 
 rule format_swarm:
     input:
-        fasta="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
-        counts="results/common/{rundir}/{tax}/total_counts.tsv",
+        fasta="results/common/{rundir}/{algo}/{tax}/asv_seqs.fasta.gz",
+        counts="results/common/{rundir}/{algo}/{tax}/total_counts.tsv",
     output:
-        fasta="results/swarm/{rundir}/{tax}/reformat.fasta.gz",
-        derep=touch("results/swarm/{rundir}/{tax}/derep.txt")
+        fasta="results/swarm/{rundir}/{algo}/{tax}/reformat.fasta.gz",
+        derep=touch("results/swarm/{rundir}/{algo}/{tax}/derep.txt")
     params:
-        tmpdir="$TMPDIR/{rundir}_{tax}_format_swarm",
-        fasta="$TMPDIR/{rundir}_{tax}_format_swarm/reformat.fasta.gz",
+        tmpdir="$TMPDIR/{rundir}_{algo}_{tax}_format_swarm",
+        fasta="$TMPDIR/{rundir}_{algo}_{tax}_format_swarm/reformat.fasta.gz",
     script:
         "../scripts/swarm_utils.py"
 
@@ -32,12 +32,10 @@ rule run_swarm:
     input:
         rules.format_swarm.output.fasta,
     output:
-        expand(
-            "results/swarm/{{rundir}}/{{tax}}/{{run_name}}/{f}",
-            f=["swarm_table.tsv", "swarm.txt"],
-        ),
+        txt="results/swarm/{rundir}/{algo}/{tax}/{run_name}/swarm.txt",
+        tsv="results/swarm/{rundir}/{algo}/{tax}/{run_name}/swarm_table.tsv",
     log:
-        "logs/swarm/{rundir}/{tax}/swarm.{run_name}.log",
+        "logs/swarm/{rundir}/{algo}/{tax}/swarm.{run_name}.log",
     params:
         fastidious=check_swarm_options(opt="fastidious"),
         differences=config["swarm"]["differences"],
@@ -57,10 +55,10 @@ rule run_swarm:
         gap_extension_penalty=f"-e {config['swarm']['gap-extension-penalty']}"
         if config["swarm"]["differences"] > 1
         else "",
-        tmpdir="$TMPDIR/swarm/{rundir}/{tax}",
-        fasta="$TMPDIR/swarm/{rundir}/{tax}/reformat.fasta",
-        txt="$TMPDIR/swarm/{rundir}/{tax}/swarm.txt",
-        tsv="$TMPDIR/swarm/{rundir}/{tax}/swarm_table.tsv",
+        tmpdir="$TMPDIR/swarm/{rundir}/{algo}/{tax}",
+        fasta="$TMPDIR/swarm/{rundir}/{algo}/{tax}/reformat.fasta",
+        txt="$TMPDIR/swarm/{rundir}/{algo}/{tax}/swarm.txt",
+        tsv="$TMPDIR/swarm/{rundir}/{algo}/{tax}/swarm_table.tsv",
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
     threads: config["swarm"]["threads"]
     conda:
@@ -84,13 +82,13 @@ rule run_swarm:
 
 rule swarm2tab:
     input:
-        "results/swarm/{rundir}/{tax}/{run_name}/swarm.txt",
-        "results/swarm/{rundir}/{tax}/derep.txt"
+        rules.run_swarm.output.txt,
+        rules.format_swarm.output.derep,
     output:
-        "results/swarm/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+        "results/swarm/{rundir}/{algo}/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir="$TMPDIR/swarm/{rundir}/{tax}",
-        out="$TMPDIR/swarm/{rundir}/{tax}/asv_clusters.tsv",
+        tmpdir="$TMPDIR/swarm/{rundir}/{algo}/{tax}",
+        out="$TMPDIR/swarm/{rundir}/{algo}/{tax}/asv_clusters.tsv",
     script:
         "../scripts/swarm_utils.py"
 
@@ -98,8 +96,9 @@ rule swarm2tab:
 rule swarm:
     input:
         expand(
-            "results/swarm/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+            "results/swarm/{rundir}/{algo}/{tax}/{run_name}/asv_clusters.tsv",
             rundir=config["rundir"],
+            algo=config["chimera_algorithm"],
             tax=taxa,
             run_name=config["run_name"],
         ),

@@ -6,18 +6,18 @@ localrules:
 
 rule mothur_align:
     input:
-        fasta="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
+        fasta="results/common/{rundir}/{algo}/{tax}/asv_seqs.fasta.gz",
     output:
-        dist="results/opticlust/{rundir}/{tax}/asv_seqs.dist.gz",
+        dist="results/opticlust/{rundir}/{algo}/{tax}/asv_seqs.dist.gz",
     log:
-        log="logs/opticlust/{rundir}/{tax}/mothur_align.log",
-        err="logs/opticlust/{rundir}/{tax}/mothur_align.err",
+        log="logs/opticlust/{rundir}/{algo}/{tax}/mothur_align.log",
+        err="logs/opticlust/{rundir}/{algo}/{tax}/mothur_align.err",
     conda:
         "../envs/opticlust.yml"
     params:
         indir=lambda wildcards, input: os.path.dirname(input.fasta[0]),
-        tmpdir="$TMPDIR/opticlust/{rundir}/{tax}",
-        fasta="$TMPDIR/opticlust/{rundir}/{tax}/asv_seqs.fasta",
+        tmpdir="$TMPDIR/opticlust/{rundir}/{algo}/{tax}",
+        fasta="$TMPDIR/opticlust/{rundir}/{algo}/{tax}/asv_seqs.fasta",
     threads: config["opticlust"]["threads"]
     resources:
         runtime=60 * 24 * 10,
@@ -34,19 +34,19 @@ rule mothur_align:
 
 def opticlust_input(wildcards):
     if config["opticlust"]["aligner"] == "vsearch":
-        return f"results/vsearch/{wildcards.rundir}/{wildcards.tax}/asv_seqs.dist.reformat.gz"
+        return f"results/vsearch/{wildcards.rundir}/{wildcards.algo}/{wildcards.tax}/asv_seqs.dist.reformat.gz"
     else:
-        return f"results/opticlust/{wildcards.rundir}/{wildcards.tax}/asv_seqs.dist.gz"
+        return f"results/opticlust/{wildcards.rundir}/{wildcards.algo}/{wildcards.tax}/asv_seqs.dist.gz"
 
 
 rule reformat_distmat:
     input:
-        "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
+        "results/vsearch/{rundir}/{algo}/{tax}/asv_seqs.dist.gz",
     output:
-        out="results/vsearch/{rundir}/{tax}/asv_seqs.dist.reformat.gz",
+        out="results/vsearch/{rundir}/{algo}/{tax}/asv_seqs.dist.reformat.gz",
     params:
-        out="$TMPDIR/{rundir}_{tax}_reformat_distmat/asv_seqs.dist.reformat.gz",
-        tmpdir="$TMPDIR/{rundir}_{tax}_reformat_distmat",
+        out="$TMPDIR/{rundir}_{algo}_{tax}_reformat_distmat/asv_seqs.dist.reformat.gz",
+        tmpdir="$TMPDIR/{rundir}_{algo}_{tax}_reformat_distmat",
     script:
         "../scripts/opticlust_utils.py"
 
@@ -57,20 +57,20 @@ rule run_opticlust:
     """
     input:
         dist=opticlust_input,
-        total_counts="results/common/{rundir}/{tax}/total_counts.tsv",
+        total_counts="results/common/{rundir}/{algo}/{tax}/total_counts.tsv",
     output:
-        list="results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.list",
-        sens="results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.sensspec",
-        step="results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.steps",
+        list="results/opticlust/{rundir}/{algo}/{tax}/{run_name}/asv_seqs.opti_mcc.list",
+        sens="results/opticlust/{rundir}/{algo}/{tax}/{run_name}/asv_seqs.opti_mcc.sensspec",
+        step="results/opticlust/{rundir}/{algo}/{tax}/{run_name}/asv_seqs.opti_mcc.steps",
     log:
-        log="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.log",
-        err="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.err",
+        log="logs/opticlust/{rundir}/{algo}/{tax}/{run_name}/opticlust.log",
+        err="logs/opticlust/{rundir}/{algo}/{tax}/{run_name}/opticlust.err",
     #shadow:
     #    "full"
     params:
-        dist="$TMPDIR/opticlust.{rundir}.{tax}/asv_seqs.dist",
-        counts="$TMPDIR/opticlust.{rundir}.{tax}/counts.tsv",
-        tmpdir="$TMPDIR/opticlust.{rundir}.{tax}",
+        dist="$TMPDIR/opticlust.{rundir}.{algo}.{tax}/asv_seqs.dist",
+        counts="$TMPDIR/opticlust.{rundir}.{algo}.{tax}/counts.tsv",
+        tmpdir="$TMPDIR/opticlust.{rundir}.{algo}.{tax}",
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         delta=config["opticlust"]["delta"],
         cutoff=config["opticlust"]["cutoff"],
@@ -100,12 +100,12 @@ rule opticlust2tab:
     Generate a membership style table of clusters
     """
     input:
-        "results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.list",
+        rules.run_opticlust.output.list,
     output:
-        "results/opticlust/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+        "results/opticlust/{rundir}/{algo}/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir="$TMPDIR/opticlust/{rundir}/{tax}",
-        out="$TMPDIR/opticlust/{rundir}/{tax}/asv_clusters.tsv",
+        tmpdir="$TMPDIR/opticlust/{rundir}/{algo}/{tax}",
+        out="$TMPDIR/opticlust/{rundir}/{algo}/{tax}/asv_clusters.tsv",
     script:
         "../scripts/opticlust_utils.py"
 
@@ -113,8 +113,9 @@ rule opticlust2tab:
 rule opticlust:
     input:
         expand(
-            "results/opticlust/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+            "results/opticlust/{rundir}/{algo}/{tax}/{run_name}/asv_clusters.tsv",
             rundir=config["rundir"],
+            algo=config["chimera_algorithm"],
             tax=taxa,
             run_name=config["run_name"],
         ),
