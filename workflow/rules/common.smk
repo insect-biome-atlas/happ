@@ -87,6 +87,17 @@ rule append_size:
         python {params.src} {input.fasta} {input.sums} > {output.fasta} 2>{log}
         """
 
+def get_abskew(wildcards):
+    try:
+        abskew = config["vsearch"]["abskew"]
+    except KeyError:
+        if wildcards.algo in ["uchime2_denovo", "uchime_denovo"]:
+            abskew = 2.0
+        elif wildcards.algo == "uchime3_denovo":
+            abskew = 16.0
+    return f"--abskew {abskew}"
+
+
 rule chimeras:
     input:
         fasta=rules.append_size.output.fasta,
@@ -103,10 +114,16 @@ rule chimeras:
     resources:
         runtime=60*24
     params:
-        algorithm="--{algo}"
+        algorithm="--{algo}",
+        abskew=get_abskew,
+        dn=config["vsearch"]["dn"],
+        mindiffs=config["vsearch"]["mindiffs"],
+        mindiv=config["vsearch"]["mindiv"],
+        minh=config["vsearch"]["minh"],
     shell:
         """
-        vsearch --chimeras {output.chim} --borderline {output.border} --nonchimeras {output.nochim} \
+        vsearch --dn {params.dn} -- mindiffs {params.mindiffs} --mindiv {params.mindiv} --minh {params.minh} \
+            {params.abskew} --chimeras {output.chim} --borderline {output.border} --nonchimeras {output.nochim} \
             {params.algorithm} {input.fasta} --uchimeout {output.uchimeout} >{log} 2>&1
         """
 
