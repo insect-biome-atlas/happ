@@ -176,6 +176,10 @@ properties:
       id: 0.84
       iddef: "1"
       query_cov: 0.9
+      dn: 1.4
+      mindiffs: 3
+      mindiv: 0.8
+      minh: 0.28
     properties:
       threads:
         type: integer
@@ -196,3 +200,19 @@ properties:
         type: number
         description: "reject if fraction of query seq. aligned lower"
         default: 0.9
+      dn:
+        type: number
+        description: "pseudo-count prior on the number of no votes"
+        default: 1.4
+      mindiffs:
+        type: integer
+        description: "Minimum number of differences per segment"
+        default: 3
+      mindiv:
+        type: number
+        description: "Minimum divergence from closest parent"
+        default: 0.8
+      minh:
+        type: number
+        description: "Minimum score (h)"
+        default: 0.28

@@ -28,6 +28,10 @@ vsearch:
   id: 0.84
   iddef: "1"
   query_cov: 0.9
+  dn: 1.4
+  mindiffs: 3
+  mindiv: 0.8
+  minh: 0.28
 
 opticlust:
   # For opticlust, choose whether pairwise alignments should be generated with
