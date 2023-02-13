@@ -56,7 +56,8 @@ def cluster_files(wildcards):
     rundir = config["rundir"]
     for tool in config["software"]:
         run_name = config["run_name"]
-        input.append(f"results/{tool}/{rundir}/{run_name}/precision_recall.txt")
+        algo = config["chimera_algorithm"]
+        input.append(f"results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.txt")
     return input
 
 def cluster_order_files(wildcards):
@@ -64,7 +65,8 @@ def cluster_order_files(wildcards):
     rundir = config["rundir"]
     for tool in config["software"]:
         run_name = config["run_name"]
-        input.append(f"results/{tool}/{rundir}/{run_name}/precision_recall.order.txt")
+        algo = config["chimera_algorithm"]
+        input.append(f"results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.order.txt")
     return input
 
 
@@ -73,16 +75,18 @@ def log_files(wildcards):
     rundir = config["rundir"]
     for tool in config["software"]:
         run_name = config["run_name"]
-        input.append(f"logs/{tool}/{rundir}/{run_name}/precision_recall.log")
+        algo = config["chimera_algorithm"]
+        input.append(f"logs/{tool}/{rundir}/{algo}/{run_name}/precision_recall.log")
     return input
 
 
 rule all:
     input:
         expand(
-            "results/{tool}/{rundir}/{run_name}/asv_reps.{suff}",
+            "results/{tool}/{rundir}/{algo}/{run_name}/asv_reps.{suff}",
             tool=config["software"],
             rundir=config["rundir"],
+            algo=config["chimera_algorithm"],
             run_name=config["run_name"],
             suff=["taxonomy.tsv", "fasta", "counts.tsv"],
         ),
@@ -145,14 +149,14 @@ rule evaluate:
 rule precision_recall:
     input:
         clust_files=expand(
-            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_clusters.tsv", tax=taxa
+            "results/{{tool}}/{{rundir}}/{{algo}}/{tax}/{{run_name}}/asv_clusters.tsv", tax=taxa
         ),
         tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
     output:
-        "results/{tool}/{rundir}/{run_name}/precision_recall.txt",
-        "results/{tool}/{rundir}/{run_name}/precision_recall.order.txt"
+        "results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.txt",
+        "results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.order.txt"
     log:
-        "logs/{tool}/{rundir}/{run_name}/precision_recall.log",
+        "logs/{tool}/{rundir}/{algo}/{run_name}/precision_recall.log",
     params:
         src="workflow/scripts/evaluate_clusters.py",
         eval_rank=config["evaluation_rank"],
@@ -182,20 +186,20 @@ rule calc_colsums:
 
 rule write_asv_reps:
     output:
-        fasta="results/{tool}/{rundir}/{tax}/{run_name}/asv_reps.fasta",
-        taxinfo="results/{tool}/{rundir}/{tax}/{run_name}/asv_reps.taxonomy.tsv",
+        fasta="results/{tool}/{rundir}/{algo}/{tax}/{run_name}/asv_reps.fasta",
+        taxinfo="results/{tool}/{rundir}/{algo}/{tax}/{run_name}/asv_reps.taxonomy.tsv",
     log:
-        "logs/{tool}/{rundir}/{tax}/{run_name}/write_asv_reps.log",
+        "logs/{tool}/{rundir}/{algo}/{tax}/{run_name}/write_asv_reps.log",
     input:
-        taxa="results/{tool}/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+        taxa="results/{tool}/{rundir}/{algo}/{tax}/{run_name}/asv_clusters.tsv",
         extra_taxa=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
-        counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
+        counts="results/common/{rundir}/{algo}/{tax}/asv_counts.tsv.gz",
         colsums=rules.calc_colsums.output[0],
-        seqs="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
+        seqs="results/common/{rundir}/{algo}/{tax}/asv_seqs.fasta.gz",
     params:
         src="workflow/scripts/get_asv_reps.py",
         method=config["rep_method"],
-        tmpdir="$TMPDIR/{tool}.{rundir}.{tax}.{run_name}.write_asv_reps",
+        tmpdir="$TMPDIR/{tool}.{rundir}.{algo}.{tax}.{run_name}.write_asv_reps",
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -210,10 +214,10 @@ rule write_asv_reps:
 
 rule sum_rep_counts:
     output:
-        "results/{tool}/{rundir}/{tax}/{run_name}/asv_reps.counts.tsv",
+        "results/{tool}/{rundir}/{algo}/{tax}/{run_name}/asv_reps.counts.tsv",
     input:
         taxinfo=rules.write_asv_reps.output.taxinfo,
-        counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
+        counts="results/common/{rundir}/{algo}/{tax}/asv_counts.tsv.gz",
     run:
         import pandas as pd
 
@@ -242,19 +246,19 @@ def merge_dataframes(input):
 
 rule merge_rep_files:
     output:
-        taxinfo="results/{tool}/{rundir}/{run_name}/asv_reps.taxonomy.tsv",
-        fasta="results/{tool}/{rundir}/{run_name}/asv_reps.fasta",
-        counts="results/{tool}/{rundir}/{run_name}/asv_reps.counts.tsv",
+        taxinfo="results/{tool}/{rundir}/{algo}/{run_name}/asv_reps.taxonomy.tsv",
+        fasta="results/{tool}/{rundir}/{algo}/{run_name}/asv_reps.fasta",
+        counts="results/{tool}/{rundir}/{algo}/{run_name}/asv_reps.counts.tsv",
     input:
         fasta=expand(
-            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.fasta", tax=taxa
+            "results/{{tool}}/{{rundir}}/{{algo}}/{tax}/{{run_name}}/asv_reps.fasta", tax=taxa
         ),
         taxinfo=expand(
-            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
+            "results/{{tool}}/{{rundir}}/{{algo}}/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
             tax=taxa,
         ),
         counts=expand(
-            "results/{{tool}}/{{rundir}}/{tax}/{{run_name}}/asv_reps.counts.tsv",
+            "results/{{tool}}/{{rundir}}/{{algo}}/{tax}/{{run_name}}/asv_reps.counts.tsv",
             tax=taxa,
         ),
     run:
@@ -267,9 +271,9 @@ rule merge_rep_files:
 
 rule calculate_mean_dist:
     output:
-        "results/vsearch/{rundir}/{tax}/asv_seqs.average_dist.tsv",
+        "results/vsearch/{rundir}/{algo}/{tax}/asv_seqs.average_dist.tsv",
     input:
-        "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
+        "results/vsearch/{rundir}/{algo}/{tax}/asv_seqs.dist.gz",
     run:
         import gzip as gz
         import numpy as np
@@ -302,9 +306,9 @@ rule calculate_mean_dist:
 
 rule collate_mean_dist:
     output:
-        "results/vsearch/{rundir}/asv_seqs.average_dist.tsv",
+        "results/vsearch/{rundir}/{algo}/asv_seqs.average_dist.tsv",
     input:
-        expand("results/vsearch/{{rundir}}/{tax}/asv_seqs.average_dist.tsv", tax=taxa),
+        expand("results/vsearch/{{rundir}}/{{algo}}/{tax}/asv_seqs.average_dist.tsv", tax=taxa),
     run:
         import pandas as pd
 
