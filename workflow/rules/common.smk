@@ -6,50 +6,53 @@ localrules:
 
 
 def get_filter_input(wildcards):
-    if config["chimera_removal"]:
+    if wildcards.algo == "none":
+        f = expand("data/{rundir}/asv_seqs.fasta",
+            rundir=wildcards.rundir,
+        )
+    else:
         f = expand(
                 "results/chimera/{rundir}/{algo}/nonchimeras.fasta",
                 rundir=wildcards.rundir,
                 algo=config["chimera_algorithm"],
         ),
-    else:
-        f = expand(
-                "data/{rundir}/asv_seqs.fasta",
-                rundir=wildcards.rundir,
-        )
     return f[0]
 
 rule filter_seqs:
     input:
         counts=expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
-        #fasta=expand("data/{rundir}/asv_seqs.fasta", rundir=config["rundir"]),
         fasta=get_filter_input,
         tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
     output:
-        total_counts="results/common/{rundir}/{tax}/total_counts.tsv",
-        counts="results/common/{rundir}/{tax}/asv_counts.tsv.gz",
-        fasta="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
+        total_counts="results/common/{rundir}/{algo}/{tax}/total_counts.tsv",
+        counts="results/common/{rundir}/{algo}/{tax}/asv_counts.tsv.gz",
+        fasta="results/common/{rundir}/{algo}/{tax}/asv_seqs.fasta.gz",
     log:
-        "logs/filter_seqs/{rundir}/{tax}.filter.log"
+        "logs/filter_seqs/{rundir}/{algo}/{tax}.filter.log"
     params:
         split_rank=config["split_rank"],
-        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{tax}_filter_seqs"),
-        total_counts=os.path.expandvars("$TMPDIR/{rundir}_{tax}_filter_seqs/total_counts.tsv"),
-        counts=os.path.expandvars("$TMPDIR/{rundir}_{tax}_filter_seqs/asv_counts.tsv.gz"),
-        fasta=os.path.expandvars("$TMPDIR/{rundir}_{tax}_filter_seqs/asv_seqs.fasta.gz"),
+        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs"),
+        total_counts=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/total_counts.tsv"),
+        counts=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/asv_counts.tsv.gz"),
+        fasta=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/asv_seqs.fasta.gz"),
     script:
         "../scripts/common.py"
 
 
 rule filter:
+    """
+    Pseudo-target for the filtering part of the workflow
+    """
     input:
         expand(
-            "results/common/{rundir}/{tax}/{f}",
+            "results/common/{rundir}/{algo}/{tax}/{f}",
             rundir=config["rundir"],
+            algo=config["chimera_algorithm"],
             tax=taxa,
             f=["total_counts.tsv", "asv_counts.tsv.gz", "asv_seqs.fasta.gz"],
         ),
 
+## CHIMERA DETECTION ##
 rule sum_asvs:
     input:
         counts="data/{rundir}/asv_counts.tsv",
@@ -107,17 +110,18 @@ rule chimeras:
             {params.algorithm} {input.fasta} --uchimeout {output.uchimeout} >{log} 2>&1
         """
 
+## VSEARCH ALIGNMENTS ##
 rule vsearch_align:
     input:
-        fasta="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
+        fasta="results/common/{rundir}/{algo}/{tax}/asv_seqs.fasta.gz",
     output:
-        dist="results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
+        dist="results/vsearch/{rundir}/{algo}/{tax}/asv_seqs.dist.gz",
     log:
-        "logs/vsearch/{rundir}/{tax}/vsearch_align.log",
+        "logs/vsearch/{rundir}/{algo}/{tax}/vsearch_align.log",
     params:
-        dist="$TMPDIR/vsearch/{rundir}/{tax}/asv_seqs.dist",
-        fasta="$TMPDIR/vsearch/{rundir}/{tax}/asv_seqs.fasta",
-        tmpdir="$TMPDIR/vsearch/{rundir}/{tax}",
+        dist="$TMPDIR/vsearch/{rundir}/{algo}/{tax}/asv_seqs.dist",
+        fasta="$TMPDIR/vsearch/{rundir}/{algo}/{tax}/asv_seqs.fasta",
+        tmpdir="$TMPDIR/vsearch/{rundir}/{algo}/{tax}",
         id=config["vsearch"]["id"],
         iddef=config["vsearch"]["iddef"],
         query_cov=config["vsearch"]["query_cov"],
@@ -137,11 +141,14 @@ rule vsearch_align:
         mv {params.dist}.gz {output.dist} 
         """
 
-
 rule vsearch:
+    """
+    vsearch pseudo-target
+    """
     input:
         expand(
-            "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
+            "results/vsearch/{rundir}/{algo}/{tax}/asv_seqs.dist.gz",
             rundir=config["rundir"],
+            algo=config["chimera_algorithm"],
             tax=taxa,
         ),

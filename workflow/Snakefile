@@ -10,6 +10,7 @@ wildcard_constraints:
     tax=f"({'|'.join(taxa)})",
     rundir=config["rundir"],
     run_name=config["run_name"],
+    algo=config["chimera_algorithm"]
 
 
 container: "docker://continuumio/miniconda3:4.11.0"
