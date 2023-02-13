@@ -1,0 +1,62 @@
+# Update with the name of a subdirectory directory under data/ that contains
+# asv_seqs.fasta, asv_counts.tsv and asv_taxa.tsv
+rundir: "test"
+# Specify a name of the run. Using different run_name you can run clustering
+# with different parameters using the same vsearch output.
+run_name: "default"
+# At what rank should the data be split prior to aligning and clustering
+split_rank: "Family"
+# Method to use for calculating representative sequences for clusters
+# select between "median", "mean" and "sum"
+rep_method: "median"
+# Chimera detection is done with vsearch.
+# Select algorithm to use, you can choose from 'uchime_denovo', 'uchime2_denovo'
+# and 'uchime3_denovo'. Specifying 'none' will turn off chimera detection.
+chimera_algorithm: "none"
+# Specify what clustering software to use. Choose from 'swarm', 'opticlust',
+# 'dbotu3' and 'lulu'.
+software:
+  - "swarm"
+  - "opticlust"
+  #- "lulu"
+  #- "dbotu3"
+evaluation_rank: "Species"
+
+# Tool-specific settings
+vsearch:
+  threads: 10
+  id: 0.84
+  iddef: "1"
+  query_cov: 0.9
+
+opticlust:
+  # For opticlust, choose whether pairwise alignments should be generated with
+  # 'vsearch' or 'mothur'
+  aligner: "vsearch"
+  delta: 0.0001
+  cutoff: 0.03
+  initialize: "singleton"
+  precision: 1000
+  threads: 10
+
+swarm:
+  differences: 1
+  no-otu-breaking: False
+  fastidious: True
+  boundary: 3
+  threads: 10
+  match-reward: 5
+  mismatch-penalty: 4
+  gap-opening-penalty: 12
+  gap-extension-penalty: 4
+
+dbotu3:
+  dist: 0.1
+  abund: 10.0
+  pval: 0.0005
+
+lulu:
+  minimum_ratio_type: "min"
+  minimum_ratio: 1
+  minimum_match: 84
+  minimum_relative_cooccurence: 0.95

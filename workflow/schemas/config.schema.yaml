@@ -5,9 +5,12 @@ description: snakemake configuration file
 type: object
 
 properties:
+  run_name:
+    type: string
+    description: "Specify a name of the run. Using different run_name you can run clustering with different parameters using the same vsearch output"
   rundir:
     type: string
-    description: "names of input directories, each should contain a 'asv_counts.tsv', a 'asv_seqs.fasta' file and a 'asv_taxa.tsv' file"
+    description: "name of input directories, each should contain a 'asv_counts.tsv', a 'asv_seqs.fasta' file and a 'asv_taxa.tsv' file"
   split_rank:
     type: string
     description: "rank at which to split input file prior to clustering"
@@ -23,15 +26,11 @@ properties:
     description: "rank at which to evaluate clusters"
     default: "Species"
     enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
-  chimera_removal:
-    type: boolean
-    description: "should chimeras be removed from input fasta prior to clustering?"
-    default: False
   chimera_algorithm:
     type: string
     description: "what algorithm to use for chimera removal with vsearch"
     default: "uchime3_denovo"
-    enum: ["uchime_denovo", "uchime2_denovo", "uchime3_denovo"]
+    enum: ["uchime_denovo", "uchime2_denovo", "uchime3_denovo", "none"]
   software:
     type: array
     description: "clustering software to run"
@@ -89,9 +88,6 @@ properties:
         description: "number of threads to use for swarm"
         minimum: 1
         default: 10
-      run_name:
-        type: string
-        description: "name the run with this config file"
   dbotu3:
     type: object
     default:
@@ -111,9 +107,6 @@ properties:
         type: number
         description: "minimum p-value for merging OTUs"
         default: 0.0005
-      run_name:
-        type: string
-        description: "name the run with this config file"
   opticlust:
     type: object
     default:
@@ -151,9 +144,6 @@ properties:
         description: "number of threads to use for opticlust"
         default: 10
         minimum: 1
-      run_name:
-        type: string
-        description: "name the run with this config file"
   lulu:
     type: object
     default:
@@ -179,9 +169,6 @@ properties:
         type: number
         description: "minimum co-occurrence rate – i.e. the lower rate of occurrence of the potential error explained by co-occurrence with the potential parent for considering error state."
         default: 0.95
-      run_name:
-        type: string
-        description: "name the run with this config file"
   vsearch:
     type: object
     default:
