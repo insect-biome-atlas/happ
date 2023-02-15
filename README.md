@@ -72,7 +72,7 @@ snakemake --profile test
 The idea with this workflow is to make it easy to run OTU clustering with many 
 different parameter settings then evaluate which settings you think works best
 for your data. `vsearch` makes up the basis of the workflow by creating pairwise
-alignments of the sequences (often the most time consuming step) and several different
+alignments of the sequences (often the most time-consuming step) and several 
 clustering runs can then be executed without having to re-create the alignments
 for each run.
 
@@ -235,14 +235,34 @@ where `N` is the total number of ASVs.
 
 ### FINBOL
 
-We benchmarked the FINBOL database with the following parameters
+We benchmarked the workflow on the FINBOL database (see the 
+[README](data/finbol/README.md)) using the following parameters:
 
-| tool      | default                  | params1     | params2      | params3     | params4      | params5             | params6     | params7     | params8     | params9     | params10    | params11    | params12   |
-|-----------|--------------------------|-------------|--------------|-------------|--------------|---------------------|-------------|-------------|-------------|-------------|-------------|-------------|------------|
-| swarm     | -d 1 --fastidious -b 3   | -d 2 -b 0   | -d 3 -b 0    | -d 4 -b 0   | -d 5 -b 0    | -d 4 -m 6 -p 3 -b 0 | -d 13 -b 0  | -d 15 -b 0  | -d 17 -b 0  | -d 20 -b 0  | -d 22 -b 0  | -d 23 -b 0  | -d 25 -b 0 |
-| opticlust | cutoff=0.03              | cutoff=0.01 | cutoff=0.015 | cutoff=0.02 | cutoff=0.025 | cutoff=0.035        | cutoff=0.04 | cutoff=0.05 | cutoff=0.06 | cutoff=0.07 | cutoff=0.08 | cutoff=0.09 | cutoff=0.1 |
+| run name  | swarm                  | opticlust    |
+|-----------|------------------------|--------------|
+| default   | -d 1 --fastidious -b 3 | cutoff=0.03  |
+| params1   | -d 2 -b 0              | cutoff=0.01  |
+| params2   | -d 3 -b 0              | cutoff=0.015 |
+| params3   | -d 4 -b 0              | cutoff=0.02  |
+| params4   | -d 5 -b 0              | cutoff=0.025 |
+| params5   | -d 4 -m 6 -p 3 -b 0    | cutoff=0.035 |
+| params6   | -d 13 -b 0             | cutoff=0.04  |
+| params7   | -d 15 -b 0             | cutoff=0.05  |
+| params8   | -d 17 -b 0             | cutoff=0.06  |
+| params9   | -d 20 -b 0             | cutoff=0.07  |
+| params10  | -d 22 -b 0             | cutoff=0.08  |
+| params11  | -d 23 -b 0             | cutoff=0.09  |
+| params12  | -d 25 -b 0             | cutoff=0.1   |
 
-Our analysis showed that `params4` with opticlust gave the highest precision/recall.
+Our analysis showed that `params4` with opticlust (`cutoff=0.025`) gave the 
+highest precision/recall. However, when we used this setting on real-world data
+for >630,000 ASVs in >5000 samples the results showed a very low recall and 
+a much greater number of clusters than anticipated. Looking more closely at the
+Lepidoptera order there were ~4,300 clusters but only ~1,400 unique species
+in the data. We hypothesized that chimeric ASV sequences were causing problems
+for the clustering algorithms, something we did not observe in the benchmarking 
+because it was done on presumably high-quality non-chimeric sequences.
+
 
 ## More references
 
