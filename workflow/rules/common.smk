@@ -1,22 +1,27 @@
 import os.path
 
+
 localrules:
     filter_seqs,
-    append_size
+    append_size,
 
 
 def get_filter_input(wildcards):
     if wildcards.algo == "none":
-        f = expand("data/{rundir}/asv_seqs.fasta",
+        f = expand(
+            "data/{rundir}/asv_seqs.fasta",
             rundir=wildcards.rundir,
         )
     else:
-        f = expand(
+        f = (
+            expand(
                 "results/chimera/{rundir}/{algo}/nonchimeras.fasta",
                 rundir=wildcards.rundir,
                 algo=config["chimera_algorithm"],
-        ),
+            ),
+        )
     return f[0]
+
 
 rule filter_seqs:
     input:
@@ -28,13 +33,19 @@ rule filter_seqs:
         counts="results/common/{rundir}/{algo}/{tax}/asv_counts.tsv.gz",
         fasta="results/common/{rundir}/{algo}/{tax}/asv_seqs.fasta.gz",
     log:
-        "logs/filter_seqs/{rundir}/{algo}/{tax}.filter.log"
+        "logs/filter_seqs/{rundir}/{algo}/{tax}.filter.log",
     params:
         split_rank=config["split_rank"],
         tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs"),
-        total_counts=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/total_counts.tsv"),
-        counts=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/asv_counts.tsv.gz"),
-        fasta=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/asv_seqs.fasta.gz"),
+        total_counts=os.path.expandvars(
+            "$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/total_counts.tsv"
+        ),
+        counts=os.path.expandvars(
+            "$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/asv_counts.tsv.gz"
+        ),
+        fasta=os.path.expandvars(
+            "$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/asv_seqs.fasta.gz"
+        ),
     script:
         "../scripts/common.py"
 
@@ -52,25 +63,27 @@ rule filter:
             f=["total_counts.tsv", "asv_counts.tsv.gz", "asv_seqs.fasta.gz"],
         ),
 
+
 ## CHIMERA DETECTION ##
 rule sum_asvs:
     input:
         counts="data/{rundir}/asv_counts.tsv",
     output:
-        sums="data/{rundir}/asv_sum.tsv"
+        sums="data/{rundir}/asv_sum.tsv",
     log:
-        "logs/sum_asvs/{rundir}.log"
+        "logs/sum_asvs/{rundir}.log",
     resources:
-        runtime=60
+        runtime=60,
     threads: 10
     params:
-        src=srcdir("../scripts/sum_counts.py")
+        src=srcdir("../scripts/sum_counts.py"),
     conda:
         "../envs/polars.yml"
     shell:
         """
         python {params.src} {input.counts} > {output.sums} 2>{log}
         """
+
 
 rule append_size:
     input:
@@ -79,13 +92,14 @@ rule append_size:
     output:
         fasta="data/{rundir}/asv_seqs_size.fasta",
     log:
-        "logs/append_size/{rundir}.log"
+        "logs/append_size/{rundir}.log",
     params:
-        src=srcdir("../scripts/add_size_to_fastaheader.py")
+        src=srcdir("../scripts/add_size_to_fastaheader.py"),
     shell:
         """
         python {params.src} {input.fasta} {input.sums} > {output.fasta} 2>{log}
         """
+
 
 def get_abskew(wildcards):
     try:
@@ -98,7 +112,7 @@ def get_abskew(wildcards):
     return f"--abskew {abskew}"
 
 
-rule chimeras:
+rule chimera_full:
     input:
         fasta=rules.append_size.output.fasta,
     output:
@@ -107,12 +121,12 @@ rule chimeras:
         border="results/chimera/{rundir}/{algo}/borderline.fasta",
         uchimeout="results/chimera/{rundir}/{algo}/uchimeout.txt",
     log:
-        "logs/chimeras/{rundir}.{algo}.log"
+        "logs/chimeras/{rundir}.{algo}.log",
     conda:
         "../envs/vsearch.yml"
     threads: 1
     resources:
-        runtime=60*24
+        runtime=60 * 24,
     params:
         algorithm="--{algo}",
         abskew=get_abskew,
@@ -122,10 +136,11 @@ rule chimeras:
         minh=config["vsearch"]["minh"],
     shell:
         """
-        vsearch --dn {params.dn} -- mindiffs {params.mindiffs} --mindiv {params.mindiv} --minh {params.minh} \
+        vsearch --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} --minh {params.minh} \
             {params.abskew} --chimeras {output.chim} --borderline {output.border} --nonchimeras {output.nochim} \
             {params.algorithm} {input.fasta} --uchimeout {output.uchimeout} >{log} 2>&1
         """
+
 
 ## VSEARCH ALIGNMENTS ##
 rule vsearch_align:
@@ -157,6 +172,7 @@ rule vsearch_align:
         gzip {params.dist}
         mv {params.dist}.gz {output.dist} 
         """
+
 
 rule vsearch:
     """
