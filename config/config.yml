@@ -28,6 +28,7 @@ vsearch:
   id: 0.84
   iddef: "1"
   query_cov: 0.9
+  # Chimera detection settings
   dn: 1.4
   mindiffs: 3
   mindiv: 0.8
