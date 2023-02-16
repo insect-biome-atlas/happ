@@ -2,15 +2,17 @@
 
 import pandas as pd
 from argparse import ArgumentParser
+import polars as pl
 
 
 def main(args):
     r = pd.read_csv(args.counts, sep="\t", nrows=1, index_col=0)
+    df = pl.read_csv(args.counts, has_header=True, sep="\t")
     samples = list(r.columns)
     for i, sample in enumerate(samples, start=1):
-        df = pd.read_csv(args.counts, usecols=[0, i], sep="\t", index_col=0)
-        df = df.loc[df[sample] > 0].rename(columns={sample: "Sum"})
-        df.to_csv(f"{args.outdir}/{sample}.sum.tsv", sep="\t")
+        _ = df.filter(pl.col(sample)>0).select(["ASV_ID", sample])
+        _.columns = list(map(lambda x: x.replace(sample, "Sum"), _.columns))
+        _.write_csv(f"{args.outdir}/{sample}.sum.tsv", sep="\t")
 
 
 if __name__ == "__main__":

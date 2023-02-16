@@ -58,10 +58,13 @@ rule split_counts:
         src=srcdir("../scripts/split_counts.py"),
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         tmpdir="$TMPDIR/{rundir}.split",
+    conda:
+        "../envs/polars.yml"
     shell:
         """
         mkdir -p {params.tmpdir}
-        python {params.src} {input.counts} {params.tmpdir} 2>{log}
+        cp {input.counts} {params.tmpdir}/counts.tsv
+        python {params.src} {params.tmpdir}/counts.tsv {params.tmpdir} 2>{log}
         mv {params.tmpdir}/* {params.outdir}
         rm -rf {params.tmpdir}
         """
