@@ -5,18 +5,24 @@ from scripts.common import read_taxa
 validate(config, schema="schemas/config.schema.yaml", set_default=True)
 taxa = read_taxa(config)
 
+
 wildcard_constraints:
     tool="(swarm|opticlust|dbotu3|lulu)",
     tax=f"({'|'.join(taxa)})",
     rundir=config["rundir"],
     run_name=config["run_name"],
-    algo=config["chimera_algorithm"]
+    algo=config["chimera_algorithm"],
 
 
 container: "docker://continuumio/miniconda3:4.11.0"
 
 
 include: "rules/common.smk"
+
+
+if config["chimera_algorithm"] != "none":
+
+    include: "rules/chimeras.smk"
 
 
 if "swarm" in config["software"]:
@@ -60,13 +66,16 @@ def cluster_files(wildcards):
         input.append(f"results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.txt")
     return input
 
+
 def cluster_order_files(wildcards):
     input = []
     rundir = config["rundir"]
     for tool in config["software"]:
         run_name = config["run_name"]
         algo = config["chimera_algorithm"]
-        input.append(f"results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.order.txt")
+        input.append(
+            f"results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.order.txt"
+        )
     return input
 
 
@@ -106,10 +115,11 @@ rule evaluate:
         ordertsv=expand(
             "results/stats/{rundir}/{run_name}.order.tsv",
             rundir=config["rundir"],
-            run_name=config["run_name"]
+            run_name=config["run_name"],
         ),
     run:
         import pandas as pd
+
         stats = {}
         for f in input.txt:
             tool = f.split("/")[1]
@@ -123,7 +133,7 @@ rule evaluate:
                     "precision": items[6].split("\t")[-1],
                     "recall": items[7].split("\t")[-1],
                     "homogeneity": items[8].split("\t")[-1],
-                    "completeness": items[9].split("\t")[-1]
+                    "completeness": items[9].split("\t")[-1],
                 }
         for f in input.log:
             tool = f.split("/")[1]
@@ -135,26 +145,35 @@ rule evaluate:
         df = pd.DataFrame(stats).T
         df.to_csv(output.tsv[0], sep="\t")
         orderdf = pd.DataFrame()
-        cols = ["precision","recall","homogeneity","completeness",config["evaluation_rank"],"ASVs","tool","clusters"]
+        cols = [
+            "precision",
+            "recall",
+            "homogeneity",
+            "completeness",
+            config["evaluation_rank"],
+            "ASVs",
+            "tool",
+            "clusters",
+        ]
         for f in input.txt_o:
             tool = f.split("/")[1]
             _df = pd.read_csv(f, sep="\t", index_col=0)
-            _df = _df.assign(tool=pd.Series([tool]*_df.shape[0], index=_df.index))
+            _df = _df.assign(tool=pd.Series([tool] * _df.shape[0], index=_df.index))
             _df = _df.loc[:, cols]
             orderdf = pd.concat([orderdf, _df])
         orderdf.to_csv(output.ordertsv[0], sep="\t")
 
 
-
 rule precision_recall:
     input:
         clust_files=expand(
-            "results/{{tool}}/{{rundir}}/{{algo}}/{tax}/{{run_name}}/asv_clusters.tsv", tax=taxa
+            "results/{{tool}}/{{rundir}}/{{algo}}/{tax}/{{run_name}}/asv_clusters.tsv",
+            tax=taxa,
         ),
         tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
     output:
         "results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.txt",
-        "results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.order.txt"
+        "results/{tool}/{rundir}/{algo}/{run_name}/precision_recall.order.txt",
     log:
         "logs/{tool}/{rundir}/{algo}/{run_name}/precision_recall.log",
     params:
@@ -251,7 +270,8 @@ rule merge_rep_files:
         counts="results/{tool}/{rundir}/{algo}/{run_name}/asv_reps.counts.tsv",
     input:
         fasta=expand(
-            "results/{{tool}}/{{rundir}}/{{algo}}/{tax}/{{run_name}}/asv_reps.fasta", tax=taxa
+            "results/{{tool}}/{{rundir}}/{{algo}}/{tax}/{{run_name}}/asv_reps.fasta",
+            tax=taxa,
         ),
         taxinfo=expand(
             "results/{{tool}}/{{rundir}}/{{algo}}/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
@@ -292,12 +312,7 @@ rule calculate_mean_dist:
                 "max": np.max(taxdist),
             }
         else:
-            res = {
-                "mean": np.nan,
-                "median": np.nan,
-                "min": np.nan,
-                "max": np.nan
-            }
+            res = {"mean": np.nan, "median": np.nan, "min": np.nan, "max": np.nan}
         df = pd.DataFrame(res, index=[wildcards.tax]).loc[
             :, ["mean", "median", "min", "max"]
         ]
@@ -308,13 +323,16 @@ rule collate_mean_dist:
     output:
         "results/vsearch/{rundir}/{algo}/asv_seqs.average_dist.tsv",
     input:
-        expand("results/vsearch/{{rundir}}/{{algo}}/{tax}/asv_seqs.average_dist.tsv", tax=taxa),
+        expand(
+            "results/vsearch/{{rundir}}/{{algo}}/{tax}/asv_seqs.average_dist.tsv",
+            tax=taxa,
+        ),
     run:
         import pandas as pd
 
         df = pd.DataFrame()
         for f in input:
             _df = pd.read_csv(f, sep="\t", index_col=0)
-            _df.index.name="tax"
+            _df.index.name = "tax"
             df = pd.concat([_df, df])
         df.to_csv(output[0], sep="\t")
