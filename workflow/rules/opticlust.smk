@@ -65,7 +65,7 @@ rule run_opticlust:
     log:
         log="logs/opticlust/{rundir}/{algo}/{tax}/{run_name}/opticlust.log",
         err="logs/opticlust/{rundir}/{algo}/{tax}/{run_name}/opticlust.err",
-    #shadow:
+    # shadow:
     #    "full"
     params:
         dist="$TMPDIR/opticlust.{rundir}.{algo}.{tax}/asv_seqs.dist",

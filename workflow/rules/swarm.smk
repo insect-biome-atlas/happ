@@ -10,7 +10,7 @@ rule format_swarm:
         counts="results/common/{rundir}/{algo}/{tax}/total_counts.tsv",
     output:
         fasta="results/swarm/{rundir}/{algo}/{tax}/reformat.fasta.gz",
-        derep=touch("results/swarm/{rundir}/{algo}/{tax}/derep.txt")
+        derep=touch("results/swarm/{rundir}/{algo}/{tax}/derep.txt"),
     params:
         tmpdir="$TMPDIR/{rundir}_{algo}_{tax}_format_swarm",
         fasta="$TMPDIR/{rundir}_{algo}_{tax}_format_swarm/reformat.fasta.gz",
