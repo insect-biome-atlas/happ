@@ -13,7 +13,7 @@ def fetch_samples(f):
     Look at the header of the counts file to figure out what samples to split by
     """
     r = pd.read_csv(f, sep="\t", nrows=1, index_col=0)
-    return list(r.columns)
+    return [x.replace(" ", "_") for x in list(r.columns)]
 
 
 samples = fetch_samples(f=f"data/{config['rundir']}/asv_counts.tsv")

@@ -12,6 +12,7 @@ wildcard_constraints:
     rundir=config["rundir"],
     run_name=config["run_name"],
     algo=config["chimera_algorithm"],
+    sample="\w+"
 
 
 container: "docker://continuumio/miniconda3:4.11.0"
