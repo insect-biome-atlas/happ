@@ -72,6 +72,7 @@ rule split_counts:
         mkdir -p {params.tmpdir}
         cp {input.counts} {params.tmpdir}/counts.tsv
         python {params.src} {params.tmpdir}/counts.tsv {params.tmpdir} 2>{log}
+        rm {params.tmpdir}/counts.tsv
         mv {params.tmpdir}/* {params.outdir}
         rm -rf {params.tmpdir}
         """
