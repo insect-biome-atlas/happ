@@ -43,6 +43,13 @@ rule chimera_samplewise:
             f=["chimeras.tsv", "nonchimeras.fasta"],
         ),
 
+rule split_all_counts:
+    input:
+        expand(
+            "data/{rundir}/samplewise/{sample}.sum.tsv",
+            rundir=config["rundir"],
+            sample=samples,
+        )
 
 rule split_counts:
     output:
