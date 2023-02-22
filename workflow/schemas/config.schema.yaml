@@ -29,8 +29,12 @@ properties:
   chimera_algorithm:
     type: string
     description: "what algorithm to use for chimera removal with vsearch"
-    default: "uchime3_denovo"
+    default: "uchime_denovo"
     enum: ["uchime_denovo", "uchime2_denovo", "uchime3_denovo", "none"]
+  samplewise_chimeras:
+    type: boolean
+    description: "should chimera detection be run on a sample-by-sample basis"
+    default: False
   software:
     type: array
     description: "clustering software to run"

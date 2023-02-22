@@ -13,13 +13,22 @@ def get_filter_input(wildcards):
             rundir=wildcards.rundir,
         )
     else:
-        f = (
-            expand(
-                "results/chimera/{rundir}/{algo}/nonchimeras.fasta",
-                rundir=wildcards.rundir,
-                algo=config["chimera_algorithm"],
-            ),
-        )
+        if config["samplewise_chimeras"]:
+            f = (
+                expand(
+                    "results/chimera/{rundir}/samplewise/{algo}/nonchimeras.fasta",
+                    rundir=wildcards.rundir,
+                    algo=config["chimera_algorithm"],
+                )
+            )
+        else:
+            f = (
+                expand(
+                    "results/chimera/{rundir}/{algo}/nonchimeras.fasta",
+                    rundir=wildcards.rundir,
+                    algo=config["chimera_algorithm"],
+                ),
+            )
     return f[0]
 
 
