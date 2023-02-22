@@ -27,7 +27,7 @@ def read_taxa(config):
     # Go through fasta file and make sure to filter to ids present there
     with open(fasta_file, "r") as fhin:
         for record in SeqIO.parse(fhin, "fasta"):
-            if record.id in dataf.index:
+            if record.id in tax_df.index:
                 filtered_ids.append(record.id)
     dataf = tax_df.loc[filtered_ids]
     taxa = list(dataf[split_rank].unique())
