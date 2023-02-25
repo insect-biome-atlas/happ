@@ -152,7 +152,7 @@ def eval_uchime(asvid_isspecial, asvid_order, asvid_bin, asvid_species, asvid_ot
 def main(args):
     asvid_isspecial = get_special_asvs(args.special_asv_seqs_file)
     asvid_order, asvid_bin, asvid_species, asvid_otu = get_taxonomy(args.taxonomy_file)
-    asvid_div, asvid_sumR, asvid_sumL, asvid_count, asvid_minh = get_uchime(args.uchime_fike)
+    asvid_div, asvid_sumR, asvid_sumL, asvid_count, asvid_minh = get_uchime(args.uchime_file)
     eval_uchime(asvid_isspecial, asvid_order, asvid_bin, asvid_species, asvid_otu,
                 asvid_div, asvid_sumR, asvid_sumL, asvid_count, asvid_minh)
 
