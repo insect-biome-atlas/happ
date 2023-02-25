@@ -16,7 +16,6 @@ def get_taxonomy(taxonomy_file):
     asvid_bin = {}
     asvid_species = {}
     asvid_order = {}
-    asvid_
     with open(taxonomy_file, 'r') as INFILE:
         for i, line in enumerate(INFILE):
             line = line.rstrip()
