@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from Bio.SeqIO import parse
 import sys
 from collections import defaultdict
+import numpy as np
 
 def get_special_asvs(special_asv_seqs_file):
     asvid_isspecial = {}
@@ -51,7 +52,6 @@ def get_uchime(uchime_file):
     17. YN (status): Y or N, indicating whether the query was classified as chimeric. This requires that Score >= threshold specified by -minh, Div > minimum divergence specified by ‑mindiv and the number of diffs ( (Y+N+A) in each segment (L and R) is greater than the minimum specified by -mindiffs. In v6.0.310 and later, may also be '?' indicating a weakly chimeric alignment with score between maxh and minh.
     """
     asvid_minh = {}
-    asvid_count = {}
     asvid_sumL = {}
     asvid_sumR = {}
     asvid_count = {}
@@ -66,7 +66,10 @@ def get_uchime(uchime_file):
             asvid_count[asvid] = size
             asvid_sumL[asvid] = int(fields[10]) + int(fields[11]) + int(fields[12])
             asvid_sumR[asvid] = int(fields[13]) + int(fields[14]) + int(fields[15])
-            asvid_div[asvid] = float(fields[16])
+            try:
+                asvid_div[asvid] = float(fields[16])
+            except ValueError:
+                asvid_div[asvid] = np.nan
     return asvid_div, asvid_sumR, asvid_sumL, asvid_count, asvid_minh
 
 
