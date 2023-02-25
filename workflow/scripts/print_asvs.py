@@ -160,11 +160,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_option("special_asv_seqs_file", type=str,
+    parser.add_argument("special_asv_seqs_file", type=str,
                       help="Fasta file with 'trusted' ASV seqs (nonchimeric)")
-    parser.add_option("taxonomy_file", type=str,
+    parser.add_argument("taxonomy_file", type=str,
                       help="File with taxonomic info for ASVs")
-    parser.add_option("uchime_file", type=str,
+    parser.add_argument("uchime_file", type=str,
                       help="Uchime output file")
     args = parser.parse_args()
     main(args)
