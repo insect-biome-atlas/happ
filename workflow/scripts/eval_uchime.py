@@ -100,6 +100,7 @@ def eval_uchime(
             "minh\tASVs\totus\tbins\tspecies\treads\tFIN_ASVs\tFIN_otus\tFIN_bins\tFIN_species\tFIN_reads\tzero_bin_otus\tzero_species_otus\tmulti_otu_species\tzero_bin_otus_lepidoptera\tzero_species_otus_lepidoptera\tmulti_otu_species_lepidoptera\n"
         )
         for h in minh:
+            sys.stderr.write(f"minh:{h}\n")
             res = uchime_res.loc[uchime_res.Score < h]
             ## FINBOL results
             fin_res = res.loc[res.Type == "FIN"]
