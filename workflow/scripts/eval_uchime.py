@@ -92,124 +92,137 @@ def eval_uchime(
     uchime_res,
     asv_taxonomy,
     minh="0.001,0.005,0.01,0.02,0.04,0.08,0.16,0.28,0.5,1.0,1000",
+    mindiffs="0,1,2,3,4",
+    mindiv="0.5,0.8,1.2,1.5",
 ):
     minh = [float(x) for x in minh.split(",")]
+    mindiffs = [int(x) for x in mindiffs.split(",")]
+    mindiv = [float(x) for x in mindiv.split(",")]
     uchime_res = pd.merge(uchime_res, asv_taxonomy, left_index=True, right_index=True)
     with sys.stdout as fhout:
         fhout.write(
             "minh\tASVs\totus\tbins\tspecies\treads\tFIN_ASVs\tFIN_otus\tFIN_bins\tFIN_species\tFIN_reads\tzero_bin_otus\tzero_species_otus\tmulti_otu_species\tzero_bin_otus_lepidoptera\tzero_species_otus_lepidoptera\tmulti_otu_species_lepidoptera\n"
         )
         for h in minh:
-            sys.stderr.write(f"minh:{h}\n")
-            res = uchime_res.loc[uchime_res.Score < h]
-            ## FINBOL results
-            fin_res = res.loc[res.Type == "FIN"]
-            ## Lepidoptera results
-            lep_res = res.loc[res.Order == "Lepidoptera"]
+            for mindiff in mindiffs:
+                for m in mindiv:
+                    sys.stderr.write(f"#minh:{h}, mindiff:{mindiff}, mindiv:{m}\n")
+                    res = uchime_res.loc[uchime_res.Score < h]
+                    #((divdiff >= opt_mindiv) && (sumL >= opt_mindiffs) && (sumR >= opt_mindiffs))
+                    res = res.loc[(res.Div<m)|(res.sumL<mindiff)|(res.sumR<mindiff)]
+                    ## FINBOL results
+                    fin_res = res.loc[res.Type == "FIN"]
+                    ## Lepidoptera results
+                    lep_res = res.loc[res.Order == "Lepidoptera"]
 
-            # Number of ASVs
-            foundasvs = res.shape[0]
-            # Number of OTUs
-            otus = len(res["cluster"].unique())
-            # Number of Lepidoptera OTUs
-            otus_lepidoptera = len(lep_res["cluster"].unique())
-            # Number of BOLD_bins
-            bins = len(res["BOLD_bin"].unique())
-            # Number of Lepidoptera BOLD_bins
-            bins_lep = len(lep_res["BOLD_bin"].unique())
-            # Calculate zero species OTUs
-            otu_n_species = len(
-                res.loc[~res.Species.str.contains("unclassified")]["cluster"].unique()
-            )
-            zero_species_otus = otus - otu_n_species
-            # Calculate zero species OTUs lepidoptera
-            otu_n_species_lep = len(
-                lep_res.loc[~lep_res.Species.str.contains("unclassified")][
-                    "cluster"
-                ].unique()
-            )
-            zero_species_otus_lepidoptera = otus_lepidoptera - otu_n_species_lep
-            # Calculate zero bin OTUs
-            otu_n_bin = len(
-                res.loc[~res.BOLD_bin.str.contains("unclassified")]["cluster"].unique()
-            )
-            zero_bin_otus = otus - otu_n_bin
-            # Calculate zero bin OTUs Lepidoptera
-            otu_n_bin_lep = len(
-                lep_res.loc[~lep_res.BOLD_bin.str.contains("unclassified")][
-                    "cluster"
-                ].unique()
-            )
-            zero_bin_otus_lepidoptera = otus_lepidoptera - otu_n_bin_lep
-            # Species per OTU
-            species_per_otu = (
-                res.loc[~res.Species.str.contains("unclassified")]
-                .groupby("BOLD_bin")
-                .apply(count_species)
-            )
-            # Lepidoptera species per OTU
-            lepidoptera_species_per_otu = (
-                lep_res.loc[~lep_res.Species.str.contains("unclassified")]
-                .groupby("BOLD_bin")
-                .apply(count_species)
-            )
-            # OTUs per species
-            otus_per_species = (
-                res.loc[~res.Species.str.contains("unclassified")]
-                .groupby("Species")
-                .apply(count_otus)
-            )
-            # Lepidoptera OTUs per species
-            lepidoptera_otus_per_species = (
-                lep_res.loc[~lep_res.Species.str.contains("unclassified")]
-                .groupby("Species")
-                .apply(count_otus)
-            )
-            # Total species
-            species = len(res["Species"].unique())
-            # Total reads
-            reads = res.Size.sum()
-            # Multi OTU species
-            multi_otu_species = otus_per_species.loc[otus_per_species > 1].shape[0]
-            multi_otu_species_lepidoptera = lepidoptera_otus_per_species.loc[
-                lepidoptera_otus_per_species > 1
-            ].shape[0]
-            # FINBOL ASVs
-            fin_asvs = fin_res.shape[0]
-            # FINBOL OTUs
-            fin_otus = len(fin_res["cluster"].unique())
-            # FINBOL BOLD_bins
-            fin_bins = len(fin_res["BOLD_bin"].unique())
-            # FINBOL Species
-            fin_species = len(fin_res["Species"].unique())
-            # FINBOL reads
-            fin_reads = fin_res.Size.sum()
-            out = [
-                h,
-                foundasvs,
-                otus,
-                bins,
-                species,
-                reads,
-                fin_asvs,
-                fin_otus,
-                fin_bins,
-                fin_species,
-                fin_reads,
-                zero_bin_otus,
-                zero_species_otus,
-                multi_otu_species,
-                zero_bin_otus_lepidoptera,
-                zero_species_otus_lepidoptera,
-                multi_otu_species_lepidoptera,
-            ]
-            fhout.write("\t".join([str(x) for x in out]) + "\n")
+                    # Number of ASVs
+                    foundasvs = res.shape[0]
+                    # Number of OTUs
+                    otus = len(res["cluster"].unique())
+                    # Number of Lepidoptera OTUs
+                    otus_lepidoptera = len(lep_res["cluster"].unique())
+                    # Number of BOLD_bins
+                    bins = len(res["BOLD_bin"].unique())
+                    # Number of Lepidoptera BOLD_bins
+                    bins_lep = len(lep_res["BOLD_bin"].unique())
+                    # Calculate zero species OTUs
+                    otu_n_species = len(
+                        res.loc[~res.Species.str.contains("unclassified")]["cluster"].unique()
+                    )
+                    zero_species_otus = otus - otu_n_species
+                    # Calculate zero species OTUs lepidoptera
+                    otu_n_species_lep = len(
+                        lep_res.loc[~lep_res.Species.str.contains("unclassified")][
+                            "cluster"
+                        ].unique()
+                    )
+                    zero_species_otus_lepidoptera = otus_lepidoptera - otu_n_species_lep
+                    # Calculate zero bin OTUs
+                    otu_n_bin = len(
+                        res.loc[~res.BOLD_bin.str.contains("unclassified")]["cluster"].unique()
+                    )
+                    zero_bin_otus = otus - otu_n_bin
+                    # Calculate zero bin OTUs Lepidoptera
+                    otu_n_bin_lep = len(
+                        lep_res.loc[~lep_res.BOLD_bin.str.contains("unclassified")][
+                            "cluster"
+                        ].unique()
+                    )
+                    zero_bin_otus_lepidoptera = otus_lepidoptera - otu_n_bin_lep
+                    # Species per OTU
+                    species_per_otu = (
+                        res.loc[~res.Species.str.contains("unclassified")]
+                        .groupby("BOLD_bin")
+                        .apply(count_species)
+                    )
+                    # Lepidoptera species per OTU
+                    lepidoptera_species_per_otu = (
+                        lep_res.loc[~lep_res.Species.str.contains("unclassified")]
+                        .groupby("BOLD_bin")
+                        .apply(count_species)
+                    )
+                    # OTUs per species
+                    otus_per_species = (
+                        res.loc[~res.Species.str.contains("unclassified")]
+                        .groupby("Species")
+                        .apply(count_otus)
+                    )
+                    # Lepidoptera OTUs per species
+                    lepidoptera_otus_per_species = (
+                        lep_res.loc[~lep_res.Species.str.contains("unclassified")]
+                        .groupby("Species")
+                        .apply(count_otus)
+                    )
+                    # Total species
+                    species = len(res["Species"].unique())
+                    # Total reads
+                    reads = res.Size.sum()
+                    # Multi OTU species
+                    multi_otu_species = otus_per_species.loc[otus_per_species > 1].shape[0]
+                    multi_otu_species_lepidoptera = lepidoptera_otus_per_species.loc[
+                        lepidoptera_otus_per_species > 1
+                    ].shape[0]
+                    # FINBOL ASVs
+                    fin_asvs = fin_res.shape[0]
+                    # FINBOL OTUs
+                    fin_otus = len(fin_res["cluster"].unique())
+                    # FINBOL BOLD_bins
+                    fin_bins = len(fin_res["BOLD_bin"].unique())
+                    # FINBOL Species
+                    fin_species = len(fin_res["Species"].unique())
+                    # FINBOL reads
+                    fin_reads = fin_res.Size.sum()
+                    out = [
+                        h,
+                        foundasvs,
+                        otus,
+                        bins,
+                        species,
+                        reads,
+                        fin_asvs,
+                        fin_otus,
+                        fin_bins,
+                        fin_species,
+                        fin_reads,
+                        zero_bin_otus,
+                        zero_species_otus,
+                        multi_otu_species,
+                        zero_bin_otus_lepidoptera,
+                        zero_species_otus_lepidoptera,
+                        multi_otu_species_lepidoptera,
+                    ]
+                    fhout.write("\t".join([str(x) for x in out]) + "\n")
 
 
 def main(args):
+    sys.stderr.write(f"#Reading 'special' ASVs from {args.special_asv_seqs_file}\n")
     asvid_isspecial = get_special_asvs(args.special_asv_seqs_file)
+    sys.stderr.write(f"#Read {len(asvid_isspecial.keys())} ASVs\n")
+    sys.stderr.write(f"#Reading uchime results from {args.uchime_file}\n")
     uchime_res = read_uchime(args.uchime_file, nonchims=list(asvid_isspecial.keys()))
+    sys.stderr.write(f"#Reading taxonomy from {args.taxonomy_file}\n")
     asv_taxonomy = get_taxonomy(args.taxonomy_file)
+    sys.stderr.write("#Evaluating results\n")
     eval_uchime(uchime_res, asv_taxonomy, args.minh)
 
 
@@ -235,6 +248,12 @@ if __name__ == "__main__":
         type=str,
         default="0,1,2,3,4",
         help="Comma separated values of mindiffs to evaluate",
+    )
+    parser.add_argument(
+        "--mindiv",
+        type=str,
+        default="0.5,0.8,1.2,1.5",
+        help="Comma separated values of mindiv to evaluate",
     )
     args = parser.parse_args()
     main(args)
