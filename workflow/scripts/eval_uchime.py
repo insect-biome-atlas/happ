@@ -26,6 +26,14 @@ def add_size_column(df):
     return df.assign(Size=pd.Series(size, index=df.index))
 
 
+def count_otus(df):
+    return len(df["cluster"].unique())
+
+
+def count_species(df):
+    return len(df["Species"].unique())
+
+
 def read_uchime(f, nonchims=[]):
     """
     Columns:
