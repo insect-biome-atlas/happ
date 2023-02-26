@@ -1,4 +1,4 @@
-#/usr/bin/env python
+# /usr/bin/env python
 
 from argparse import ArgumentParser
 import pandas as pd
@@ -10,7 +10,7 @@ import numpy as np
 
 def get_special_asvs(special_asv_seqs_file):
     asvid_isspecial = {}
-    for record in parse(special_asv_seqs_file, 'fasta'):
+    for record in parse(special_asv_seqs_file, "fasta"):
         asvid_isspecial[record.id] = 1
     return asvid_isspecial
 
@@ -48,8 +48,26 @@ def read_uchime(f, nonchims=[]):
     16. Div (divdiff): Divergence, defined as (IdQM - IdQT).
     17. YN (status): Y or N, indicating whether the query was classified as chimeric. This requires that Score >= threshold specified by -minh, Div > minimum divergence specified by ‑mindiv and the number of diffs ( (Y+N+A) in each segment (L and R) is greater than the minimum specified by -mindiffs. In v6.0.310 and later, may also be '?' indicating a weakly chimeric alignment with score between maxh and minh.
     """
-    names = ["Score", "Q", "A", "B", "T", "IdQM", "IdQA", "IdQB", "IdAB",
-             "IdQT", "LY", "LN", "LA", "RY", "RN", "RA", "Div", "YN"]
+    names = [
+        "Score",
+        "Q",
+        "A",
+        "B",
+        "T",
+        "IdQM",
+        "IdQA",
+        "IdQB",
+        "IdAB",
+        "IdQT",
+        "LY",
+        "LN",
+        "LA",
+        "RY",
+        "RN",
+        "RA",
+        "Div",
+        "YN",
+    ]
     df = pd.read_csv(f, sep="\t", index_col=1, names=names)
     df = add_size_column(df)
     df = df.replace("*", np.nan)
@@ -62,12 +80,18 @@ def read_uchime(f, nonchims=[]):
     return df
 
 
-def eval_uchime(uchime_res, asv_taxonomy, minh="0.001,0.005,0.01,0.02,0.04,0.08,0.16,0.28,0.5,1.0,1000"):
-    minh=[float(x) for x in minh.split(",")]
+def eval_uchime(
+    uchime_res,
+    asv_taxonomy,
+    minh="0.001,0.005,0.01,0.02,0.04,0.08,0.16,0.28,0.5,1.0,1000",
+):
+    minh = [float(x) for x in minh.split(",")]
+    uchime_res = pd.merge(uchime_res, asv_taxonomy, left_index=True, right_index=True)
     with sys.stdout as fhout:
-        fhout.write("minh\tASVs\totus\tbins\tspecies\treads\tFIN_ASVs\tFIN_otus\tFIN_bins\tFIN_species\tFIN_reads\tzero_bin_otus\tzero_species_otus\tmulti_otu_species\tzero_bin_otus_lepidoptera\tzero_species_otus_lepidoptera\tmulti_otu_species_lepidoptera\n")
+        fhout.write(
+            "minh\tASVs\totus\tbins\tspecies\treads\tFIN_ASVs\tFIN_otus\tFIN_bins\tFIN_species\tFIN_reads\tzero_bin_otus\tzero_species_otus\tmulti_otu_species\tzero_bin_otus_lepidoptera\tzero_species_otus_lepidoptera\tmulti_otu_species_lepidoptera\n"
+        )
         for h in minh:
-            res = uchime_res.loc[uchime_res.Score<h]
             res = uchime_res.loc[uchime_res.Score < h]
             ## FINBOL results
             fin_res = res.loc[res.Type == "FIN"]
@@ -86,48 +110,61 @@ def eval_uchime(uchime_res, asv_taxonomy, minh="0.001,0.005,0.01,0.02,0.04,0.08,
             bins_lep = len(lep_res["BOLD_bin"].unique())
             # Calculate zero species OTUs
             otu_n_species = len(
-                res.loc[~res.Species.str.contains("unclassified")][
-                    "cluster"].unique())
+                res.loc[~res.Species.str.contains("unclassified")]["cluster"].unique()
+            )
             zero_species_otus = otus - otu_n_species
             # Calculate zero species OTUs lepidoptera
             otu_n_species_lep = len(
                 lep_res.loc[~lep_res.Species.str.contains("unclassified")][
-                    "cluster"].unique())
+                    "cluster"
+                ].unique()
+            )
             zero_species_otus_lepidoptera = otus_lepidoptera - otu_n_species_lep
             # Calculate zero bin OTUs
-            otu_n_bin = len(res.loc[~res.BOLD_bin.str.contains("unclassified")][
-                                "cluster"].unique())
+            otu_n_bin = len(
+                res.loc[~res.BOLD_bin.str.contains("unclassified")]["cluster"].unique()
+            )
             zero_bin_otus = otus - otu_n_bin
             # Calculate zero bin OTUs Lepidoptera
             otu_n_bin_lep = len(
                 lep_res.loc[~lep_res.BOLD_bin.str.contains("unclassified")][
-                    "cluster"].unique())
+                    "cluster"
+                ].unique()
+            )
             zero_bin_otus_lepidoptera = otus_lepidoptera - otu_n_bin_lep
             # Species per OTU
-            species_per_otu = res.loc[
-                ~res.Species.str.contains("unclassified")].groupby(
-                "BOLD_bin").apply(count_species)
+            species_per_otu = (
+                res.loc[~res.Species.str.contains("unclassified")]
+                .groupby("BOLD_bin")
+                .apply(count_species)
+            )
             # Lepidoptera species per OTU
-            lepidoptera_species_per_otu = lep_res.loc[
-                ~lep_res.Species.str.contains("unclassified")].groupby(
-                "BOLD_bin").apply(count_species)
+            lepidoptera_species_per_otu = (
+                lep_res.loc[~lep_res.Species.str.contains("unclassified")]
+                .groupby("BOLD_bin")
+                .apply(count_species)
+            )
             # OTUs per species
-            otus_per_species = res.loc[
-                ~res.Species.str.contains("unclassified")].groupby(
-                "Species").apply(count_otus)
+            otus_per_species = (
+                res.loc[~res.Species.str.contains("unclassified")]
+                .groupby("Species")
+                .apply(count_otus)
+            )
             # Lepidoptera OTUs per species
-            lepidoptera_otus_per_species = lep_res.loc[
-                ~lep_res.Species.str.contains("unclassified")].groupby(
-                "Species").apply(count_otus)
+            lepidoptera_otus_per_species = (
+                lep_res.loc[~lep_res.Species.str.contains("unclassified")]
+                .groupby("Species")
+                .apply(count_otus)
+            )
             # Total species
             species = len(res["Species"].unique())
             # Total reads
-            reads = res.Size.sum(numeric_only=True)
+            reads = res.Size.sum()
             # Multi OTU species
-            multi_otu_species = \
-            otus_per_species.loc[otus_per_species > 1].shape[0]
+            multi_otu_species = otus_per_species.loc[otus_per_species > 1].shape[0]
             multi_otu_species_lepidoptera = lepidoptera_otus_per_species.loc[
-                lepidoptera_otus_per_species > 1].shape[0]
+                lepidoptera_otus_per_species > 1
+            ].shape[0]
             # FINBOL ASVs
             fin_asvs = fin_res.shape[0]
             # FINBOL OTUs
@@ -137,12 +174,31 @@ def eval_uchime(uchime_res, asv_taxonomy, minh="0.001,0.005,0.01,0.02,0.04,0.08,
             # FINBOL Species
             fin_species = len(fin_res["Species"].unique())
             # FINBOL reads
-            fin_reads = fin_res.Size.sum(numeric_only=True)
-            fhout.write("\t".join([h, foundasvs, otus, bins, species, reads, fin_asvs, fin_otus,
-                  fin_bins, fin_species, fin_reads, zero_bin_otus,
-                  zero_species_otus, multi_otu_species,
-                  zero_bin_otus_lepidoptera, zero_species_otus_lepidoptera,
-                  multi_otu_species_lepidoptera])+"\n")
+            fin_reads = fin_res.Size.sum()
+            fhout.write(
+                "\t".join(
+                    [
+                        h,
+                        foundasvs,
+                        otus,
+                        bins,
+                        species,
+                        reads,
+                        fin_asvs,
+                        fin_otus,
+                        fin_bins,
+                        fin_species,
+                        fin_reads,
+                        zero_bin_otus,
+                        zero_species_otus,
+                        multi_otu_species,
+                        zero_bin_otus_lepidoptera,
+                        zero_species_otus_lepidoptera,
+                        multi_otu_species_lepidoptera,
+                    ]
+                )
+                + "\n"
+            )
 
 
 def main(args):
@@ -154,13 +210,26 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("special_asv_seqs_file", type=str,
-                      help="Fasta file with 'trusted' ASV seqs (nonchimeric)")
-    parser.add_argument("taxonomy_file", type=str,
-                      help="File with taxonomic info for ASVs")
-    parser.add_argument("uchime_file", type=str,
-                      help="Uchime output file")
-    parser.add_argument("--minh", type=str, default="0.001,0.005,0.01,0.02,0.04,0.08,0.16,0.28,0.5,1.0,1000",
-                        help="Comma separated values of minh to evaluate")
+    parser.add_argument(
+        "special_asv_seqs_file",
+        type=str,
+        help="Fasta file with 'trusted' ASV seqs (nonchimeric)",
+    )
+    parser.add_argument(
+        "taxonomy_file", type=str, help="File with taxonomic info for ASVs"
+    )
+    parser.add_argument("uchime_file", type=str, help="Uchime output file")
+    parser.add_argument(
+        "--minh",
+        type=str,
+        default="0.001,0.005,0.01,0.02,0.04,0.08,0.16,0.28,0.5,1.0,1000",
+        help="Comma separated values of minh to evaluate",
+    )
+    parser.add_argument(
+        "--mindiffs",
+        type=str,
+        default="0,1,2,3,4",
+        help="Comma separated values of mindiffs to evaluate",
+    )
     args = parser.parse_args()
     main(args)
