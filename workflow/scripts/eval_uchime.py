@@ -184,30 +184,26 @@ def eval_uchime(
             fin_species = len(fin_res["Species"].unique())
             # FINBOL reads
             fin_reads = fin_res.Size.sum()
-            fhout.write(
-                "\t".join(
-                    [
-                        h,
-                        foundasvs,
-                        otus,
-                        bins,
-                        species,
-                        reads,
-                        fin_asvs,
-                        fin_otus,
-                        fin_bins,
-                        fin_species,
-                        fin_reads,
-                        zero_bin_otus,
-                        zero_species_otus,
-                        multi_otu_species,
-                        zero_bin_otus_lepidoptera,
-                        zero_species_otus_lepidoptera,
-                        multi_otu_species_lepidoptera,
-                    ]
-                )
-                + "\n"
-            )
+            out = [
+                h,
+                foundasvs,
+                otus,
+                bins,
+                species,
+                reads,
+                fin_asvs,
+                fin_otus,
+                fin_bins,
+                fin_species,
+                fin_reads,
+                zero_bin_otus,
+                zero_species_otus,
+                multi_otu_species,
+                zero_bin_otus_lepidoptera,
+                zero_species_otus_lepidoptera,
+                multi_otu_species_lepidoptera,
+            ]
+            fhout.write("\t".join([str(x) for x in out]) + "\n")
 
 
 def main(args):
