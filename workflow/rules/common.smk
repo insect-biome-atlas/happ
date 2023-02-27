@@ -38,22 +38,22 @@ rule filter_seqs:
         fasta=get_filter_input,
         tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
     output:
-        total_counts="results/common/{rundir}/{algo}/{tax}/total_counts.tsv",
-        counts="results/common/{rundir}/{algo}/{tax}/asv_counts.tsv.gz",
-        fasta="results/common/{rundir}/{algo}/{tax}/asv_seqs.fasta.gz",
+        total_counts="results/common/{rundir}/{algo}/{rank}/{tax}/total_counts.tsv",
+        counts="results/common/{rundir}/{algo}/{tax}/{rank}/asv_counts.tsv.gz",
+        fasta="results/common/{rundir}/{algo}/{tax}/{rank}/asv_seqs.fasta.gz",
     log:
-        "logs/filter_seqs/{rundir}/{algo}/{tax}.filter.log",
+        "logs/filter_seqs/{rundir}/{algo}/{rank}/{tax}.filter.log",
     params:
         split_rank=config["split_rank"],
-        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs"),
+        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{algo}_{rank}_{tax}_filter_seqs"),
         total_counts=os.path.expandvars(
-            "$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/total_counts.tsv"
+            "$TMPDIR/{rundir}_{algo}_{rank}_{tax}_filter_seqs/total_counts.tsv"
         ),
         counts=os.path.expandvars(
-            "$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/asv_counts.tsv.gz"
+            "$TMPDIR/{rundir}_{algo}_{rank}_{tax}_filter_seqs/asv_counts.tsv.gz"
         ),
         fasta=os.path.expandvars(
-            "$TMPDIR/{rundir}_{algo}_{tax}_filter_seqs/asv_seqs.fasta.gz"
+            "$TMPDIR/{rundir}_{algo}_{rank}_{tax}_filter_seqs/asv_seqs.fasta.gz"
         ),
     script:
         "../scripts/common.py"
@@ -65,9 +65,10 @@ rule filter:
     """
     input:
         expand(
-            "results/common/{rundir}/{algo}/{tax}/{f}",
+            "results/common/{rundir}/{algo}/{rank}/{tax}/{f}",
             rundir=config["rundir"],
             algo=config["chimera_algorithm"],
+            rank=config["split_rank"],
             tax=taxa,
             f=["total_counts.tsv", "asv_counts.tsv.gz", "asv_seqs.fasta.gz"],
         ),
@@ -154,15 +155,15 @@ rule chimera_full:
 ## VSEARCH ALIGNMENTS ##
 rule vsearch_align:
     input:
-        fasta="results/common/{rundir}/{algo}/{tax}/asv_seqs.fasta.gz",
+        fasta="results/common/{rundir}/{algo}/{rank}/{tax}/asv_seqs.fasta.gz",
     output:
-        dist="results/vsearch/{rundir}/{algo}/{tax}/asv_seqs.dist.gz",
+        dist="results/vsearch/{rundir}/{algo}/{rank}/{tax}/asv_seqs.dist.gz",
     log:
-        "logs/vsearch/{rundir}/{algo}/{tax}/vsearch_align.log",
+        "logs/vsearch/{rundir}/{algo}/{rank}/{tax}/vsearch_align.log",
     params:
-        dist="$TMPDIR/vsearch/{rundir}/{algo}/{tax}/asv_seqs.dist",
-        fasta="$TMPDIR/vsearch/{rundir}/{algo}/{tax}/asv_seqs.fasta",
-        tmpdir="$TMPDIR/vsearch/{rundir}/{algo}/{tax}",
+        dist="$TMPDIR/vsearch/{rundir}/{algo}/{rank}/{tax}/asv_seqs.dist",
+        fasta="$TMPDIR/vsearch/{rundir}/{algo}/{rank}/{tax}/asv_seqs.fasta",
+        tmpdir="$TMPDIR/vsearch/{rundir}/{algo}/{rank}/{tax}",
         id=config["vsearch"]["id"],
         iddef=config["vsearch"]["iddef"],
         query_cov=config["vsearch"]["query_cov"],
@@ -189,8 +190,9 @@ rule vsearch:
     """
     input:
         expand(
-            "results/vsearch/{rundir}/{algo}/{tax}/asv_seqs.dist.gz",
+            "results/vsearch/{rundir}/{algo}/{rank}/{tax}/asv_seqs.dist.gz",
             rundir=config["rundir"],
             algo=config["chimera_algorithm"],
             tax=taxa,
+            rank=config["split_rank"]
         ),
