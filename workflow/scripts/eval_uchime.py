@@ -101,7 +101,7 @@ def eval_uchime(
     uchime_res = pd.merge(uchime_res, asv_taxonomy, left_index=True, right_index=True)
     with sys.stdout as fhout:
         fhout.write(
-            "minh\tASVs\totus\tbins\tspecies\treads\tFIN_ASVs\tFIN_otus\tFIN_bins\tFIN_species\tFIN_reads\tzero_bin_otus\tzero_species_otus\tmulti_otu_species\tzero_bin_otus_lepidoptera\tzero_species_otus_lepidoptera\tmulti_otu_species_lepidoptera\n"
+            "minh\tmindiff\tmindiv\tASVs\totus\tbins\tspecies\treads\tFIN_ASVs\tFIN_otus\tFIN_bins\tFIN_species\tFIN_reads\tzero_bin_otus\tzero_species_otus\tmulti_otu_species\tzero_bin_otus_lepidoptera\tzero_species_otus_lepidoptera\tmulti_otu_species_lepidoptera\n"
         )
         for h in minh:
             for mindiff in mindiffs:
@@ -194,6 +194,8 @@ def eval_uchime(
                     fin_reads = fin_res.Size.sum()
                     out = [
                         h,
+                        mindiff,
+                        m,
                         foundasvs,
                         otus,
                         bins,
