@@ -92,7 +92,7 @@ def eval_uchime(
     uchime_res,
     asv_taxonomy,
     minh="0.001,0.005,0.01,0.02,0.04,0.08,0.16,0.28,0.5,1.0,1000",
-    mindiffs="0,1,2,3,4",
+    mindiffs="1,2,3,4",
     mindiv="0.5,0.8,1.2,1.5",
 ):
     minh = [float(x) for x in minh.split(",")]
@@ -223,7 +223,7 @@ def main(args):
     sys.stderr.write(f"#Reading taxonomy from {args.taxonomy_file}\n")
     asv_taxonomy = get_taxonomy(args.taxonomy_file)
     sys.stderr.write("#Evaluating results\n")
-    eval_uchime(uchime_res, asv_taxonomy, args.minh)
+    eval_uchime(uchime_res, asv_taxonomy, args.minh, args.mindiffs, args.mindiv)
 
 
 if __name__ == "__main__":
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mindiffs",
         type=str,
-        default="0,1,2,3,4",
+        default="1,2,3,4",
         help="Comma separated values of mindiffs to evaluate",
     )
     parser.add_argument(
