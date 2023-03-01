@@ -5,6 +5,7 @@ import os
 localrules:
     chimera_samplewise,
     add_sums,
+    append_size,
     split_counts,
     filter_samplewise_chimeras,
 
@@ -18,15 +19,93 @@ def fetch_samples(f):
 
 samples = fetch_samples(f=f"data/{config['rundir']}/asv_counts.tsv")
 
-# Read fasta and counts file and split by sample
+## CHIMERA DETECTION ##
+#######################
 
+## Utilities ##
+
+rule sum_asvs:
+    input:
+        counts="data/{rundir}/asv_counts.tsv",
+    output:
+        sums="data/{rundir}/asv_sum.tsv",
+    log:
+        "logs/sum_asvs/{rundir}.log",
+    resources:
+        runtime=60,
+    threads: 10
+    params:
+        src=srcdir("../scripts/sum_counts.py"),
+    conda:
+        "../envs/polars.yml"
+    shell:
+        """
+        python {params.src} {input.counts} > {output.sums} 2>{log}
+        """
+
+rule append_size:
+    input:
+        sums=rules.sum_asvs.output.sums,
+        fasta="data/{rundir}/asv_seqs.fasta",
+    output:
+        fasta="data/{rundir}/asv_seqs_size.fasta",
+    log:
+        "logs/append_size/{rundir}.log",
+    params:
+        src=srcdir("../scripts/add_size_to_fastaheader.py"),
+    shell:
+        """
+        python {params.src} {input.fasta} {input.sums} > {output.fasta} 2>{log}
+        """
+
+
+def get_abskew(wildcards):
+    try:
+        abskew = config["vsearch"]["abskew"]
+    except KeyError:
+        if wildcards.algo in ["uchime2_denovo", "uchime_denovo"]:
+            abskew = 2.0
+        elif wildcards.algo == "uchime3_denovo":
+            abskew = 16.0
+    return f"--abskew {abskew}"
+
+
+rule chimera_batchwise:
+    input:
+        fasta=rules.append_size.output.fasta,
+    output:
+        chim="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/chimeras.fasta",
+        nochim="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/nonchimeras.fasta",
+        border="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/borderline.fasta",
+        uchimeout="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/uchimeout.txt",
+    log:
+        "logs/chimeras/{rundir}/{chimera_run}/batchwise/{algo}.log",
+    conda:
+        "../envs/vsearch.yml"
+    threads: 1
+    resources:
+        runtime=60 * 24,
+    params:
+        algorithm="--{algo}",
+        abskew=get_abskew,
+        dn=config["chimera"]["dn"],
+        mindiffs=config["chimera"]["mindiffs"],
+        mindiv=config["chimera"]["mindiv"],
+        minh=config["chimera"]["minh"],
+    shell:
+        """
+        vsearch --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} --minh {params.minh} \
+            {params.abskew} --chimeras {output.chim} --borderline {output.border} --nonchimeras {output.nochim} \
+            {params.algorithm} {input.fasta} --uchimeout {output.uchimeout} >{log} 2>&1
+        """
 
 rule chimera_samplewise:
     input:
         expand(
-            "results/chimera/{rundir}/samplewise/{algo}/{sample}/{f}.gz",
+            "results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/{f}.gz",
             rundir=config["rundir"],
-            algo=config["chimera_algorithm"],
+            chimera_run=config["chimera"]["run_name"],
+            algo=config["chimera"]["algorithm"],
             sample=samples,
             f=[
                 "chimeras.fasta",
@@ -37,9 +116,10 @@ rule chimera_samplewise:
             ],
         ),
         expand(
-            "results/chimera/{rundir}/samplewise/{algo}/{f}",
+            "results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/{f}",
             rundir=config["rundir"],
-            algo=config["chimera_algorithm"],
+            chimera_run=config["chimera"]["run_name"],
+            algo=config["chimera"]["algorithm"],
             f=["chimeras.tsv", "nonchimeras.fasta"],
         ),
 
@@ -100,29 +180,29 @@ rule add_sums:
 
 rule sample_chimera:
     output:
-        chim="results/chimera/{rundir}/samplewise/{algo}/{sample}/chimeras.fasta.gz",
-        nochim="results/chimera/{rundir}/samplewise/{algo}/{sample}/nonchimeras.fasta.gz",
-        border="results/chimera/{rundir}/samplewise/{algo}/{sample}/borderline.fasta.gz",
-        uchimeout="results/chimera/{rundir}/samplewise/{algo}/{sample}/uchimeout.txt.gz",
-        alns="results/chimera/{rundir}/samplewise/{algo}/{sample}/uchimealns.out.gz",
+        chim="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/chimeras.fasta.gz",
+        nochim="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/nonchimeras.fasta.gz",
+        border="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/borderline.fasta.gz",
+        uchimeout="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/uchimeout.txt.gz",
+        alns="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/uchimealns.out.gz",
     input:
         fasta=rules.add_sums.output.fasta,
     log:
-        "logs/chimeras/{rundir}/samplewise/{algo}/{sample}.log",
+        "logs/chimeras/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}.log",
     conda:
         "../envs/vsearch.yml"
     threads: 4
     resources:
         runtime=60 * 4,
     params:
-        tmpdir="$TMPDIR/{rundir}.{algo}.{sample}.chim",
+        tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.{sample}.chim",
         outdir=lambda wildcards, output: os.path.dirname(output.chim),
         algorithm="--{algo}",
         abskew=get_abskew,
-        dn=config["vsearch"]["dn"],
-        mindiffs=config["vsearch"]["mindiffs"],
-        mindiv=config["vsearch"]["mindiv"],
-        minh=config["vsearch"]["minh"],
+        dn=config["chimera"]["dn"],
+        mindiffs=config["chimera"]["mindiffs"],
+        mindiv=config["chimera"]["mindiv"],
+        minh=config["chimera"]["minh"],
     shell:
         """
         if [ ! -s {input.fasta} ]; then
@@ -143,19 +223,20 @@ rule sample_chimera:
 
 rule filter_samplewise_chimeras:
     output:
-        nonchims="results/chimera/{rundir}/samplewise/{algo}/nonchimeras.fasta",
-        chimeras="results/chimera/{rundir}/samplewise/{algo}/chimeras.tsv"
+        nonchims="results/chimera/{rundir}/{chimera_run}/filtered/{samplewise_method}.{algo}/nonchimeras.fasta",
+        chimeras="results/chimera/{rundir}/{chimera_run}/filtered/{samplewise_method}.{algo}/chimeras.tsv"
     input:
         fasta="data/{rundir}/asv_seqs.fasta",
-        chims=expand("results/chimera/{rundir}/samplewise/{algo}/{sample}/chimeras.fasta.gz",
+        chims=expand("results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/chimeras.fasta.gz",
             rundir=config["rundir"],
-            algo=config["chimera_algorithm"],
+            chimera_run=config["chimera"]["run_name"],
+            algo=config["chimera"]["algorithm"],
             sample=samples,
         ),
     log:
-        "logs/chimeras/{rundir}/samplewise/{algo}/filter_samplewise_chimeras.log"
+        "logs/chimeras/{rundir}/{chimera_run}/filtered/{samplewise_method}.{algo}/filter_samplewise_chimeras.log"
     params:
-        tmpdir="$TMPDIR/{rundir}.{algo}.filterchims",
+        tmpdir="$TMPDIR/{rundir}.{chimera_run}.{samplewise_method}.{algo}.filterchims",
         src=srcdir("../scripts/filter_samplewise_chimeras.py"),
     shell:
         """
@@ -165,5 +246,25 @@ rule filter_samplewise_chimeras:
         rm -rf {params.tmpdir}
         """
 
-
+rule filter_batchwise_chimeras:
+    """
+    The filter batchwise rule takes as input the results from batchwise chimera 
+    detection using the algorithm specified in the config and outputs nonchimeras
+    under either 'strict' or default criteria. 
+    """
+    output:
+        nonchims="results/chimera/{rundir}/{chimera_run}/filtered/{batchwise_method}.{algo}/nonchimeras.fasta",
+    input:
+        fasta="data/{rundir}/asv_seqs.fasta",
+        uchimeout="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/uchimeout.txt",
+        counts="data/{rundir}/asv_counts.tsv"
+    params:
+        src=srcdir("../scripts/filter_chimeras.py"),
+        method="{batchwise_method}"
+    conda:
+        "../envs/polars.yml"
+    shell:
+        """
+        python {params.src} --method {params.method} {input.fasta} {input.uchimeout} {input.counts}
+        """
 
