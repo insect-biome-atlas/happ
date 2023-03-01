@@ -9,18 +9,33 @@ split_rank: "Family"
 # Method to use for calculating representative sequences for clusters
 # select between "median", "mean" and "sum"
 rep_method: "median"
-# Chimera detection is done with vsearch.
-# Select algorithm to use, you can choose from 'uchime_denovo', 'uchime2_denovo'
-# and 'uchime3_denovo'. Specifying 'none' will turn off chimera detection.
-chimera_algorithm: "none"
-# By default, chimera detection is done on the whole input data
-# If you want to run chimera detection on a sample-by-sample basis then set
-# samplewise_chimeras: True
-# This will split the input fasta into one file per sample (samples are taken
-# from the header of the 'asv_counts.tsv' file) with only sequences that have a
-# count > 0 in each sample. ASVs that are not marked as chimeric in any of the
-# samples will then be used as input.
-samplewise_chimeras: False
+
+chimera:
+  run_name: "batchwise1"
+  # Should chimera detection and removal be performed on the input data?
+  remove_chimeras: True
+  # Select method for chimera filtering:
+  #'batchwise' = run chimera detection on dataset as a whole. Any sequence marked
+  #              as chimeric is removed.
+  #'batchwise.strict' = only chimeric sequences present together with their
+  #                     parents in at least <min_samples_shared> number of samples
+  #                     are removed
+  #'samplewise' = split input fasta into one file per sample and run chimera
+  #               detection on each sample individually. Sequences marked as
+  #               chimeric in any sample are removed
+  #'samplewise.strict' = only sequences marked as chimeric in all samples are
+  #                      removed
+  method: "batchwise"
+  # Select algorithm to use, you can choose from 'uchime_denovo', 'uchime2_denovo'
+  # and 'uchime3_denovo'.
+  algorithm: "uchime_denovo"
+  min_samples_shared: 1
+  # Chimera detection settings
+  dn: 1.4
+  mindiffs: 3
+  mindiv: 0.8
+  minh: 0.28
+
 # Specify what clustering software to use. Choose from 'swarm', 'opticlust',
 # 'dbotu3' and 'lulu'.
 software:
@@ -36,11 +51,6 @@ vsearch:
   id: 0.84
   iddef: "1"
   query_cov: 0.9
-  # Chimera detection settings
-  dn: 1.4
-  mindiffs: 3
-  mindiv: 0.8
-  minh: 0.28
 
 opticlust:
   # For opticlust, choose whether pairwise alignments should be generated with
