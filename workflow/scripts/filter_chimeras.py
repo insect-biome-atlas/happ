@@ -201,12 +201,12 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--counts", type=str, help="ASV counts file")
+    parser.add_argument("--counts", type=str, help="ASV counts file", required=True)
     parser.add_argument("--fasta", type=str, help="ASV fasta file")
     parser.add_argument("--chimfasta", type=str, help="Fasta file with chimeras")
     parser.add_argument("--nonchimfasta", type=str, help="Fasta file with nonchimeras")
     parser.add_argument(
-        "--uchimeout", type=str, nargs="+", help="Uchime results file(s)"
+        "--uchimeout", type=str, nargs="+", help="Uchime results file(s)", required=True,
     )
     parser.add_argument(
         "--filteredout", type=str, help="Write uchime results with additional info"
