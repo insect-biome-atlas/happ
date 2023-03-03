@@ -175,8 +175,8 @@ def main(args):
         chimeras = list(uchime_filtered.index)
         nonchimeras = set(uchime_res.index).difference(chimeras)
         sys.stderr.write(f"{len(nonchimeras)} non-chimeric seqs identified\n")
-        if args.uchimeout:
-            uchime_res.to_csv(args.uchimeout, sep="\t")
+        if args.filteredout:
+            uchime_res.to_csv(args.filteredout, sep="\t")
         if args.fasta:
             nonchimseqs = {}
             chimseqs = {}
