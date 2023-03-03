@@ -142,7 +142,7 @@ def main(args):
             "Only one chimera results file found. Running in batchwise mode\n"
         )
         sys.stderr.write(f"Reading chimera results from {args.uchimeout[0]}\n")
-        uchime_res = read_uchime(args.uchimeout)
+        uchime_res = read_uchime(args.uchimeout[0])
         min_samples_shared = args.min_samples_shared
         min_frac_samples_shared = args.min_frac_samples_shared
         sys.stderr.write(f"Calculating occurrence based on {args.counts}\n")
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     parser.add_argument("--chimfasta", type=str, help="Fasta file with chimeras")
     parser.add_argument("--nonchimfasta", type=str, help="Fasta file with nonchimeras")
     parser.add_argument(
-        "--uchimeout", type=str, nargs="+", help="Uchime results file(s)", required=True,
+        "--uchimeout", nargs="+", help="Uchime results file(s)", required=True,
     )
     parser.add_argument(
         "--filteredout", type=str, help="Write uchime results with additional info"
