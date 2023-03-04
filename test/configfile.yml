@@ -20,7 +20,16 @@ chimera:
   # Select algorithm to use, you can choose from 'uchime_denovo', 'uchime2_denovo'
   # and 'uchime3_denovo'.
   algorithm: "uchime_denovo"
+  # In batchwise method, require that a sequence marked as chimeric is present
+  # with its parents in at least <min_samples_shared> samples
   min_samples_shared: 1
+  # In batchwise method, require that a sequence marked as chimeric is present
+  # with its parents in at least <min_frac_samples_shared> fraction of samples
+  min_frac_samples_shared: 0.5
+  # In samplewise method, require that a sequence is marked as chimeric in at least
+  # <min_chimeric_samples> in order for it to be removed from analysis. If this
+  # value is set to 0, ASVs have to be marked as chimeric in all samples
+  min_chimeric_samples: 0
   # Chimera detection settings
   dn: 1.4
   mindiffs: 3
