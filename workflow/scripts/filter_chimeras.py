@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from argparse import ArgumentParser
+from collections import defaultdict
 import pandas as pd
 from Bio.SeqIO import parse
 import sys
@@ -70,6 +71,8 @@ def read_uchime(f):
         "YN",
     ]
     df = pd.read_csv(f, sep="\t", index_col=1, names=names)
+    if df.shape[0] == 0:
+        return df
     df = add_size_column(df)
     df = df.replace("*", np.nan)
     for col in ["IdQM", "IdQA", "IdQB", "IdAB", "IdQT", "Div", "Size"]:
@@ -133,10 +136,51 @@ def write_seqs(f, d):
             fhout.write(text)
 
 
+def filter_samplewise_chimeras(files, minh, mindiff, mindiv, min_chimeric_samples):
+    all_seqs = []
+    asvs = defaultdict(lambda: 0)
+    nonchims = []
+    for uchimeout in tqdm(files, unit=" files", desc="Reading chimera results"):
+        uchime_res = read_uchime(uchimeout)
+        # If empty input, skip to next file
+        if uchime_res.shape[0] == 0:
+            continue
+        all_asvs = set(uchime_res.index)
+        all_seqs = list(set(all_seqs + list(uchime_res.index)))
+        uchime_filtered = filter_uchime(uchime_res, minh, mindiff, mindiv)
+        chim_asvs = set(uchime_filtered.index)
+        asv_diffs = all_asvs.difference(chim_asvs)
+        # if there are asvs in all_asvs that are not in chim_asvs and
+        # min_chimeric_samples == 0, set these asvs to nonchims
+        if min_chimeric_samples == 0:
+            nonchims += list(asv_diffs)
+        # Keep track of number of times each ASV is marked as chimeric
+        for asv in chim_asvs:
+            asvs[asv] += 1
+    chimcounts = pd.DataFrame(asvs, index=["n"]).T
+    # Set chimeras to ASVs identified as chimeric in at least <min_chimeric_samples>
+    chimeras = list(chimcounts.loc[chimcounts.n >= min_chimeric_samples].index)
+    # However, remove ASVs already marked as non-chimeric
+    chimeras = list(set(chimeras).difference(nonchims))
+    nonchimeras = list(set(all_seqs).difference(chimeras))
+    return chimeras, nonchimeras
+
+
 def main(args):
     if len(args.uchimeout) > 1:
         # Run samplewise chimera detection
-        sys.stderr.write("Not implemented yet\n")
+        sys.stderr.write(f"Found {len(args.uchimeout)} chimera result files\n")
+        sys.stderr.write("Running in samplewise mode using:\n")
+        sys.stderr.write(
+            f"minh={args.minh}, mindiff={args.mindiff}, mindiv={args.mindiv}, min_chimeric_samples={args.min_chimeric_samples}:\n"
+        )
+        chimeras, nonchimeras = filter_samplewise_chimeras(
+            args.uchimeout,
+            args.minh,
+            args.mindiff,
+            args.mindiv,
+            args.min_chimeric_samples,
+        )
     else:
         sys.stderr.write(
             "Only one chimera results file found. Running in batchwise mode\n"
@@ -174,39 +218,42 @@ def main(args):
             )
         chimeras = list(uchime_filtered.index)
         nonchimeras = set(uchime_res.index).difference(chimeras)
-        sys.stderr.write(f"{len(nonchimeras)} non-chimeric seqs identified\n")
         if args.filteredout:
             uchime_res.to_csv(args.filteredout, sep="\t")
-        if args.fasta:
-            nonchimseqs = {}
-            chimseqs = {}
-            for record in tqdm(
-                parse(args.fasta, "fasta"), unit=" seqs", desc="Reading ASV seqs"
-            ):
-                if args.chimfasta and record.id in chimeras:
-                    chimseqs[record.id] = f">{record.id}\n{record.seq}\n"
-                elif args.nonchimfasta and record.id in nonchimeras:
-                    nonchimseqs[record.id] = f">{record.id}\n{record.seq}\n"
-            if args.chimfasta:
-                sys.stderr.write(
-                    f"Writing {len(chimseqs.keys())} chimeric seqs to {args.chimfasta}\n"
-                )
-                write_seqs(args.chimfasta, chimseqs)
-            if args.nonchimfasta:
-                sys.stderr.write(
-                    f"Writing {len(nonchimseqs.keys())} non-chimeric seqs to {args.nonchimfasta}\n"
-                )
-                write_seqs(args.nonchimfasta, nonchimseqs)
+    sys.stderr.write(f"{len(nonchimeras)} non-chimeric seqs identified\n")
+    if args.fasta:
+        nonchimseqs = {}
+        chimseqs = {}
+        for record in tqdm(
+            parse(args.fasta, "fasta"), unit=" seqs", desc="Reading ASV seqs"
+        ):
+            if args.chimfasta and record.id in chimeras:
+                chimseqs[record.id] = f">{record.id}\n{record.seq}\n"
+            elif args.nonchimfasta and record.id in nonchimeras:
+                nonchimseqs[record.id] = f">{record.id}\n{record.seq}\n"
+        if args.chimfasta:
+            sys.stderr.write(
+                f"Writing {len(chimseqs.keys())} chimeric seqs to {args.chimfasta}\n"
+            )
+            write_seqs(args.chimfasta, chimseqs)
+        if args.nonchimfasta:
+            sys.stderr.write(
+                f"Writing {len(nonchimseqs.keys())} non-chimeric seqs to {args.nonchimfasta}\n"
+            )
+            write_seqs(args.nonchimfasta, nonchimseqs)
 
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--counts", type=str, help="ASV counts file", required=True)
+    parser.add_argument("--counts", type=str, help="ASV counts file")
     parser.add_argument("--fasta", type=str, help="ASV fasta file")
     parser.add_argument("--chimfasta", type=str, help="Fasta file with chimeras")
     parser.add_argument("--nonchimfasta", type=str, help="Fasta file with nonchimeras")
     parser.add_argument(
-        "--uchimeout", nargs="+", help="Uchime results file(s)", required=True,
+        "--uchimeout",
+        nargs="+",
+        help="Uchime results file(s)",
+        required=True,
     )
     parser.add_argument(
         "--filteredout", type=str, help="Write uchime results with additional info"
