@@ -273,6 +273,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--min_chimeric_samples",
         type=int,
+        default=1,
         help="Minimum number of samples in which a sequence has to be marked as chimeric for it to be classified as a chimera",
     )
     parser.add_argument(
