@@ -132,7 +132,7 @@ def shared(d, asv1, asv2):
 
 def write_seqs(f, d):
     with open(f, "w") as fhout:
-        for record, text in d.items():
+        for record, text in tqdm(d.items(), unit=" seqs", desc=f"writing to {f}"):
             fhout.write(text)
 
 
