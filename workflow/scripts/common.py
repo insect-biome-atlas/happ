@@ -98,8 +98,8 @@ def filter_seqs(sm):
     tax = sm.wildcards.tax
     split_rank = sm.params.split_rank
     dataf = taxdf.loc[taxdf[split_rank] == tax]
-    logging.info(f"Indexing {sm.input.fasta[0]}")
-    record_dict = SeqIO.index(sm.input.fasta[0], "fasta")
+    logging.info(f"Indexing {sm.input.fasta}")
+    record_dict = SeqIO.index(sm.input.fasta, "fasta")
     if ";size=" in list(record_dict.keys())[0]:
         record_dict = {k.split(";")[0] if ";" in k else k:v for k,v in record_dict.items()}
     logging.info(f"Writing sequences to {sm.params.fasta}")
