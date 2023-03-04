@@ -8,6 +8,7 @@ localrules:
     append_size,
     split_counts,
     filter_samplewise_chimeras,
+    filter_batchwise_chimeras
 
 def fetch_samples(f):
     """
@@ -74,12 +75,12 @@ rule chimera_batchwise:
     input:
         fasta=rules.append_size.output.fasta,
     output:
-        chim="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/chimeras.fasta",
-        nochim="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/nonchimeras.fasta",
-        border="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/borderline.fasta",
-        uchimeout="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/uchimeout.txt",
+        chim="results/chimera/{rundir}/batchwise.{algo}/chimeras.fasta",
+        nochim="results/chimera/{rundir}/batchwise.{algo}/nonchimeras.fasta",
+        border="results/chimera/{rundir}/batchwise.{algo}/borderline.fasta",
+        uchimeout="results/chimera/{rundir}/batchwise.{algo}/uchimeout.txt",
     log:
-        "logs/chimeras/{rundir}/{chimera_run}/batchwise/{algo}.log",
+        "logs/chimeras/{rundir}/batchwise/{algo}.log",
     conda:
         "../envs/vsearch.yml"
     threads: 1
@@ -102,7 +103,7 @@ rule chimera_batchwise:
 rule chimera_samplewise:
     input:
         expand(
-            "results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/{f}.gz",
+            "results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/{f}.gz",
             rundir=config["rundir"],
             chimera_run=config["chimera"]["run_name"],
             algo=config["chimera"]["algorithm"],
@@ -116,7 +117,7 @@ rule chimera_samplewise:
             ],
         ),
         expand(
-            "results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/{f}",
+            "results/chimera/{rundir}/samplewise.{algo}/{f}",
             rundir=config["rundir"],
             chimera_run=config["chimera"]["run_name"],
             algo=config["chimera"]["algorithm"],
@@ -180,22 +181,22 @@ rule add_sums:
 
 rule sample_chimera:
     output:
-        chim="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/chimeras.fasta.gz",
-        nochim="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/nonchimeras.fasta.gz",
-        border="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/borderline.fasta.gz",
-        uchimeout="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/uchimeout.txt.gz",
-        alns="results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/uchimealns.out.gz",
+        chim="results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/chimeras.fasta.gz",
+        nochim="results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/nonchimeras.fasta.gz",
+        border="results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/borderline.fasta.gz",
+        uchimeout="results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/uchimeout.txt.gz",
+        alns="results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/uchimealns.out.gz",
     input:
         fasta=rules.add_sums.output.fasta,
     log:
-        "logs/chimeras/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}.log",
+        "logs/chimeras/{rundir}/samplewise.{algo}/samples/{sample}.log",
     conda:
         "../envs/vsearch.yml"
     threads: 4
     resources:
         runtime=60 * 4,
     params:
-        tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.{sample}.chim",
+        tmpdir="$TMPDIR/{rundir}.{algo}.{sample}.chim",
         outdir=lambda wildcards, output: os.path.dirname(output.chim),
         algorithm="--{algo}",
         abskew=get_abskew,
@@ -223,25 +224,34 @@ rule sample_chimera:
 
 rule filter_samplewise_chimeras:
     output:
-        nonchims="results/chimera/{rundir}/{chimera_run}/filtered/{samplewise_method}.{algo}/nonchimeras.fasta",
-        chimeras="results/chimera/{rundir}/{chimera_run}/filtered/{samplewise_method}.{algo}/chimeras.tsv"
+        nonchims="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/nonchimeras.fasta",
+        chimeras="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/chimeras.tsv"
     input:
         fasta="data/{rundir}/asv_seqs.fasta",
-        chims=expand("results/chimera/{rundir}/{chimera_run}/samplewise.{algo}/samples/{sample}/chimeras.fasta.gz",
+        uchimeout=expand("results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/uchimeout.txt.gz",
             rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
             algo=config["chimera"]["algorithm"],
             sample=samples,
         ),
     log:
-        "logs/chimeras/{rundir}/{chimera_run}/filtered/{samplewise_method}.{algo}/filter_samplewise_chimeras.log"
+        "logs/chimeras/{rundir}/filtered/{chimera_run}/samplewise.{algo}/filter_samplewise_chimeras.log"
     params:
-        tmpdir="$TMPDIR/{rundir}.{chimera_run}.{samplewise_method}.{algo}.filterchims",
-        src=srcdir("../scripts/filter_samplewise_chimeras.py"),
+        tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_samplewise",
+        src=srcdir("../scripts/filter_chimeras.py"),
+        min_chimeric_samples=config["chimera"]["min_chimeric_samples"],
+        minh=config["chimera"]["minh"],
+        mindiff=config["chimera"]["mindiffs"],
+        mindiv=config["chimera"]["mindiv"],
     shell:
         """
         mkdir -p {params.tmpdir}
-        python {params.src} --chims {input.chims} --fasta {input.fasta} --chimeraids {output.chimeras} > {params.tmpdir}/nonchimeras.fasta 2>{log}
+        cp {input.fasta} {params.tmpdir}/asv_seqs.fasta
+        python {params.src} --uchimeout {input.uchimeout} --fasta {params.tmpdir}/asv_seqs.fasta \
+            --min_chimeric_samples {params.min_chimeric_samples} \
+            --chimfasta {params.tmpdir}/chimeras.fasta --nonchimfasta {params.tmpdir}/nonchimeras.fasta \
+            --mindiff {params.mindiff} --mindiv {params.mindiv} \
+            --minh {params.minh} 2>{log}
+        mv {params.tmpdir}/chimeras.fasta {output.chimeras}
         mv {params.tmpdir}/nonchimeras.fasta {output.nonchims}
         rm -rf {params.tmpdir}
         """
@@ -250,21 +260,41 @@ rule filter_batchwise_chimeras:
     """
     The filter batchwise rule takes as input the results from batchwise chimera 
     detection using the algorithm specified in the config and outputs nonchimeras
-    under either 'strict' or default criteria. 
+    under criteria matching 'min_samples_shared' or 'min_frac_samples_shared'
     """
     output:
-        nonchims="results/chimera/{rundir}/{chimera_run}/filtered/{batchwise_method}.{algo}/nonchimeras.fasta",
+        nonchims="results/chimera/{rundir}/{chimera_run}/filtered/batchwise.{algo}/nonchimeras.fasta",
+        chims="results/chimera/{rundir}/{chimera_run}/filtered/batchwise.{algo}/chimeras.fasta",
+        uchimeout="results/chimera/{rundir}/{chimera_run}/filtered/batchwise.{algo}/uchimeout.tsv",
     input:
         fasta="data/{rundir}/asv_seqs.fasta",
-        uchimeout="results/chimera/{rundir}/{chimera_run}/batchwise.{algo}/uchimeout.txt",
+        uchimeout=rules.chimera_batchwise.output.uchimeout,
         counts="data/{rundir}/asv_counts.tsv"
+    log:
+        "logs/chimeras/{rundir}/filtered/{chimera_run}/batchwise.{algo}/filter_batchwise_chimeras.log"
     params:
+        tmpdir = "$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_batchwise",
         src=srcdir("../scripts/filter_chimeras.py"),
-        method="{batchwise_method}"
-    conda:
-        "../envs/polars.yml"
+        min_samples_shared=config["chimera"]["min_samples_shared"],
+        min_frac_samples_shared=config["chimera"]["min_frac_samples_shared"],
+        minh=config["chimera"]["minh"],
+        mindiff=config["chimera"]["mindiffs"],
+        mindiv=config["chimera"]["mindiv"],
     shell:
         """
-        python {params.src} --method {params.method} {input.fasta} {input.uchimeout} {input.counts}
+        mkdir -p {params.tmpdir}
+        cp {input.counts} {params.tmpdir}/asv_counts.tsv
+        cp {input.fasta} {params.tmpdir}/asv_seqs.fasta
+        python {params.src} --min_samples_shared {params.min_samples_shared} \
+            --min_frac_samples_shared {params.min_frac_samples_shared} \
+            --fasta {params.tmpdir}/asv_seqs.fasta --uchimeout {input.uchimeout} \
+            --counts {params.tmpdir}/asv_counts.tsv --chimfasta {params.tmpdir}/chimeras.fasta \
+            --nonchimfasta {params.tmpdir}/nonchimeras.fasta \
+            --filteredout {params.tmpdir}/uchimeout.tsv --minh {params.minh} \
+            --mindiff {params.mindiff} --mindiv {params.mindiv} 2>{log}
+        mv {params.tmpdir}/chimeras.fasta {output.chims}
+        mv {params.tmpdir}/nonchimeras.fasta {output.nonchims}
+        mv {params.tmpdir}/uchimeout.tsv {output.uchimeout}
+        rm -rf {params.tmpdir}
         """
 
