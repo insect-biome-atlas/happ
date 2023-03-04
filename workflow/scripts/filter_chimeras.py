@@ -170,9 +170,8 @@ def main(args):
     if len(args.uchimeout) > 1:
         # Run samplewise chimera detection
         sys.stderr.write(f"Found {len(args.uchimeout)} chimera result files\n")
-        sys.stderr.write("Running in samplewise mode using:\n")
         sys.stderr.write(
-            f"minh={args.minh}, mindiff={args.mindiff}, mindiv={args.mindiv}, min_chimeric_samples={args.min_chimeric_samples}:\n"
+            f"Running in samplewise mode using: minh={args.minh}, mindiff={args.mindiff}, mindiv={args.mindiv}, min_chimeric_samples={args.min_chimeric_samples}\n"
         )
         chimeras, nonchimeras = filter_samplewise_chimeras(
             args.uchimeout,
