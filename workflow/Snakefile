@@ -3,16 +3,25 @@ from snakemake.utils import validate
 from scripts.common import read_taxa
 
 validate(config, schema="schemas/config.schema.yaml", set_default=True)
-taxa = read_taxa(config)
 
 if config["chimera"]["remove_chimeras"]:
+    # If config is set to remove chimeras, include the rules file and set
+    # additional config params
     include: "rules/chimeras.smk"
     method=config["chimera"]["method"]
     algorithm=config["chimera"]["algorithm"]
+    # The 'chimdir' parameter is created from the method (either 'samplewise'
+    # or 'batchwise') and the algorithm (either 'uchime_denovo', 'uchime2_denovo'
+    # or 'uchime3_denovo'
+    # In addition, the 'chimera_run' string defined by the 'run_name' nested
+    # under the chimera settings in the config allows different chimera detection
+    # settings using the same vsearch output
     config["chimdir"] = f"{method}.{algorithm}"
 else:
     config["chimdir"] = "raw"
     config["chimera"]["run_name"] = "raw"
+
+taxa = read_taxa(config)
 
 wildcard_constraints:
     tool="(swarm|opticlust|dbotu3|lulu)",
@@ -22,8 +31,6 @@ wildcard_constraints:
     chimdir=config["chimdir"],
     chimera_run=config["chimera"]["run_name"],
     algo=config["chimera"]["algorithm"],
-    batchwise_method="(batchwise.strict|batchwise)",
-    samplewise_method="(samplewise.strict|samplewise)",
     sample="\w+"
 
 
@@ -69,9 +76,10 @@ def cluster_files(wildcards):
     rundir = config["rundir"]
     for tool in config["software"]:
         run_name = config["run_name"]
+        chimera_run = config["chimera"]["run_name"]
         chimdir = config["chimdir"]
         rank = config["split_rank"]
-        input.append(f"results/{tool}/{rundir}/{chimdir}/{rank}/runs/{run_name}/precision_recall.txt")
+        input.append(f"results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.txt")
     return input
 
 
@@ -80,9 +88,11 @@ def cluster_order_files(wildcards):
     rundir = config["rundir"]
     for tool in config["software"]:
         run_name = config["run_name"]
+        chimera_run = config["chimera"]["run_name"]
         chimdir = config["chimdir"]
+        rank = config["split_rank"]
         input.append(
-            f"results/{tool}/{rundir}/{chimdir}/runs/{run_name}/precision_recall.order.txt"
+            f"results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.order.txt"
         )
     return input
 
@@ -92,16 +102,17 @@ def log_files(wildcards):
     rundir = config["rundir"]
     for tool in config["software"]:
         run_name = config["run_name"]
+        chimera_run = config["chimera"]["run_name"]
         rank = config["split_rank"]
         chimdir = config["chimdir"]
-        input.append(f"logs/{tool}/{rundir}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log")
+        input.append(f"logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log")
     return input
 
 
 rule all:
     input:
         expand(
-            "results/{tool}/{rundir}/{chimdir}/{chimera_run}/{rank}/runs/{run_name}/asv_reps.{suff}",
+            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.{suff}",
             tool=config["software"],
             rundir=config["rundir"],
             chimdir=config["chimdir"],
@@ -110,6 +121,15 @@ rule all:
             run_name=config["run_name"],
             suff=["taxonomy.tsv", "fasta", "counts.tsv"],
         ),
+        expand(
+            "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.{suff}",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            chimdir=config["chimdir"],
+            rank=config["split_rank"],
+            run_name=config["run_name"],
+            suff=["tsv", "order.tsv"],
+        )
 
 
 rule evaluate:
@@ -119,15 +139,17 @@ rule evaluate:
         log=log_files,
     output:
         tsv=expand(
-            "results/stats/{rundir}/{chimdir}/{rank}/{run_name}.tsv",
+            "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.tsv",
             rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
             chimdir=config["chimdir"],
             rank=config["split_rank"],
             run_name=config["run_name"],
         ),
         ordertsv=expand(
-            "results/stats/{rundir}/{chimdir}/{rank}/{run_name}.order.tsv",
+            "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.order.tsv",
             rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
             chimdir=config["chimdir"],
             rank=config["split_rank"],
             run_name=config["run_name"],
@@ -181,15 +203,15 @@ rule evaluate:
 rule precision_recall:
     input:
         clust_files=expand(
-            "results/{{tool}}/{{rundir}}/{{chimdir}}/{{rank}}/{tax}/{{run_name}}/asv_clusters.tsv",
+            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_clusters.tsv",
             tax=taxa,
         ),
         tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
     output:
-        "results/{tool}/{rundir}/{chimdir}/{rank}/runs/{run_name}/precision_recall.txt",
-        "results/{tool}/{rundir}/{chimdir}/{rank}/runs/{run_name}/precision_recall.order.txt",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.txt",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.order.txt",
     log:
-        "logs/{tool}/{rundir}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
+        "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
     params:
         src="workflow/scripts/evaluate_clusters.py",
         eval_rank=config["evaluation_rank"],
@@ -218,20 +240,20 @@ rule calc_colsums:
 
 rule write_asv_reps:
     output:
-        fasta="results/{tool}/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/{run_name}/asv_reps.fasta",
-        taxinfo="results/{tool}/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/{run_name}/asv_reps.taxonomy.tsv",
+        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_reps.fasta",
+        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_reps.taxonomy.tsv",
     log:
-        "logs/{tool}/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/{run_name}/write_asv_reps.log",
+        "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/write_asv_reps.log",
     input:
-        taxa="results/{tool}/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
+        taxa="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
         extra_taxa=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
-        counts="results/common/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/asv_counts.tsv.gz",
+        counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_counts.tsv.gz",
         colsums=rules.calc_colsums.output[0],
-        seqs="results/common/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
+        seqs="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     params:
         src="workflow/scripts/get_asv_reps.py",
         method=config["rep_method"],
-        tmpdir="$TMPDIR/{tool}.{rundir}.{chimdir}.{chimera_run}.{rank}.{tax}.{run_name}.write_asv_reps",
+        tmpdir="$TMPDIR/{tool}.{rundir}.{chimera_run}.{chimdir}.{rank}.{tax}.{run_name}.write_asv_reps",
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -246,7 +268,7 @@ rule write_asv_reps:
 
 rule sum_rep_counts:
     output:
-        "results/{tool}/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/{run_name}/asv_reps.counts.tsv",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_reps.counts.tsv",
     input:
         taxinfo=rules.write_asv_reps.output.taxinfo,
         counts=rules.filter_seqs.output.counts,
@@ -277,20 +299,20 @@ def merge_dataframes(input):
 
 rule merge_rep_files:
     output:
-        taxinfo="results/{tool}/{rundir}/{chimdir}/{chimera_run}/{rank}/runs/{run_name}/asv_reps.taxonomy.tsv",
-        fasta="results/{tool}/{rundir}/{chimdir}/{chimera_run}/{rank}/runs/{run_name}/asv_reps.fasta",
-        counts="results/{tool}/{rundir}/{chimdir}/{chimera_run}/{rank}/runs/{run_name}/asv_reps.counts.tsv",
+        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.taxonomy.tsv",
+        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.fasta",
+        counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.counts.tsv",
     input:
         fasta=expand(
-            "results/{{tool}}/{{rundir}}/{{chimdir}}/{{chimera_run}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.fasta",
+            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.fasta",
             tax=taxa,
         ),
         taxinfo=expand(
-            "results/{{tool}}/{{rundir}}/{{chimdir}}/{{chimera_run}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
+            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
             tax=taxa,
         ),
         counts=expand(
-            "results/{{tool}}/{{rundir}}/{{chimdir}}/{{chimera_run}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.counts.tsv",
+            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.counts.tsv",
             tax=taxa,
         ),
     run:
@@ -303,7 +325,7 @@ rule merge_rep_files:
 
 rule calculate_mean_dist:
     output:
-        "results/vsearch/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/asv_seqs.average_dist.tsv",
+        "results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.average_dist.tsv",
     input:
         rules.vsearch_align.output.dist
     run:
@@ -332,10 +354,10 @@ rule calculate_mean_dist:
 
 rule collate_mean_dist:
     output:
-        "results/vsearch/{rundir}/{chimdir}/{chimera_run}/asv_seqs.average_dist.tsv",
+        "results/vsearch/{rundir}/{chimera_run}/{chimdir}/asv_seqs.average_dist.tsv",
     input:
         expand(
-            "results/vsearch/{{rundir}}/{{chimdir}}/{{chimera_run}}/{{rank}}/taxa/{tax}/asv_seqs.average_dist.tsv",
+            "results/vsearch/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/asv_seqs.average_dist.tsv",
             tax=taxa,
         ),
     run:
