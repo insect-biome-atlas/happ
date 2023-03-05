@@ -10,8 +10,8 @@ def main(args):
     df = pl.read_csv(args.counts, has_header=True, sep="\t")
     samples = list(r.columns)
     for sample in samples:
-        outfile=f"{args.outdir}/{sample.replace(' ', '_')}.sum.tsv"
-        _ = df.filter(pl.col(sample)>0).select(["ASV_ID", sample])
+        outfile = f"{args.outdir}/{sample.replace(' ', '_')}.sum.tsv"
+        _ = df.filter(pl.col(sample) > 0).select(["ASV_ID", sample])
         _.columns = list(map(lambda x: x.replace(sample, "Sum"), _.columns))
         _.write_csv(outfile, sep="\t")
 

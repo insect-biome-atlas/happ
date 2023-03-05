@@ -41,9 +41,11 @@ def read_taxa(config):
 def write_counts(countsfile, totalcounts, countsout, ids):
     n = len(ids)
     written = 0
-    with open(countsfile, 'r') as fhin, open(totalcounts, 'w') as fh_total, gzip.open(countsout, 'wt') as fh_counts:
+    with open(countsfile, "r") as fhin, open(totalcounts, "w") as fh_total, gzip.open(
+        countsout, "wt"
+    ) as fh_counts:
         for i, line in enumerate(fhin):
-            if i==0:
+            if i == 0:
                 fh_total.write("Representative_Sequence\ttotal\n")
                 fh_counts.write(line)
                 continue
@@ -53,7 +55,7 @@ def write_counts(countsfile, totalcounts, countsout, ids):
             s = sum([int(x) for x in items[1:]])
             fh_total.write(f"{items[0]}\t{s}\n")
             fh_counts.write(line)
-            written+=1
+            written += 1
             if written == n:
                 break
 
@@ -90,8 +92,12 @@ def filter_seqs(sm):
     :param sm:
     :return:
     """
-    logging.basicConfig(filename=sm.log[0], filemode='w', level=logging.INFO,
-                        format='%(asctime)s - %(message)s')
+    logging.basicConfig(
+        filename=sm.log[0],
+        filemode="w",
+        level=logging.INFO,
+        format="%(asctime)s - %(message)s",
+    )
     os.makedirs(sm.params.tmpdir, exist_ok=True)
     logging.info(f"Reading taxonomic info from {sm.input.tax[0]}")
     taxdf = pd.read_csv(sm.input.tax[0], sep="\t", index_col=0, header=0)
@@ -101,11 +107,20 @@ def filter_seqs(sm):
     logging.info(f"Indexing {sm.input.fasta}")
     record_dict = SeqIO.index(sm.input.fasta, "fasta")
     if ";size=" in list(record_dict.keys())[0]:
-        record_dict = {k.split(";")[0] if ";" in k else k:v for k,v in record_dict.items()}
+        record_dict = {
+            k.split(";")[0] if ";" in k else k: v for k, v in record_dict.items()
+        }
     logging.info(f"Writing sequences to {sm.params.fasta}")
     filtered_ids = write_fasta(record_dict, sm.params.fasta, list(dataf.index))
-    logging.info(f"Extracting counts from {sm.input.counts[0]} and writing to {sm.params.total_counts} and {sm.params.counts}")
-    write_counts(countsfile=sm.input.counts[0], totalcounts=sm.params.total_counts, countsout=sm.params.counts, ids=filtered_ids)
+    logging.info(
+        f"Extracting counts from {sm.input.counts[0]} and writing to {sm.params.total_counts} and {sm.params.counts}"
+    )
+    write_counts(
+        countsfile=sm.input.counts[0],
+        totalcounts=sm.params.total_counts,
+        countsout=sm.params.counts,
+        ids=filtered_ids,
+    )
     logging.info(f"Moving {sm.params.total_counts} to {sm.output.total_counts}")
     shutil.move(sm.params.total_counts, sm.output.total_counts)
     logging.info(f"Moving {sm.params.fasta} to {sm.output.fasta}")
