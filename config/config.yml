@@ -11,7 +11,7 @@ split_rank: "Family"
 rep_method: "median"
 
 chimera:
-  run_name: "batchwise1"
+  run_name: "chimera1"
   # Should chimera detection and removal be performed on the input data?
   remove_chimeras: True
   # Select method for chimera filtering:
