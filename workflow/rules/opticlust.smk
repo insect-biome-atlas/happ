@@ -6,9 +6,8 @@ localrules:
 
 rule mothur_align:
     input:
-        fasta=rules.filter_seqs.output.fasta
+        fasta=rules.filter_seqs.output.fasta,
     output:
-        #"results/chimera/{rundir}/filtered/{chimera_run}/{chimdir}/nonchimeras.fasta",
         dist="results/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
     log:
         log="logs/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/mothur_align.log",
@@ -42,7 +41,7 @@ def opticlust_input(wildcards):
 
 rule reformat_distmat:
     input:
-        rules.vsearch_align.output.dist
+        rules.vsearch_align.output.dist,
     output:
         out="results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.reformat.gz",
     params:

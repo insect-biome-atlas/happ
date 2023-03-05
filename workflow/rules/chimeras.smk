@@ -8,7 +8,8 @@ localrules:
     append_size,
     split_counts,
     filter_samplewise_chimeras,
-    filter_batchwise_chimeras
+    filter_batchwise_chimeras,
+
 
 def fetch_samples(f):
     """
@@ -16,6 +17,7 @@ def fetch_samples(f):
     """
     r = pd.read_csv(f, sep="\t", nrows=1, index_col=0)
     return [x.replace(" ", "_") for x in list(r.columns)]
+
 
 def get_abskew(wildcards):
     try:
@@ -35,12 +37,18 @@ samples = fetch_samples(f=f"data/{config['rundir']}/asv_counts.tsv")
 
 ## Utilities ##
 
+
 rule chimera_filtering:
     input:
-        expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{f}.fasta",
-            rundir=config["rundir"], chimera_run=config["chimera"]["run_name"],
-            method=config["chimera"]["method"], algo=config["chimera"]["algorithm"],
-            f=["nonchimeras", "chimeras"])
+        expand(
+            "results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{f}.fasta",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            method=config["chimera"]["method"],
+            algo=config["chimera"]["algorithm"],
+            f=["nonchimeras", "chimeras"],
+        ),
+
 
 rule sum_asvs:
     """
@@ -57,7 +65,7 @@ rule sum_asvs:
     threads: 10
     params:
         src=srcdir("../scripts/sum_counts.py"),
-        tmpdir="$TMPDIR/{rundir}.sum_counts"
+        tmpdir="$TMPDIR/{rundir}.sum_counts",
     conda:
         "../envs/polars.yml"
     shell:
@@ -68,6 +76,7 @@ rule sum_asvs:
         mv {params.tmpdir}/asv_sum.tsv {output.sums}
         rm -rf {params.tmpdir}
         """
+
 
 rule append_size:
     """
@@ -92,6 +101,7 @@ rule append_size:
         rm -rf {params.tmpdir}
         """
 
+
 rule add_sums:
     """
     Adds size annotation to fasta headers for samplewise mode
@@ -115,7 +125,9 @@ rule add_sums:
         rm -rf {params.tmpdir}
         """
 
+
 ### BATCHWISE ###
+
 
 rule chimera_batchwise:
     """
@@ -153,7 +165,9 @@ rule chimera_batchwise:
             {params.algorithm} {input.fasta}  >{log} 2>&1
         """
 
+
 ### SAMPLEWISE ###
+
 
 rule split_counts:
     output:
@@ -180,6 +194,7 @@ rule split_counts:
         mv {params.tmpdir}/* {params.outdir}
         rm -rf {params.tmpdir}
         """
+
 
 rule chimera_samplewise:
     """
@@ -226,7 +241,9 @@ rule chimera_samplewise:
         fi
         """
 
+
 ### FILTERING ###
+
 
 rule filter_samplewise_chimeras:
     """
@@ -234,16 +251,17 @@ rule filter_samplewise_chimeras:
     """
     output:
         nonchims="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/nonchimeras.fasta",
-        chimeras="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/chimeras.fasta"
+        chimeras="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/chimeras.fasta",
     input:
         fasta="data/{rundir}/asv_seqs.fasta",
-        uchimeout=expand("results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/uchimeout.txt.gz",
+        uchimeout=expand(
+            "results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/uchimeout.txt.gz",
             rundir=config["rundir"],
             algo=config["chimera"]["algorithm"],
             sample=samples,
         ),
     log:
-        "logs/chimeras/{rundir}/filtered/{chimera_run}/samplewise.{algo}/filter_samplewise_chimeras.log"
+        "logs/chimeras/{rundir}/filtered/{chimera_run}/samplewise.{algo}/filter_samplewise_chimeras.log",
     params:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_samplewise",
         src=srcdir("../scripts/filter_chimeras.py"),
@@ -265,6 +283,7 @@ rule filter_samplewise_chimeras:
         rm -rf {params.tmpdir}
         """
 
+
 rule filter_batchwise_chimeras:
     """
     The filter batchwise rule takes as input the results from batchwise chimera 
@@ -278,11 +297,11 @@ rule filter_batchwise_chimeras:
     input:
         fasta="data/{rundir}/asv_seqs.fasta",
         uchimeout=rules.chimera_batchwise.output.uchimeout,
-        counts="data/{rundir}/asv_counts.tsv"
+        counts="data/{rundir}/asv_counts.tsv",
     log:
-        "logs/chimeras/{rundir}/filtered/{chimera_run}/batchwise.{algo}/filter_batchwise_chimeras.log"
+        "logs/chimeras/{rundir}/filtered/{chimera_run}/batchwise.{algo}/filter_batchwise_chimeras.log",
     params:
-        tmpdir = "$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_batchwise",
+        tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_batchwise",
         src=srcdir("../scripts/filter_chimeras.py"),
         min_samples_shared=config["chimera"]["min_samples_shared"],
         min_frac_samples_shared=config["chimera"]["min_frac_samples_shared"],
@@ -306,4 +325,3 @@ rule filter_batchwise_chimeras:
         mv {params.tmpdir}/uchimeout.tsv {output.uchimeout}
         rm -rf {params.tmpdir}
         """
-

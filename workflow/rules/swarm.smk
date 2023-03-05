@@ -10,7 +10,9 @@ rule format_swarm:
         counts=rules.filter_seqs.output.total_counts,
     output:
         fasta="results/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/reformat.fasta.gz",
-        derep=touch("results/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/derep.txt"),
+        derep=touch(
+            "results/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/derep.txt"
+        ),
     params:
         tmpdir="$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_format_swarm",
         fasta="$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_format_swarm/reformat.fasta.gz",

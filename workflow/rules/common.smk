@@ -4,6 +4,7 @@ import os.path
 localrules:
     filter_seqs,
 
+
 def get_filter_input(wildcards):
     if wildcards.chimdir == "raw":
         f = expand(
@@ -11,13 +12,11 @@ def get_filter_input(wildcards):
             rundir=config["rundir"],
         )
     else:
-        f = (
-            expand(
-                "results/chimera/{rundir}/filtered/{chimera_run}/{chimdir}/nonchimeras.fasta",
-                rundir=config["rundir"],
-                chimera_run=config["chimera"]["run_name"],
-                chimdir=config["chimdir"],
-            )
+        f = expand(
+            "results/chimera/{rundir}/filtered/{chimera_run}/{chimdir}/nonchimeras.fasta",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            chimdir=config["chimdir"],
         )
     return f[0]
 
@@ -35,7 +34,9 @@ rule filter_seqs:
         "logs/filter_seqs/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}.filter.log",
     params:
         split_rank=config["split_rank"],
-        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs"),
+        tmpdir=os.path.expandvars(
+            "$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs"
+        ),
         total_counts=os.path.expandvars(
             "$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs/total_counts.tsv"
         ),
@@ -64,10 +65,11 @@ rule filter:
             f=["total_counts.tsv", "asv_counts.tsv.gz", "asv_seqs.fasta.gz"],
         ),
 
+
 ## VSEARCH ALIGNMENTS ##
 rule vsearch_align:
     input:
-        fasta=rules.filter_seqs.output.fasta
+        fasta=rules.filter_seqs.output.fasta,
     output:
         dist="results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
     log:
