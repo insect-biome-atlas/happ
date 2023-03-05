@@ -2,7 +2,7 @@ rundir: "test"
 run_name: "testrun"
 split_rank: "Family"
 chimera:
-  run_name: "batchwise1"
+  run_name: "chimera1"
   # Should chimera detection and removal be performed on the input data?
   remove_chimeras: True
   # Select method for chimera filtering:
@@ -15,7 +15,7 @@ chimera:
   algorithm: "uchime_denovo"
   # In batchwise method, require that a sequence marked as chimeric is present
   # with its parents in at least <min_samples_shared> samples
-  min_samples_shared: 1
+  min_samples_shared: 0
   # In batchwise method, require that a sequence marked as chimeric is present
   # with its parents in at least <min_frac_samples_shared> fraction of samples
   min_frac_samples_shared: 0
@@ -32,6 +32,8 @@ chimera:
 software:
   - "opticlust"
   - "swarm"
+  - "dbotu3"
+  - "lulu"
 
 swarm:
   threads: 4
