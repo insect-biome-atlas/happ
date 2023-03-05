@@ -23,6 +23,8 @@ def main(args):
     with sys.stdout as fhout:
         for seqid in list(sums.index):
             c = sums.loc[seqid, "Sum"]
+            if c == 0:
+                continue
             try:
                 fhout.write(f">{seqid};size={c}\n{str(seqs[seqid].seq)}\n")
             except KeyError:
