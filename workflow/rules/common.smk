@@ -13,7 +13,7 @@ def get_filter_input(wildcards):
     else:
         f = (
             expand(
-                "results/chimera/{rundir}/{chimera_run}/filtered/{chimdir}/nonchimeras.fasta",
+                "results/chimera/{rundir}/filtered/{chimera_run}/{chimdir}/nonchimeras.fasta",
                 rundir=config["rundir"],
                 chimera_run=config["chimera"]["run_name"],
                 chimdir=config["chimdir"],
@@ -28,22 +28,22 @@ rule filter_seqs:
         fasta=get_filter_input,
         tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
     output:
-        total_counts="results/common/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/total_counts.tsv",
-        counts="results/common/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/asv_counts.tsv.gz",
-        fasta="results/common/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
+        total_counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/total_counts.tsv",
+        counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_counts.tsv.gz",
+        fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     log:
-        "logs/filter_seqs/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}.filter.log",
+        "logs/filter_seqs/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}.filter.log",
     params:
         split_rank=config["split_rank"],
-        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{chimdir}_{rank}_{tax}_filter_seqs"),
+        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs"),
         total_counts=os.path.expandvars(
-            "$TMPDIR/{rundir}_{chimdir}_{rank}_{tax}_filter_seqs/total_counts.tsv"
+            "$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs/total_counts.tsv"
         ),
         counts=os.path.expandvars(
-            "$TMPDIR/{rundir}_{chimdir}_{rank}_{tax}_filter_seqs/asv_counts.tsv.gz"
+            "$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs/asv_counts.tsv.gz"
         ),
         fasta=os.path.expandvars(
-            "$TMPDIR/{rundir}_{chimdir}_{rank}_{tax}_filter_seqs/asv_seqs.fasta.gz"
+            "$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs/asv_seqs.fasta.gz"
         ),
     script:
         "../scripts/common.py"
@@ -55,8 +55,9 @@ rule filter:
     """
     input:
         expand(
-            "results/common/{rundir}/{chimdir}/{rank}/taxa/{tax}/{f}",
+            "results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{f}",
             rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
             chimdir=config["chimdir"],
             rank=config["split_rank"],
             tax=taxa,
@@ -68,13 +69,13 @@ rule vsearch_align:
     input:
         fasta=rules.filter_seqs.output.fasta
     output:
-        dist="results/vsearch/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
+        dist="results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
     log:
-        "logs/vsearch/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/vsearch_align.log",
+        "logs/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/vsearch_align.log",
     params:
-        dist="$TMPDIR/vsearch/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/asv_seqs.dist",
-        fasta="$TMPDIR/vsearch/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/asv_seqs.fasta",
-        tmpdir="$TMPDIR/vsearch/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}",
+        dist="$TMPDIR/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist",
+        fasta="$TMPDIR/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta",
+        tmpdir="$TMPDIR/vsearch/{rundir}/{chimera_run}/{chimdir}//{rank}/taxa/{tax}",
         id=config["vsearch"]["id"],
         iddef=config["vsearch"]["iddef"],
         query_cov=config["vsearch"]["query_cov"],
@@ -101,7 +102,7 @@ rule vsearch:
     """
     input:
         expand(
-            "results/vsearch/{rundir}/{chimdir}/{chimera_run}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
+            "results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
             rundir=config["rundir"],
             chimdir=config["chimdir"],
             chimera_run=config["chimera"]["run_name"],
