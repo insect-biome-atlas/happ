@@ -19,21 +19,21 @@ rule download_lulu:
 rule run_lulu:
     input:
         src=rules.download_lulu.output.src,
-        dist="results/vsearch/{rundir}/{rank}/{tax}/asv_seqs.dist.gz",
-        counts="results/common/{rundir}/{rank}/{tax}/asv_counts.tsv.gz",
+        dist=rules.vsearch_align.output.dist,
+        counts=rules.filter_seqs.output.counts,
     output:
-        curated_table="results/lulu/{rundir}/{rank}/{tax}/{run_name}/otus.tsv",
-        otu_map="results/lulu/{rundir}/{rank}/{tax}/{run_name}/otu_map.tsv",
+        curated_table="results/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/otus.tsv",
+        otu_map="results/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/otu_map.tsv",
     log:
-        progress="logs/lulu/{rundir}/{rank}/{tax}/{run_name}/progress.txt",
-        log="logs/lulu/{rundir}/{rank}/{tax}/{run_name}/log.txt",
+        progress="logs/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/progress.txt",
+        log="logs/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/log.txt",
     shadow:
         "minimal"
     conda:
         "../envs/lulu.yml"
     params:
-        dist="$TMPDIR/lulu/{rundir}/{rank}/{tax}/asv_seqs.dist",
-        tmpdir="$TMPDIR/lulu/{rundir}/{rank}/{tax}",
+        dist="$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/asv_seqs.dist",
+        tmpdir="$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}",
         minimum_ratio_type=config["lulu"]["minimum_ratio_type"],
         minimum_ratio=config["lulu"]["minimum_ratio"],
         minimum_match=config["lulu"]["minimum_match"],
@@ -48,10 +48,10 @@ rule lulu2tab:
     input:
         rules.run_lulu.output.otu_map,
     output:
-        "results/lulu/{rundir}/{rank}/{tax}/{run_name}/asv_clusters.tsv",
+        "results/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir="$TMPDIR/lulu/{rundir}/{rank}/{tax}",
-        out="$TMPDIR/lulu/{rundir}/{rank}/{tax}/asv_clusters.tsv",
+        tmpdir="$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/{run_name}",
+        out="$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/{run_name}/asv_clusters.tsv",
     script:
         "../scripts/lulu_utils.py"
 
@@ -59,8 +59,10 @@ rule lulu2tab:
 rule lulu:
     input:
         expand(
-            "results/lulu/{rundir}/{rank}/{tax}/{run_name}/{f}.tsv",
+            "results/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/{f}.tsv",
             rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            chimdir=config["chimdir"],
             rank=config["split_rank"],
             run_name=config["run_name"],
             f=["asv_clusters"],
