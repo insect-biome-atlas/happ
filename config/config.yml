@@ -33,6 +33,8 @@ chimera:
   # value is set to 0, ASVs have to be marked as chimeric in all samples
   min_chimeric_samples: 0
   # Chimera detection settings
+  # Note that these are not used for uchime2_denovo or uchime3_denovo. Instead these
+  # algorithms require 'perfect chimeras' (see the Uchime manual for more info)
   dn: 1.4
   mindiffs: 3
   mindiv: 0.8
