@@ -1,10 +1,8 @@
-name: lulu
+name: polars
 channels:
   - conda-forge
   - bioconda
   - defaults
-  - r
 dependencies:
-  - r-base
-  - r-devtools
-  - r-dplyr
+  - polars
+  - pandas

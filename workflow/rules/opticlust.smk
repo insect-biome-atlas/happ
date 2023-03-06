@@ -6,21 +6,22 @@ localrules:
 
 rule mothur_align:
     input:
-        fasta="results/common/{rundir}/{tax}/asv_seqs.fasta.gz",
+        fasta=rules.filter_seqs.output.fasta,
     output:
-        dist="results/opticlust/{rundir}/{tax}/asv_seqs.dist.gz",
+        dist="results/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
     log:
-        log="logs/opticlust/{rundir}/{tax}/mothur_align.log",
-        err="logs/opticlust/{rundir}/{tax}/mothur_align.err",
+        log="logs/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/mothur_align.log",
+        err="logs/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/mothur_align.err",
     conda:
         "../envs/opticlust.yml"
     params:
         indir=lambda wildcards, input: os.path.dirname(input.fasta[0]),
-        tmpdir="$TMPDIR/opticlust/{rundir}/{tax}",
-        fasta="$TMPDIR/opticlust/{rundir}/{tax}/asv_seqs.fasta",
+        tmpdir="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}",
+        fasta="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta",
     threads: config["opticlust"]["threads"]
     resources:
         runtime=60 * 24 * 10,
+        mem_mb=mem_allowed,
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -34,19 +35,19 @@ rule mothur_align:
 
 def opticlust_input(wildcards):
     if config["opticlust"]["aligner"] == "vsearch":
-        return f"results/vsearch/{wildcards.rundir}/{wildcards.tax}/asv_seqs.dist.reformat.gz"
+        return f"results/vsearch/{wildcards.rundir}/{wildcards.chimera_run}/{wildcards.chimdir}/{wildcards.rank}/taxa/{wildcards.tax}/asv_seqs.dist.reformat.gz"
     else:
-        return f"results/opticlust/{wildcards.rundir}/{wildcards.tax}/asv_seqs.dist.gz"
+        return f"results/mothur/{wildcards.rundir}/{wildcards.chimera_run}/{wildcards.chimdir}/{wildcards.rank}/taxa/{wildcards.tax}/asv_seqs.dist.gz"
 
 
 rule reformat_distmat:
     input:
-        "results/vsearch/{rundir}/{tax}/asv_seqs.dist.gz",
+        rules.vsearch_align.output.dist,
     output:
-        out="results/vsearch/{rundir}/{tax}/asv_seqs.dist.reformat.gz",
+        out="results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.reformat.gz",
     params:
-        out="$TMPDIR/{rundir}_{tax}_reformat_distmat/asv_seqs.dist.reformat.gz",
-        tmpdir="$TMPDIR/{rundir}_{tax}_reformat_distmat",
+        out="$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{tax}_reformat_distmat/asv_seqs.dist.reformat.gz",
+        tmpdir="$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{tax}_reformat_distmat",
     script:
         "../scripts/opticlust_utils.py"
 
@@ -57,20 +58,20 @@ rule run_opticlust:
     """
     input:
         dist=opticlust_input,
-        total_counts="results/common/{rundir}/{tax}/total_counts.tsv",
+        total_counts=rules.filter_seqs.output.total_counts,
     output:
-        list="results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.list",
-        sens="results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.sensspec",
-        step="results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.steps",
+        list="results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_seqs.opti_mcc.list",
+        sens="results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_seqs.opti_mcc.sensspec",
+        step="results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_seqs.opti_mcc.steps",
     log:
-        log="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.log",
-        err="logs/opticlust/{rundir}/{tax}/{run_name}/opticlust.err",
-    #shadow:
+        log="logs/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/opticlust.log",
+        err="logs/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/opticlust.err",
+    # shadow:
     #    "full"
     params:
-        dist="$TMPDIR/opticlust.{rundir}.{tax}/asv_seqs.dist",
-        counts="$TMPDIR/opticlust.{rundir}.{tax}/counts.tsv",
-        tmpdir="$TMPDIR/opticlust.{rundir}.{tax}",
+        dist="$TMPDIR/opticlust.{rundir}.{chimera_run}.{chimdir}.{rank}.{tax}.{run_name}/asv_seqs.dist",
+        counts="$TMPDIR/opticlust.{rundir}.{chimera_run}.{chimdir}.{rank}.{tax}.{run_name}/counts.tsv",
+        tmpdir="$TMPDIR/opticlust.{rundir}.{chimera_run}.{chimdir}.{rank}.{tax}.{run_name}",
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         delta=config["opticlust"]["delta"],
         cutoff=config["opticlust"]["cutoff"],
@@ -82,6 +83,7 @@ rule run_opticlust:
     threads: config["opticlust"]["threads"]
     resources:
         runtime=60 * 24,
+        mem_mb=mem_allowed,
     shell:
         """
         mkdir -p {params.tmpdir} {params.outdir}
@@ -100,12 +102,12 @@ rule opticlust2tab:
     Generate a membership style table of clusters
     """
     input:
-        "results/opticlust/{rundir}/{tax}/{run_name}/asv_seqs.opti_mcc.list",
+        rules.run_opticlust.output.list,
     output:
-        "results/opticlust/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+        "results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir="$TMPDIR/opticlust/{rundir}/{tax}",
-        out="$TMPDIR/opticlust/{rundir}/{tax}/asv_clusters.tsv",
+        tmpdir="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}",
+        out="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_clusters.tsv",
     script:
         "../scripts/opticlust_utils.py"
 
@@ -113,8 +115,11 @@ rule opticlust2tab:
 rule opticlust:
     input:
         expand(
-            "results/opticlust/{rundir}/{tax}/{run_name}/asv_clusters.tsv",
+            "results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
             rundir=config["rundir"],
+            chimdir=config["chimdir"],
+            chimera_run=config["chimera"]["run_name"],
+            rank=config["split_rank"],
             tax=taxa,
             run_name=config["run_name"],
         ),

@@ -5,9 +5,12 @@ description: snakemake configuration file
 type: object
 
 properties:
+  run_name:
+    type: string
+    description: "Specify a name of the run. Using different run_name you can run clustering with different parameters using the same vsearch output"
   rundir:
     type: string
-    description: "names of input directories, each should contain a 'asv_counts.tsv', a 'asv_seqs.fasta' file and a 'asv_taxa.tsv' file"
+    description: "name of input directories, each should contain a 'asv_counts.tsv', a 'asv_seqs.fasta' file and a 'asv_taxa.tsv' file"
   split_rank:
     type: string
     description: "rank at which to split input file prior to clustering"
@@ -80,9 +83,6 @@ properties:
         description: "number of threads to use for swarm"
         minimum: 1
         default: 10
-      run_name:
-        type: string
-        description: "name the run with this config file"
   dbotu3:
     type: object
     default:
@@ -102,9 +102,6 @@ properties:
         type: number
         description: "minimum p-value for merging OTUs"
         default: 0.0005
-      run_name:
-        type: string
-        description: "name the run with this config file"
   opticlust:
     type: object
     default:
@@ -142,9 +139,6 @@ properties:
         description: "number of threads to use for opticlust"
         default: 10
         minimum: 1
-      run_name:
-        type: string
-        description: "name the run with this config file"
   lulu:
     type: object
     default:
@@ -170,9 +164,6 @@ properties:
         type: number
         description: "minimum co-occurrence rate – i.e. the lower rate of occurrence of the potential error explained by co-occurrence with the potential parent for considering error state."
         default: 0.95
-      run_name:
-        type: string
-        description: "name the run with this config file"
   vsearch:
     type: object
     default:
@@ -200,3 +191,63 @@ properties:
         type: number
         description: "reject if fraction of query seq. aligned lower"
         default: 0.9
+  chimera:
+    type: object
+    default:
+      remove_chimeras: True
+      method: "batchwise"
+      run_name: "chimera1"
+      algorithm: "uchime_denovo"
+      dn: 1.4
+      mindiffs: 3
+      mindiv: 0.8
+      minh: 0.28
+      min_samples_shared: 1
+      min_frac_samples_shared: 0
+      min_chimeric_samples: 1
+    properties:
+      run_name:
+        type: string
+        description: "Name of chimera run settings"
+        default: "chimera1"
+      method:
+        type: string
+        description: "Method to use for detecting chimeras. Can be either samplewise or batchwise"
+        default: "batchwise"
+        enum: ["batchwise", "samplewise"]
+      algorithm:
+        type: string
+        description: "Algorithm for chimera detection"
+        default: "uchime_denovo"
+        enum: ["uchime_denovo", "uchime2_denovo", "uchime3_denovo"]
+      dn:
+        type: number
+        description: "Pseudo-count prior on the number of no votes"
+        default: 1.4
+      mindiffs:
+        type: integer
+        description: "Minimum number of differences per segment"
+        default: 3
+      mindiv:
+        type: number
+        description: "Minimum divergence from closest parent"
+        default: 0.8
+      minh:
+        type: number
+        description: "Minimum score (h)"
+        default: 0.28
+      abskew:
+        type: number
+        description: "The ratio between the parent abundance and the putative chimera abundance"
+      min_samples_shared:
+        type: integer
+        description: "In batchwise mode this is the minimum number of times a putative chimera has to be present in the same sample as its parents"
+        default: 0
+      min_frac_samples_shared:
+        type: number
+        description: "In batchwise mode this is the minimum fraction (out of all samples where the ASV is present) that a putative chimeras has to be present with its parents"
+        default: 0
+      min_chimeric_samples:
+        type: integer
+        description: "In samplewise mode this is the minimum number of times a sequence has to be marked as chimeric"
+        default: 1

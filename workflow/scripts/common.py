@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 
-from Bio.SeqIO import parse
+from Bio import SeqIO
 import pandas as pd
 import gzip
 import os
 import shutil
+import logging
+
+
+def mem_allowed(wildcards, threads):
+    return max(threads * 6400, 6400)
 
 
 def read_taxa(config):
@@ -18,28 +23,17 @@ def read_taxa(config):
                 taxa.append(line.rstrip())
         return taxa
     # Set file paths
-    counts_file = f"data/{rundir}/asv_counts.tsv"
     fasta_file = f"data/{rundir}/asv_seqs.fasta"
     tax_file = f"data/{rundir}/asv_taxa.tsv"
     # Read taxonomy dataframe
     tax_df = pd.read_csv(tax_file, sep="\t", index_col=0)
-    # Read counts and sum
-    total_counts = sum_counts(counts_file)
-    dataf = pd.DataFrame(total_counts, index=["count"]).T
-    # Filter dataframe to asvs with sum >0
-    dataf = dataf.loc[dataf["count"] > 0]
     filtered_ids = []
     # Go through fasta file and make sure to filter to ids present there
     with open(fasta_file, "r") as fhin:
-        for record in parse(fhin, "fasta"):
-            if record.id in dataf.index:
+        for record in SeqIO.parse(fhin, "fasta"):
+            if record.id in tax_df.index:
                 filtered_ids.append(record.id)
     dataf = tax_df.loc[filtered_ids]
-    # Count size of remaining taxa
-    rank_size = dataf.groupby(split_rank).size()
-    # Filter to taxa with at least 2 sequences
-    # filtered_taxa = list(rank_size.loc[rank_size > 1].index)
-    # dataf = dataf.loc[dataf[split_rank].isin(filtered_taxa)]
     taxa = list(dataf[split_rank].unique())
     if not os.path.exists(f"data/{rundir}/{split_rank}.txt"):
         with open(f"data/{rundir}/{split_rank}.txt", "w") as fhout:
@@ -48,66 +42,29 @@ def read_taxa(config):
     return taxa
 
 
-def sum_counts(f, fhout=None, sum_counts=True, ids=None):
-    """
-    Sum total counts of ASVs across all samples
-    :param f: Input ASV table
-    :param fhout: optional output file handle
-    :param sum_counts: whether to do any summing or not
-    :param ids: Limit summing to optional list of ids
-    :return: dictionary with summed counts
-    """
-    if ids is None:
-        ids = []
-    counts = {}
-    with open(f, "r") as fhin:
+def write_counts(countsfile, totalcounts, countsout, ids):
+    n = len(ids)
+    written = 0
+    with open(countsfile, "r") as fhin, open(totalcounts, "w") as fh_total, gzip.open(
+        countsout, "wt"
+    ) as fh_counts:
         for i, line in enumerate(fhin):
             if i == 0:
-                if fhout is not None:
-                    fhout.write(line)
+                fh_total.write("Representative_Sequence\ttotal\n")
+                fh_counts.write(line)
                 continue
-            asv = line.rsplit()[0]
-            if len(ids) > 0:
-                if asv not in ids:
-                    continue
-            if sum_counts:
-                summed_count = sum([int(x) for x in line.rsplit()[1:]])
-                counts[asv] = summed_count
-            if fhout is not None:
-                fhout.write(line)
-    return counts
-
-
-def write_total(total_counts, outfile, ids=None):
-    """
-    Write a two column table with ASV id in first column and total counts in second column
-    :param total_counts: dictionary of summed up counts for ASVs
-    :param outfile: output file
-    :param ids: optional ids to limit writing
-    :return: list of ids with total_count > 0
-    """
-    if ids is None:
-        ids = []
-    filtered_ids = []
-    if len(ids) > 0:
-        items = ids
-    else:
-        items = list(total_counts.keys())
-    # Write total counts to file
-    with open(outfile, "w") as fhout:
-        fhout.write("Representative_Sequence\ttotal\n")
-        for seqid in items:
-            try:
-                count = total_counts[seqid]
-            except KeyError:
+            items = line.rstrip().rsplit()
+            if not items[0] in ids:
                 continue
-            if count > 0:
-                fhout.write(f"{seqid}\t{count}\n")
-                filtered_ids.append(seqid)
-    return filtered_ids
+            s = sum([int(x) for x in items[1:]])
+            fh_total.write(f"{items[0]}\t{s}\n")
+            fh_counts.write(line)
+            written += 1
+            if written == n:
+                break
 
 
-def write_fasta(infile, outfile, filtered_ids):
+def write_fasta(record_dict, outfile, filtered_ids):
     """
     Read a fasta file and write sequences to outfile if present in filtered_ids list
 
@@ -118,11 +75,14 @@ def write_fasta(infile, outfile, filtered_ids):
     """
     _filtered_ids = []
     # Read fasta file and write a new zipped fasta file with filtered seqs
-    with open(infile, "r") as fhin, gzip.open(outfile, "wt") as fhout_fasta:
-        for record in parse(fhin, "fasta"):
-            if record.id in filtered_ids:
-                fhout_fasta.write(f">{record.id}\n{record.seq}\n")
-                _filtered_ids.append(record.id)
+    with gzip.open(outfile, "wt") as fhout:
+        for seqid in filtered_ids:
+            try:
+                record = record_dict[seqid]
+                fhout.write(f">{seqid}\n{record.seq}\n")
+                _filtered_ids.append(seqid)
+            except KeyError:
+                continue
     return _filtered_ids
 
 
@@ -136,20 +96,40 @@ def filter_seqs(sm):
     :param sm:
     :return:
     """
+    logging.basicConfig(
+        filename=sm.log[0],
+        filemode="w",
+        level=logging.INFO,
+        format="%(asctime)s - %(message)s",
+    )
     os.makedirs(sm.params.tmpdir, exist_ok=True)
-    total_counts = sum_counts(sm.input.counts[0])
+    logging.info(f"Reading taxonomic info from {sm.input.tax[0]}")
     taxdf = pd.read_csv(sm.input.tax[0], sep="\t", index_col=0, header=0)
     tax = sm.wildcards.tax
     split_rank = sm.params.split_rank
     dataf = taxdf.loc[taxdf[split_rank] == tax]
-    filtered_ids = write_total(total_counts, sm.params.total_counts, dataf.index)
-    filtered_ids = write_fasta(sm.input.fasta[0], sm.params.fasta, filtered_ids)
-    with gzip.open(sm.params.counts, "wt") as fhout:
-        _ = sum_counts(
-            sm.input.counts[0], fhout=fhout, sum_counts=False, ids=filtered_ids
-        )
+    logging.info(f"Indexing {sm.input.fasta}")
+    record_dict = SeqIO.index(sm.input.fasta, "fasta")
+    if ";size=" in list(record_dict.keys())[0]:
+        record_dict = {
+            k.split(";")[0] if ";" in k else k: v for k, v in record_dict.items()
+        }
+    logging.info(f"Writing sequences to {sm.params.fasta}")
+    filtered_ids = write_fasta(record_dict, sm.params.fasta, list(dataf.index))
+    logging.info(
+        f"Extracting counts from {sm.input.counts[0]} and writing to {sm.params.total_counts} and {sm.params.counts}"
+    )
+    write_counts(
+        countsfile=sm.input.counts[0],
+        totalcounts=sm.params.total_counts,
+        countsout=sm.params.counts,
+        ids=filtered_ids,
+    )
+    logging.info(f"Moving {sm.params.total_counts} to {sm.output.total_counts}")
     shutil.move(sm.params.total_counts, sm.output.total_counts)
+    logging.info(f"Moving {sm.params.fasta} to {sm.output.fasta}")
     shutil.move(sm.params.fasta, sm.output.fasta)
+    logging.info(f"Moving {sm.params.counts} to {sm.output.counts}")
     shutil.move(sm.params.counts, sm.output.counts)
     shutil.rmtree(sm.params.tmpdir)
 
