@@ -52,7 +52,7 @@ def lulu2tab(sm):
     dataf = get_cluster_members(df)
     dataf.to_csv(sm.params.out, sep="\t")
     shutil.move(sm.params.out, sm.output[0])
-    os.rmdir(sm.params.tmpdir)
+    os.removedirs(sm.params.tmpdir)
 
 
 def main(sm):
