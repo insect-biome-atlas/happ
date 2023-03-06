@@ -78,6 +78,7 @@ localrules:
     sum_rep_counts,
     calculate_mean_dist,
     collate_mean_dist,
+    write_settings,
 
 
 def cluster_files(wildcards):
