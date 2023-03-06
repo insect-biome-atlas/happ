@@ -7,7 +7,6 @@ validate(config, schema="schemas/config.schema.yaml", set_default=True)
 if config["chimera"]["remove_chimeras"]:
     # If config is set to remove chimeras, include the rules file and set
     # additional config params
-    include: "rules/chimeras.smk"
     method=config["chimera"]["method"]
     algorithm=config["chimera"]["algorithm"]
     # The 'chimdir' parameter is created from the method (either 'samplewise'
@@ -17,6 +16,7 @@ if config["chimera"]["remove_chimeras"]:
     # under the chimera settings in the config allows different chimera detection
     # settings using the same vsearch output
     config["chimdir"] = f"{method}.{algorithm}"
+    include: "rules/chimeras.smk"
 else:
     config["chimdir"] = "raw"
     config["chimera"]["run_name"] = "raw"
@@ -129,6 +129,14 @@ rule all:
             rank=config["split_rank"],
             run_name=config["run_name"],
             suff=["tsv", "order.tsv"],
+        ),
+        expand(
+            "results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.{suff}",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            chimdir=config["chimdir"],
+            run_name=config["run_name"],
+            suff=["json","cmd"],
         )
 
 
@@ -199,6 +207,18 @@ rule evaluate:
             orderdf = pd.concat([orderdf, _df])
         orderdf.to_csv(output.ordertsv[0], sep="\t")
 
+rule write_settings:
+    output:
+        json="results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.json",
+        cmd="results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.cmd",
+    input:
+        get_filter_input,
+    run:
+        import json, sys
+        with open(output.json, 'w') as fhout:
+            json.dump(config, fhout, indent=4)
+        with open(output.cmd, 'w') as fhout:
+            fhout.write(" ".join(sys.argv))
 
 rule precision_recall:
     input:

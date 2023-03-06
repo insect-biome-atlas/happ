@@ -48,6 +48,14 @@ rule chimera_filtering:
             algo=config["chimera"]["algorithm"],
             f=["nonchimeras", "chimeras"],
         ),
+        expand(
+            "results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.{suff}",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            chimdir=config["chimdir"],
+            run_name=config["run_name"],
+            suff=["json", "cmd"],
+            )
 
 
 rule sum_asvs:
