@@ -40,6 +40,7 @@ rule run_lulu:
         minimum_relative_cooccurence=config["lulu"]["minimum_relative_cooccurence"],
     resources:
         runtime=60 * 24 * 10,
+        mem_mb=mem_allowed,
     script:
         "../scripts/lulu.R"
 

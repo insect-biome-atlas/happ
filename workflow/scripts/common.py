@@ -8,6 +8,10 @@ import shutil
 import logging
 
 
+def mem_allowed(wildcards, threads):
+    return max(threads * 6400, 6400)
+
+
 def read_taxa(config):
     rundir = config["rundir"]
     split_rank = config["split_rank"]

@@ -31,6 +31,7 @@ rule run_dbotu3:
         "../envs/dbotu3.yml"
     resources:
         runtime=60 * 24,
+        mem_mb=mem_allowed,
     shell:
         """
         mkdir -p {params.tmpdir}

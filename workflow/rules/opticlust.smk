@@ -21,6 +21,7 @@ rule mothur_align:
     threads: config["opticlust"]["threads"]
     resources:
         runtime=60 * 24 * 10,
+        mem_mb=mem_allowed,
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -82,6 +83,7 @@ rule run_opticlust:
     threads: config["opticlust"]["threads"]
     resources:
         runtime=60 * 24,
+        mem_mb=mem_allowed,
     shell:
         """
         mkdir -p {params.tmpdir} {params.outdir}

@@ -55,7 +55,7 @@ rule chimera_filtering:
             chimdir=config["chimdir"],
             run_name=config["run_name"],
             suff=["json", "cmd"],
-            )
+        ),
 
 
 rule sum_asvs:
@@ -70,6 +70,7 @@ rule sum_asvs:
         "logs/sum_asvs/{rundir}.log",
     resources:
         runtime=60,
+        mem_mb=mem_allowed,
     threads: 10
     params:
         src=srcdir("../scripts/sum_counts.py"),
@@ -157,6 +158,7 @@ rule chimera_batchwise:
     threads: 1
     resources:
         runtime=60 * 24,
+        mem_mb=mem_allowed,
     params:
         algorithm="--{algo}",
         abskew=get_abskew,
@@ -223,6 +225,7 @@ rule chimera_samplewise:
     threads: 4
     resources:
         runtime=60 * 4,
+        mem_mb=mem_allowed,
     params:
         tmpdir="$TMPDIR/{rundir}.{algo}.{sample}.chim",
         outdir=lambda wildcards, output: os.path.dirname(output.chim),
