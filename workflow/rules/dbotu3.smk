@@ -60,7 +60,7 @@ rule dbotu32tab:
 rule dbotu3:
     input:
         expand(
-            "results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/{run_name}/asv_clusters.tsv",
+            "results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
             rundir=config["rundir"],
             chimera_run=config["chimera"]["run_name"],
             chimdir=config["chimdir"],
