@@ -280,6 +280,7 @@ rule filter_samplewise_chimeras:
         minh=config["chimera"]["minh"],
         mindiff=config["chimera"]["mindiffs"],
         mindiv=config["chimera"]["mindiv"],
+        algorithm=config["chimera"]["algorithm"],
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -287,7 +288,7 @@ rule filter_samplewise_chimeras:
         python {params.src} --uchimeout {input.uchimeout} --fasta {params.tmpdir}/asv_seqs.fasta \
             --min_chimeric_samples {params.min_chimeric_samples} \
             --chimfasta {params.tmpdir}/chimeras.fasta --nonchimfasta {params.tmpdir}/nonchimeras.fasta \
-            --mindiff {params.mindiff} --mindiv {params.mindiv} \
+            --mindiff {params.mindiff} --mindiv {params.mindiv} --algorithm {params.algorithm} \
             --minh {params.minh} 2>{log}
         mv {params.tmpdir}/chimeras.fasta {output.chimeras}
         mv {params.tmpdir}/nonchimeras.fasta {output.nonchims}
@@ -319,6 +320,7 @@ rule filter_batchwise_chimeras:
         minh=config["chimera"]["minh"],
         mindiff=config["chimera"]["mindiffs"],
         mindiv=config["chimera"]["mindiv"],
+        algorithm=config["chimera"]["algorithm"]
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -328,7 +330,7 @@ rule filter_batchwise_chimeras:
             --min_frac_samples_shared {params.min_frac_samples_shared} \
             --fasta {params.tmpdir}/asv_seqs.fasta --uchimeout {input.uchimeout} \
             --counts {params.tmpdir}/asv_counts.tsv --chimfasta {params.tmpdir}/chimeras.fasta \
-            --nonchimfasta {params.tmpdir}/nonchimeras.fasta \
+            --nonchimfasta {params.tmpdir}/nonchimeras.fasta --algorithm {params.algorithm} \
             --filteredout {params.tmpdir}/uchimeout.tsv --minh {params.minh} \
             --mindiff {params.mindiff} --mindiv {params.mindiv} 2>{log}
         mv {params.tmpdir}/chimeras.fasta {output.chims}
