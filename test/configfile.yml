@@ -1,13 +1,43 @@
 rundir: "test"
 run_name: "testrun"
 split_rank: "Family"
+chimera:
+  run_name: "chimera1"
+  # Should chimera detection and removal be performed on the input data?
+  remove_chimeras: True
+  # Select method for chimera filtering:
+  #'batchwise' = run chimera detection on dataset as a whole.
+  #'samplewise' = split input fasta into one file per sample and run chimera
+  #               detection on each sample individually.
+  method: "batchwise"
+  # Select algorithm to use, you can choose from 'uchime_denovo', 'uchime2_denovo'
+  # and 'uchime3_denovo'.
+  algorithm: "uchime_denovo"
+  # In batchwise method, require that a sequence marked as chimeric is present
+  # with its parents in at least <min_samples_shared> samples
+  min_samples_shared: 0
+  # In batchwise method, require that a sequence marked as chimeric is present
+  # with its parents in at least <min_frac_samples_shared> fraction of samples
+  min_frac_samples_shared: 0
+  # In samplewise method, require that a sequence is marked as chimeric in at least
+  # <min_chimeric_samples> in order for it to be removed from analysis. If this
+  # value is set to 0, ASVs have to be marked as chimeric in all samples
+  min_chimeric_samples: 0
+  # Chimera detection settings
+  dn: 1.4
+  mindiffs: 3
+  mindiv: 0.8
+  minh: 0.28
+
 software:
   - "opticlust"
   - "swarm"
+  - "dbotu3"
+  - "lulu"
 
 swarm:
   threads: 4
-  differences: 1
+  differences: 13
   no-otu-breaking: False
   fastidious: False
   boundary: 0
@@ -19,6 +49,6 @@ opticlust:
   threads: 4
   aligner: "vsearch"
   delta: 0.0001
-  cutoff: 0.03
+  cutoff: 0.025
   initialize: "singleton"
   precision: 1000

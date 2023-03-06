@@ -8,7 +8,9 @@ import sys
 
 
 def read_sums(f):
-    df = pd.read_csv(f, sep="\t", usecols=[0,1], names=["Seq","Sum"], header=0, index_col=0)
+    df = pd.read_csv(
+        f, sep="\t", usecols=[0, 1], names=["Seq", "Sum"], header=0, index_col=0
+    )
     return df.sort_values("Sum", ascending=False)
 
 
@@ -23,6 +25,8 @@ def main(args):
     with sys.stdout as fhout:
         for seqid in list(sums.index):
             c = sums.loc[seqid, "Sum"]
+            if c == 0:
+                continue
             try:
                 fhout.write(f">{seqid};size={c}\n{str(seqs[seqid].seq)}\n")
             except KeyError:
@@ -31,9 +35,9 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("seqsfile", type=str,
-            help="Fasta file with sequences")
-    parser.add_argument("countsfile", type=str,
-            help="Tab-separated file with sums for sequences")
+    parser.add_argument("seqsfile", type=str, help="Fasta file with sequences")
+    parser.add_argument(
+        "countsfile", type=str, help="Tab-separated file with sums for sequences"
+    )
     args = parser.parse_args()
     main(args)

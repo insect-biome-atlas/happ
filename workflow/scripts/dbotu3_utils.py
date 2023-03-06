@@ -17,7 +17,7 @@ def dbotu32tab(sm):
             for asv in asvs:
                 fhout.write(f"{asv}\tcluster{i}\n")
     shutil.move(sm.params.out, sm.output[0])
-    os.rmdir(sm.params.tmpdir)
+    os.removedirs(sm.params.tmpdir)
 
 
 def main(sm):

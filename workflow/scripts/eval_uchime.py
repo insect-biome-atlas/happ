@@ -108,8 +108,10 @@ def eval_uchime(
                 for m in mindiv:
                     sys.stderr.write(f"#minh:{h}, mindiff:{mindiff}, mindiv:{m}\n")
                     res = uchime_res.loc[uchime_res.Score < h]
-                    #((divdiff >= opt_mindiv) && (sumL >= opt_mindiffs) && (sumR >= opt_mindiffs))
-                    res = res.loc[(res.Div<m)|(res.sumL<mindiff)|(res.sumR<mindiff)]
+                    # ((divdiff >= opt_mindiv) && (sumL >= opt_mindiffs) && (sumR >= opt_mindiffs))
+                    res = res.loc[
+                        (res.Div < m) | (res.sumL < mindiff) | (res.sumR < mindiff)
+                    ]
                     ## FINBOL results
                     fin_res = res.loc[res.Type == "FIN"]
                     ## Lepidoptera results
@@ -127,7 +129,9 @@ def eval_uchime(
                     bins_lep = len(lep_res["BOLD_bin"].unique())
                     # Calculate zero species OTUs
                     otu_n_species = len(
-                        res.loc[~res.Species.str.contains("unclassified")]["cluster"].unique()
+                        res.loc[~res.Species.str.contains("unclassified")][
+                            "cluster"
+                        ].unique()
                     )
                     zero_species_otus = otus - otu_n_species
                     # Calculate zero species OTUs lepidoptera
@@ -139,7 +143,9 @@ def eval_uchime(
                     zero_species_otus_lepidoptera = otus_lepidoptera - otu_n_species_lep
                     # Calculate zero bin OTUs
                     otu_n_bin = len(
-                        res.loc[~res.BOLD_bin.str.contains("unclassified")]["cluster"].unique()
+                        res.loc[~res.BOLD_bin.str.contains("unclassified")][
+                            "cluster"
+                        ].unique()
                     )
                     zero_bin_otus = otus - otu_n_bin
                     # Calculate zero bin OTUs Lepidoptera
@@ -178,7 +184,9 @@ def eval_uchime(
                     # Total reads
                     reads = res.Size.sum()
                     # Multi OTU species
-                    multi_otu_species = otus_per_species.loc[otus_per_species > 1].shape[0]
+                    multi_otu_species = otus_per_species.loc[
+                        otus_per_species > 1
+                    ].shape[0]
                     multi_otu_species_lepidoptera = lepidoptera_otus_per_species.loc[
                         lepidoptera_otus_per_species > 1
                     ].shape[0]

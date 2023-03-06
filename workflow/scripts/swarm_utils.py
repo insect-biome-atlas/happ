@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import re
 
+
 def format_swarm(sm):
     """
     Reformats input fasta file for use with swarm
@@ -26,7 +27,7 @@ def format_swarm(sm):
                 continue
     # Store sequences from fasta
     seqs = {}
-    with gzip.open(sm.input.fasta, "rt")as fhin, gzip.open(
+    with gzip.open(sm.input.fasta, "rt") as fhin, gzip.open(
         sm.params.fasta, "wt"
     ) as fhout:
         for record in parse(fhin, "fasta"):
@@ -42,7 +43,7 @@ def format_swarm(sm):
             if counts[record.id] > 0:
                 fhout.write(f">{new_rec}\n{record.seq}\n")
     # Write dereplicated results (if any)
-    with open(sm.output.derep, 'w') as fhout:
+    with open(sm.output.derep, "w") as fhout:
         for k, v in seqs.items():
             fhout.write(f"{' '.join(v)}\n")
     shutil.move(sm.params.fasta, sm.output.fasta)
@@ -65,7 +66,7 @@ def get_cluster_members(f):
 def read_derep(f, dataf):
     derep = {}
     regex = re.compile("_\d+$")
-    with open(f, 'r') as fhin:
+    with open(f, "r") as fhin:
         for line in fhin:
             items = [regex.sub("", x) for x in line.rstrip().rsplit()]
             rep = items[0]
@@ -74,7 +75,7 @@ def read_derep(f, dataf):
                 for item in items[1:]:
                     derep[item] = clust
     derepdf = pd.DataFrame(derep, index=["cluster"]).T
-    derepdf.index.name="ASV"
+    derepdf.index.name = "ASV"
     return derepdf
 
 
