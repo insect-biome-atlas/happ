@@ -1,14 +1,17 @@
 import pandas as pd
 from snakemake.utils import validate
-from scripts.common import read_taxa
+
+
+include: "scripts/common.py"
+
 
 validate(config, schema="schemas/config.schema.yaml", set_default=True)
 
 if config["chimera"]["remove_chimeras"]:
     # If config is set to remove chimeras, include the rules file and set
     # additional config params
-    method=config["chimera"]["method"]
-    algorithm=config["chimera"]["algorithm"]
+    method = config["chimera"]["method"]
+    algorithm = config["chimera"]["algorithm"]
     # The 'chimdir' parameter is created from the method (either 'samplewise'
     # or 'batchwise') and the algorithm (either 'uchime_denovo', 'uchime2_denovo'
     # or 'uchime3_denovo'
@@ -16,12 +19,17 @@ if config["chimera"]["remove_chimeras"]:
     # under the chimera settings in the config allows different chimera detection
     # settings using the same vsearch output
     config["chimdir"] = f"{method}.{algorithm}"
+
     include: "rules/chimeras.smk"
+
+
 else:
     config["chimdir"] = "raw"
     config["chimera"]["run_name"] = "raw"
 
+
 taxa = read_taxa(config)
+
 
 wildcard_constraints:
     tool="(swarm|opticlust|dbotu3|lulu)",
@@ -31,13 +39,14 @@ wildcard_constraints:
     chimdir=config["chimdir"],
     chimera_run=config["chimera"]["run_name"],
     algo=config["chimera"]["algorithm"],
-    sample="\w+"
+    sample="\w+",
 
 
 container: "docker://continuumio/miniconda3:4.11.0"
 
 
 include: "rules/common.smk"
+
 
 if "swarm" in config["software"]:
 
@@ -79,7 +88,9 @@ def cluster_files(wildcards):
         chimera_run = config["chimera"]["run_name"]
         chimdir = config["chimdir"]
         rank = config["split_rank"]
-        input.append(f"results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.txt")
+        input.append(
+            f"results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.txt"
+        )
     return input
 
 
@@ -105,7 +116,9 @@ def log_files(wildcards):
         chimera_run = config["chimera"]["run_name"]
         rank = config["split_rank"]
         chimdir = config["chimdir"]
-        input.append(f"logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log")
+        input.append(
+            f"logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log"
+        )
     return input
 
 
@@ -136,8 +149,8 @@ rule all:
             chimera_run=config["chimera"]["run_name"],
             chimdir=config["chimdir"],
             run_name=config["run_name"],
-            suff=["json","cmd"],
-        )
+            suff=["json", "cmd"],
+        ),
 
 
 rule evaluate:
@@ -164,6 +177,7 @@ rule evaluate:
         ),
     run:
         import pandas as pd
+
         stats = {}
         for f in input.txt:
             tool = f.split("/")[1]
@@ -207,6 +221,7 @@ rule evaluate:
             orderdf = pd.concat([orderdf, _df])
         orderdf.to_csv(output.ordertsv[0], sep="\t")
 
+
 rule write_settings:
     output:
         json="results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.json",
@@ -215,10 +230,12 @@ rule write_settings:
         get_filter_input,
     run:
         import json, sys
-        with open(output.json, 'w') as fhout:
+
+        with open(output.json, "w") as fhout:
             json.dump(config, fhout, indent=4)
-        with open(output.cmd, 'w') as fhout:
+        with open(output.cmd, "w") as fhout:
             fhout.write(" ".join(sys.argv))
+
 
 rule precision_recall:
     input:
@@ -250,6 +267,7 @@ rule calc_colsums:
         expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
     run:
         import pandas as pd
+
         colsums = []
         data = pd.read_csv(input[0], sep="\t", index_col=0, chunksize=100000)
         for item in data:
@@ -294,6 +312,7 @@ rule sum_rep_counts:
         counts=rules.filter_seqs.output.counts,
     run:
         import pandas as pd
+
         taxdf = pd.read_csv(input.taxinfo, sep="\t", index_col=0)
         countsdf = pd.read_csv(input.counts, sep="\t", index_col=0)
         repdf = taxdf.loc[taxdf.representative == 1, ["cluster"]]
@@ -347,11 +366,12 @@ rule calculate_mean_dist:
     output:
         "results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.average_dist.tsv",
     input:
-        rules.vsearch_align.output.dist
+        rules.vsearch_align.output.dist,
     run:
         import gzip as gz
         import numpy as np
         import pandas as pd
+
         taxdist = []
         with gz.open(input[0], "rt") as fhin:
             for line in fhin:
@@ -382,6 +402,7 @@ rule collate_mean_dist:
         ),
     run:
         import pandas as pd
+
         df = pd.DataFrame()
         for f in input:
             _df = pd.read_csv(f, sep="\t", index_col=0)
