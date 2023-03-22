@@ -18,13 +18,7 @@ def rank_max(df, method):
 
 def get_reps(df, method, rank):
     start = time.time()
-    reps = df.groupby(rank).apply(rank_max, method)
-    reps = (
-        reps.drop(rank, axis=1)
-        .reset_index()
-        .rename(columns={"level_1": "ASV"})
-        .set_index("ASV")
-    )
+    reps = df.groupby(rank, group_keys=False).apply(rank_max, method)
     sys.stderr.write(f"Found representatives in {time.time()-start} seconds\n")
     return reps
 
