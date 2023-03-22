@@ -146,7 +146,11 @@ def main(args):
     counts.index.name = "ASV"
     dataframe = pd.merge(filtered, counts, left_index=True, right_index=True)
     sys.stderr.write(f"Finding representatives for rank {args.rank}\n")
-    reps = get_reps(dataframe, args.method, args.rank)
+    if dataframe.shape[0] == 1:
+        reps = dataframe
+    else:
+        reps = get_reps(dataframe, args.method,
+                                               args.rank)
     rep_size = reps.groupby(args.rank).size()
     sys.stderr.write(
         f"{rep_size.loc[rep_size>1].shape[0]} {args.rank} reps with >1 ASV\n"
