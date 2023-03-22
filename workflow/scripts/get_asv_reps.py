@@ -3,71 +3,29 @@
 from argparse import ArgumentParser
 import pandas as pd
 import numpy as np
-import gzip as gz
 import sys
 from os.path import splitext
 from Bio.SeqIO import parse
 import tqdm
-from subprocess import check_output
+import time
 
 
-def normalize_row(vals, header, colsums):
-    return [
-        float(vals[i]) / float(colsums.loc[header[i]])
-        if colsums.loc[header[i]].values[0] > 0
-        else 0
-        for i in list(range(0, len(vals)))
-    ]
-
-
-def check_lines(f):
-    if f.endswith(".gz"):
-        return None
-    command = ["wc", "-l", f]
-    l = check_output(command)
-    lines = int(l.decode().lstrip(" ").split(" ")[0]) - 1
-    return lines
-
-
-def read_counts(f, method, ids, colsums=None):
-    lines = check_lines(f)
-    if method == "sum":
-        func = np.sum
-    elif method == "median":
-        func = np.median
-    elif method == "mean":
-        func = np.mean
-    d = {}
-    if f.endswith(".gz"):
-        open_func = gz.open
-    else:
-        open_func = open
-    with open_func(f, "rt") as fhin:
-        for i, line in enumerate(tqdm.tqdm(fhin, unit=" lines", ncols=50, total=lines)):
-            line = line.rstrip()
-            items = line.split("\t")
-            if i == 0:
-                header = items[1:]
-                continue
-            asv = items[0]
-            if asv not in ids:
-                continue
-            vals = [int(x) for x in items[1:]]
-            if colsums is not None:
-                vals = normalize_row(vals, header, colsums)
-            v = func(vals)
-            d[asv] = v
-    return pd.DataFrame(d, index=[method]).T
+def rank_max(df, method):
+    reps = df.loc[df[method] == df.max()[method]]
+    rep = reps.loc[sorted(reps.index)[0]]
+    return pd.DataFrame(rep).T
 
 
 def get_reps(df, method, rank):
-    reps = pd.DataFrame()
-    for rank_name in tqdm.tqdm(
-        df[rank].unique(), unit=" taxa", total=len(df[rank].unique()), ncols=50
-    ):
-        rows = df.loc[df[rank] == rank_name]
-        _reps = rows.loc[rows[method] == rows.max()[method]].head(1)
-        reps = pd.concat([reps, _reps])
+    start = time.time()
+    reps = df.groupby(rank).apply(rank_max, method)
+    reps = (
+        reps.drop(rank, axis=1)
+        .reset_index()
+        .rename(columns={"level_1": "ASV"})
+        .set_index("ASV")
+    )
+    sys.stderr.write(f"Found representatives in {time.time()-start} seconds\n")
     return reps
 
 
@@ -80,8 +38,9 @@ def filter_taxa(taxa, rank):
 
 
 def get_seqs(seqsfile, reps, ranks, rank):
+    start = time.time()
     seqs = {}
-    for record in tqdm.tqdm(parse(seqsfile, "fasta"), unit=" records", ncols=50):
+    for record in tqdm.tqdm(parse(seqsfile, "fasta"), unit=" records",):
         try:
             row = reps.loc[record.id]
         except KeyError:
@@ -95,6 +54,7 @@ def get_seqs(seqsfile, reps, ranks, rank):
         else:
             if len(record.seq) > len(seqs[rank_name]["seq"]):
                 seqs[rank_name] = {"recid": header, "seq": record.seq}
+    sys.stderr.write(f"Read seqs in {time.time()-start} seconds\n")
     return seqs
 
 
@@ -118,9 +78,40 @@ def calc_colsum(f):
     return sum(colsums)
 
 
+def read_input(f):
+    start = time.time()
+    df = pd.read_csv(f, index_col=0, sep="\t")
+    sys.stderr.write(f"Read {f} in {time.time()-start} seconds\n")
+    return df
+
+
+def calc_counts(countsdf, colsums, method="median", ids=None, normalize=False):
+    if ids is None:
+        ids = []
+    if len(ids) > 0:
+        common = list(set(countsdf.index).intersection(ids))
+        countsdf = countsdf.loc[common]
+    countsdf.fillna(0, inplace=True)
+    start = time.time()
+    if normalize:
+        size_factor = colsums.loc[countsdf.columns][colsums.columns[0]]
+        countsdf = countsdf.div(size_factor, axis=1)
+    if method == "sum":
+        func = np.sum
+    elif method == "mean":
+        func = np.mean
+    elif method == "median":
+        func = np.nanmedian
+    calculated_counts = pd.DataFrame(countsdf.apply(func, axis=1), columns=[method])
+    sys.stderr.write(
+        f"Calculated counts using {method} in " f"{time.time()-start} seconds\n"
+    )
+    return calculated_counts
+
+
 def main(args):
     sys.stderr.write(f"Reading taxfile {args.taxa}\n")
-    taxa = pd.read_csv(args.taxa, index_col=0, sep="\t")
+    taxa = read_input(args.taxa)
     if args.prefix:
         taxa[args.rank] = [f"{args.prefix}_{x}" for x in taxa[args.rank]]
     sys.stderr.write(f"Read {taxa.shape[0]} records\n")
@@ -136,14 +127,22 @@ def main(args):
     if args.normalize:
         if args.colsums:
             sys.stderr.write(f"Reading column sums from {args.colsums}\n")
-            colsums = pd.read_csv(args.colsums, sep="\t", index_col=0)
+            colsums = read_input(args.colsums)
         else:
             sys.stderr.write(f"Calculating column sums for normalization\n")
             colsums = calc_colsum(args.counts)
     sys.stderr.write(
-        f"Reading countsfile {args.counts} and calculating abundance of ASVs using {args.method} across samples\n"
+        f"Reading countsfile {args.counts} and calculating abundance of ASVs "
+        f"using {args.method} across samples\n"
     )
-    counts = read_counts(args.counts, args.method, list(filtered.index), colsums)
+    countsdf = read_input(args.counts)
+    counts = calc_counts(
+        countsdf,
+        colsums,
+        method=args.method,
+        ids=list(filtered.index),
+        normalize=args.normalize,
+    )
     counts.index.name = "ASV"
     dataframe = pd.merge(filtered, counts, left_index=True, right_index=True)
     sys.stderr.write(f"Finding representatives for rank {args.rank}\n")
@@ -153,9 +152,10 @@ def main(args):
         f"{rep_size.loc[rep_size>1].shape[0]} {args.rank} reps with >1 ASV\n"
     )
     if args.taxa_table:
-        sys.stderr.write(f"Adding additional taxonomic info from {args.taxa_table}\n")
-        extra_taxdf = pd.read_csv(args.taxa_table, sep="\t", index_col=0)
-        taxdf = pd.merge(dataframe, extra_taxdf, left_index=True, right_index=True)
+        sys.stderr.write(f"Adding taxonomic info from {args.taxa_table}\n")
+        extra_taxdf = read_input(args.taxa_table)
+        taxdf = pd.merge(dataframe, extra_taxdf, left_index=True,
+                         right_index=True)
         taxdf = taxdf.assign(
             representative=pd.Series([0] * taxdf.shape[0], index=taxdf.index)
         )
@@ -180,15 +180,18 @@ if __name__ == "__main__":
         help="Write representatives to outfile",
     )
     parser.add_argument(
-        "--rank", type=str, default="BOLD_bin", help="What level o group TAX ids"
+        "--rank", type=str, default="BOLD_bin", help="What level o group TAX "
+                                                     "ids"
     )
-    parser.add_argument("--prefix", type=str, help="Prefix cluster name with string")
+    parser.add_argument("--prefix", type=str, help="Prefix cluster name with "
+                                                   "string")
     parser.add_argument(
         "--method",
         type=str,
         choices=["sum", "median", "mean"],
         default="median",
-        help="Method to select representative base on counts. Defaults to 'sum' across samples",
+        help="Method to select representative base on counts. Defaults to "
+             "'sum' across samples",
     )
     parser.add_argument(
         "--normalize",
