@@ -150,7 +150,7 @@ def main(args):
     sys.stderr.write(f"#Removing ASVs without assignments for {args.rank}\n")
     asv_taxa = asv_taxa.loc[
         (~asv_taxa[args.rank].str.contains("_X+$"))
-        & (~asv_taxa[args.rank].str.startswith("unclassified."))
+        & (~asv_taxa[args.rank].str.startswith("unclassified"))
     ]
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASVs remaining\n")
     # Read cluster files
