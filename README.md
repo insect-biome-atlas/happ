@@ -85,42 +85,55 @@ sequences with a count > 0 in each sample. Sequences identified as non-chimeric
 are then passed downstream in the workflow and used as input for clustering.
 
 #### Parameters for chimera detection and filtering
-The uchime algorithm calculates a [chimeric score](https://www.drive5.com/usearch/manual6/UCHIME_score.html) 
-from 3-way alignments of ASVs. There are three different algorithms to choose
-from: 'uchime_denovo', 'uchime2_denovo' and 'uchime3_denovo'. The latter
-two require perfect matches between the ASV sequence and a chimeric model, whereas
-'uchime_denovo' does not. 
+Config parameters for the chimera removal part of the workflow are nested 
+under `chimera:` in the config file and below are the default values.
+
+```yaml
+chimera:
+  run_name: "chimera1"
+  remove_chimeras: True
+  method: "samplewise"
+  algorithm: "uchime_denovo"
+  min_samples_shared: 1
+  min_frac_samples_shared: 0.5
+  min_chimeric_samples: 0
+  dn: 1.4
+  mindiffs: 3
+  mindiv: 0.8
+  minh: 0.28
+```
+
+- `run_name`: this parameter allows you to define different runs of the 
+chimera filtering. A fasta file with non-chimeric sequences will be produced 
+under `results/chimera/<rundir>/filterred/<run_name>/<method>.<algorithm>/nonchimeras.fasta`.
+- `remove_chimeras`: set this to False to skip chimera filtering
+- `method`: run chimera detection in `batchwise` or `samplewise` mode.
+- `algorithm`: select between `uchime_denovo`, `uchime2_denovo` or 
+  `uchime3_denovo`. The latter two require perfect matches between the ASV
+  sequence and a chimeric model, whereas 'uchime_denovo' does not.
+- `min_samples_shared`: in batchwise mode, chimeric ASVs have to be present 
+  with their 'parents' (see Uchime [docs](https://drive5.com/usearch/manual/chimeras.html)) 
+  in `min_samples_shared` number of samples in order to be filtered as chimeric.
+- `min_frac_samples_shared`: similar to `min_samples_shared`, but instead of 
+  an absolute number require that sequences are present with their parents 
+  in a fraction of the samples
+- `min_chimeric_samples`: in samplewise mode, chimeric ASVs have to be 
+  marked as chimeras in `min_chimeric_samples` number of samples in order to 
+  be filtered as chimeric. Setting this value to 0 (the default) means that 
+  sequences have to be marked as chimeric in **all** samples where they are 
+  present in order to be filtered as chimeric.
+
+The `dn`, `mindiffs`, `mindiv` and `minh` parameters are specific to how the 
+chimeric score of sequences is calculated. Please see the Uchime [docs](https://www.drive5.com/usearch/manual6/UCHIME_score.html) 
+for details. 
+
 In all algorithms ASV sequences are first aligned to other ASVs that are above a 
 certain abundance threshold. This so called [abundance skew](https://www.drive5.com/usearch/manual6/abundance_skew.html)
 threshold is by default set to 2.0 for the 'uchime_denovo' and 'uchime2_denovo'
 algorithms and to 16.0 for 'uchime3_denovo'. However, this value can be overridden
 by explicitly setting `abskew` in the config file under `chimera:`, _e.g._:
 
-```yaml
-chimera:
-  abskew: 4.0
-```
-
-The main parameters used here for chimera detection are:
-- `method`: whether to run chimera detection in 'batchwise' or 'samplewise' mode
-- `algorithm`: whether to use 'uchime_denovo', 'uchime2_denovo' or 'uchime3_denovo'
-- `minh`: the minimum required score to classify
-- `mindiffs`: minimum number of diffs in a segment
-- `mindiv`: minimum divergence, i.e. 100% - identity between the query and closest reference sequence
-- `dn`: pseudo-count prior for "no" votes.
-
-We have also implemented additional filtering criteria on top of the uchime 
-output:
-- `min_samples_shared`: in batchwise mode, this is the minimum number of times 
-an ASV must be present in a sample together with its parents
-- `min_frac_samples_shared`: in batchwise mode, this is the minimum fraction 
-(out of all samples where the ASV is present) that a putative chimera has to be present with its parents
-- `min_chimeric_samples`: in samplewise mode, this is the minimum number of 
-samples in which an ASV has to be marked as chimeric in order to treat it as such.
-Setting this value to 0 means that an ASV has to be marked as chimeric in **all**
-samples where it is present.
-
-In addition, the `run_name` parameter nested under `chimera:` in the config file
+The `run_name` parameter nested under `chimera:` in the config file
 controls the output structure of the chimeric filtering part of the workflow and
 influences input to downstream rules. Changing this value allows you to 
 tune the chimeric detection without rerunning unnecessary jobs. 
@@ -345,56 +358,134 @@ cluster for each combination of tool and taxa. This table has the following form
 
 
 ### 6. Workflow output
+Below is an example of the results directory after a typical run of the 
+workflow. Config settings in this example are shown below:
+
+Example config:
+```yaml
+rundir: "project1"
+run_name: "run1"
+split_rank: "Family"
+software: ["swarm", "opticlust"]
+chimera:
+  run_name: "sw.strict"
+  method: "samplewise"
+  algorithm: "uchime_denovo"
+```
+
+#### Vsearch output
+Pairwise distance output from vsearch forms the base of the clustering. This is 
+placed under `results/vsearch/<rundir>/<chimera_run_name>/<chimera_method>.<chimera_algorithm>/`.
 
 ```bash
-results/
-├── opticlust
-│   └── run1
-│       ├── Taxa1
-│       │   └── default
-│       │       └── asv_clusters.tsv
-│       ├── Taxa2
-│       │   └── default
-│       │       └── asv_clusters.tsv
-│       └── Taxa3
-│           └── default
-│               └── asv_clusters.tsv
-├── swarm
-│   └── run1
-│       ├── Taxa1
-│       │   └── default
-│       │       └── asv_clusters.tsv
-│       ├── Taxa2
-│       │   └── default
-│       │       └── asv_clusters.tsv
-│       └── Taxa3
-│           └── default
-│               └── asv_clusters.tsv
-└── vsearch
-    └── run1
-        ├── Taxa1
-        │   ├── asv_seqs.dist.gz
-        │   └── asv_seqs.dist.reformat.gz
-        ├── Taxa2
-        │   ├── asv_seqs.dist.gz
-        │   └── asv_seqs.dist.reformat.gz
-        └── Taxa3
-            ├── asv_seqs.dist.gz
-            └── asv_seqs.dist.reformat.gz
+results/vsearch/project1/sw.strict
+`-- samplewise.uchime_denovo
+    `-- Family                      
+        `-- taxa                             
+            |-- Acanthosomatidae
+            |   |-- asv_seqs.dist.gz
+            |   `-- asv_seqs.dist.reformat.gz
+            ...
 ```
 
-In the example above, the configfile used contained:
-```yaml
-rundir="run1"
-software=["swarm", "opticlust"]
-run_name="default"
+#### Swarm output
+Output files specific to swarm are placed under 
+`results/swarm/<rundir>/<chimera_run_name>/<chimera_method>.<chimera_algorithm>/`.
+
+```bash
+results/swarm/project1/sw.strict
+`-- samplewise.uchime_denovo                 
+    `-- Family                         
+        |-- runs                     
+        |    -- run1           
+        |       |-- asv_reps.counts.tsv 
+        |       |-- asv_reps.fasta         
+        |       |-- asv_reps.taxonomy.tsv
+        |       |-- precision_recall.order.txt
+        |       |-- precision_recall.txt     
+         -- taxa                       
+            |-- Acanthosomatidae 
+            |   |-- derep.txt
+            |   |-- reformat.fasta.gz
+            |   `-- run1             
+            |       |-- asv_clusters.tsv
+            |       |-- asv_reps.counts.tsv
+            |       |-- asv_reps.fasta     
+            |       |-- asv_reps.taxonomy.tsv
+            |       |-- swarm_table.tsv      
+            |       `-- swarm.txt
+            ...
 ```
 
-You can see that each tool gets its own subdirectory under `results/`,
-and that `rundir` (in this case "run1") in turn is created under each tool.
-In addition, `run_name` is created as a subdirectory under each taxa directory. 
-This way the underlying data (ASV sequences, counts and taxonomic info) found in 
-the `data/<rundir>` directory can be used for any number of `run_name` settings.
+#### Opticlust output
+
+```bash
+results/opticlust/project1/sw.strict 
+`-- samplewise.uchime_denovo                   
+    `-- Family                          
+        |-- runs                             
+        |   `-- run1                          
+        |       |-- asv_reps.counts.tsv                                                              
+        |       |-- asv_reps.fasta             
+        |       |-- asv_reps.taxonomy.tsv                                                            
+        |       |-- precision_recall.BOLD_bin.order.txt
+        |       |-- precision_recall.BOLD_bin.txt                                                    
+        |       |-- precision_recall.order.txt 
+        |       `-- precision_recall.txt
+        `-- taxa                             
+            |-- Acanthosomatidae        
+            |   `-- run1                     
+            |       |-- asv_clusters.tsv
+            |       |-- asv_reps.counts.tsv
+            |       |-- asv_reps.fasta
+            |       |-- asv_reps.taxonomy.tsv
+            |       |-- asv_seqs.opti_mcc.list
+            |       |-- asv_seqs.opti_mcc.sensspec 
+            |       `-- asv_seqs.opti_mcc.steps
+            ... 
+```
+
+#### Stats output
+The workflow will evaluate the clustering using the taxonomic assignments in 
+`data/<rundir>/asv_taxa.tsv` as the 'ground truth' and calculate various 
+statistics such as precision/recall, completeness/homogeneity of the 
+clusters. See below under **7. Evaluation** for details. By default, the 
+clustering results are evaluated against the 'Species' level in the 
+taxonomic data, but this can be changed with the config parameter 
+`evaluation_rank`.
+
+```bash
+results/stats/project1/sw.strict
+`-- samplewise.uchime_denovo
+    `-- Family
+        `-- runs
+            |-- run1.order.tsv
+            `-- run1.tsv
+```
+
+The file `run1.tsv` summarizes the evaluation of all tools used. An example 
+output is shown below:
+
+```bash
+          clusters species precision recall  homogeneity  completeness ASVs
+swarm     14520    10881   0.9699    0.9142  0.9952       0.9746       224562
+opticlust 19835    10881   0.9997    0.7333  0.9997       0.9398       224562
+```
+
+This shows that swarm and opticlust generated 14520 and 19835 clusters 
+respectively. The total number of ASVs going into the clustering was 224562 
+and there were a total of 10881 unique species. Swarm obtained precision and 
+recall of values of 0.9699 and 0.9142, respectively. Opticlust had slightly 
+higher precision but lower recall. This indicates that Opticlust 
+slightly overclustered the input data, which is also seen in the larger number 
+of clusters produced.
+
+Note that when calculating these numbers sequences not assigned to 
+`evaluation_rank` (Species by default) are ignored, so the total number of 
+ASVs, clusters and species is likely higher.
+
+The file `run1.order.tsv` contains the same information, but with values 
+calculated for each taxonomic Order.
 
 ### 7. Evaluation
 True and false positives, as well as true and false negatives can be evaluated
@@ -442,13 +533,15 @@ We benchmarked the workflow on the FINBOL database (see the
 | params11  | -d 23 -b 0             | cutoff=0.09  |
 | params12  | -d 25 -b 0             | cutoff=0.1   |
 
-Our analysis showed that `params4` with opticlust (`cutoff=0.025`) gave the 
-highest precision/recall. However, when we used this setting on real-world data
-for >630,000 ASVs in >5000 samples the results showed a very low recall and 
-a much greater number of clusters than anticipated. Looking more closely at the
-Lepidoptera order there were ~4,300 clusters but only ~1,400 unique species
-in the data. We hypothesized that chimeric ASV sequences were causing problems
-for the clustering algorithms, something we did not observe in the benchmarking 
+Our analysis showed that for opticlust the `params4` setting (`cutoff=0.025`)
+gave the highest precision/recall.  
+
+However, when we used this setting on real-world data for >630,000 ASVs in 
+5000+ samples the results showed a very low recall and a much greater number 
+of clusters than anticipated. Looking more closely at the Lepidoptera order 
+there were ~4,300 clusters but only ~1,400 unique species in the data. We 
+hypothesized that chimeric ASV sequences were causing problems for the 
+clustering algorithms, something we did not observe in the benchmarking 
 because it was done on presumably high-quality non-chimeric sequences.
 
 
