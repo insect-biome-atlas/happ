@@ -11,7 +11,7 @@ import time
 
 
 def add_size_column(df):
-    size = [int(i.split("=")[-1]) for i in df.index]
+    size = [int(float(i.split("=")[-1])) for i in df.index]
     df.rename(index=lambda x: x.split(";")[0], inplace=True)
     return df.assign(Size=pd.Series(size, index=df.index))
 
