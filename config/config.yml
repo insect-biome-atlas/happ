@@ -18,7 +18,7 @@ chimera:
   #'batchwise' = run chimera detection on dataset as a whole.
   #'samplewise' = split input fasta into one file per sample and run chimera
   #               detection on each sample individually.
-  method: "batchwise"
+  method: "samplewise"
   # Select algorithm to use, you can choose from 'uchime_denovo', 'uchime2_denovo'
   # and 'uchime3_denovo'.
   algorithm: "uchime_denovo"
@@ -67,10 +67,10 @@ opticlust:
   threads: 10
 
 swarm:
-  differences: 1
+  differences: 5
   no-otu-breaking: False
-  fastidious: True
-  boundary: 3
+  fastidious: False
+  boundary: 0
   threads: 10
   match-reward: 5
   mismatch-penalty: 4

@@ -195,7 +195,7 @@ properties:
     type: object
     default:
       remove_chimeras: True
-      method: "batchwise"
+      method: "samplewise"
       run_name: "chimera1"
       algorithm: "uchime_denovo"
       dn: 1.4
@@ -204,7 +204,7 @@ properties:
       minh: 0.28
       min_samples_shared: 1
       min_frac_samples_shared: 0
-      min_chimeric_samples: 1
+      min_chimeric_samples: 0
     properties:
       run_name:
         type: string
