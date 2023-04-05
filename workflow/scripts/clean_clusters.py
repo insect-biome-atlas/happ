@@ -102,7 +102,7 @@ def clean_by_reads(dataframe, min_clust_count=3):
     return df
 
 
-def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=20):
+def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=5):
     """
     Removes clusters with ASVs present in > <max_blank_occurrence>% of blanks
     """
@@ -122,7 +122,9 @@ def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=20):
         to_remove = list(df.loc[df["cluster"].isin(list(to_remove_cl))].index)
     df.drop(to_remove, inplace=True)
     after = df.shape[0]
-    sys.stderr.write(f"{before - after} ASVs removed, {df.shape[0]} ASVs remaining\n")
+    sys.stderr.write(
+        f"{before - after} ASVs removed, {df.shape[0]} ASVs remaining\n"
+    )
     return df
 
 
@@ -194,12 +196,12 @@ if __name__ == "__main__":
     )
     params_group.add_argument(
         "--max_blank_occurrence",
-        type=float,
-        default=20,
+        type=int,
+        default=5,
         help="Remove ASVs occurring in clusters where at "
         "least one member is present in "
         "<max_blank_occurrence>%% of blank samples. "
-        "(default 20)",
+        "(default 5)",
     )
     params_group.add_argument(
         "--blank_removal_mode",
@@ -233,8 +235,7 @@ if __name__ == "__main__":
         "--nrows",
         type=int,
         default=0,
-        help="Number of rows to read from countsfile (" "for testing purposes only)",
+        help="Rows to read from countsfile (for testing purposes only)",
     )
-
     args = parser.parse_args()
     main(args)
