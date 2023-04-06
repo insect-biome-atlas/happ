@@ -37,10 +37,8 @@ def read_counts(f, blanks, chunksize=10000, nrows=0):
             asv_blank_count = pd.DataFrame(
                 blank_counts.gt(0).sum(axis=1), columns=["in_n_blanks"]
             )
-        else:
-            asv_blank_count = pd.DataFrame(
-                data={"in_n_blanks": [0] * df.shape[0]}, index=df.index
-            )
+            asv_blank_count["in_percent_blanks"] = asv_blank_count.div(
+                len(blanks)) * 100
         # calculate ASV sum (remove blanks)
         asv_sum = pd.DataFrame(df.drop(blanks, axis=1).sum(axis=1), columns=["ASV_sum"])
         # calculate ASV max
@@ -111,8 +109,6 @@ def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=5):
     )
     df = dataframe.copy()
     before = df.shape[0]
-    # Calculate % occurrence in blanks
-    df["in_percent_blanks"] = df["in_n_blanks"].div(len(blanks)) * 100
     # Get list of ASVs to remove
     to_remove = df.loc[df.in_percent_blanks > max_blank_occurrence].index
     if mode == "cluster":
