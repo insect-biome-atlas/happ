@@ -1,4 +1,4 @@
-
+reason: "True"
 cluster-sidecar: "slurm-sidecar.py"
 cluster-cancel: "scancel"
 restart-times: "0"
@@ -15,6 +15,7 @@ jobs: "500"
 printshellcmds: "True"
 rerun-triggers: "mtime"
 rerun-incomplete: "True"
+conda-frontend: "mamba"
 
 # Example resource configuration
 # default-resources:
