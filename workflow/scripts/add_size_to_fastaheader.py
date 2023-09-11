@@ -28,7 +28,7 @@ def main(args):
             if c == 0:
                 continue
             try:
-                fhout.write(f">{seqid};size={c}\n{str(seqs[seqid].seq)}\n")
+                fhout.write(f">{seqid};size={int(c)}\n{str(seqs[seqid].seq)}\n")
             except KeyError:
                 continue
 
