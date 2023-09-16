@@ -133,7 +133,7 @@ rule all:
             chimera_run=config["chimera"]["run_name"],
             rank=config["split_rank"],
             run_name=config["run_name"],
-            suff=["taxonomy.tsv", "fasta", "counts.tsv"],
+            suff=["taxonomy.tsv", "fasta", "counts.tsv", "pdist.tsv"],
         ),
         expand(
             "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.{suff}",
@@ -410,3 +410,26 @@ rule collate_mean_dist:
             _df.index.name = "tax"
             df = pd.concat([_df, df])
         df.to_csv(output[0], sep="\t")
+
+rule representative_pdist:
+    output:
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.pdist.tsv"
+    input:
+        taxinfo = rules.merge_rep_files.output.taxinfo,
+        distfiles = expand(
+            "results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
+            rundir=config["rundir"],
+            chimdir=config["chimdir"],
+            chimera_run=config["chimera"]["run_name"],
+            rank=config["split_rank"],
+            tax=taxa,
+        ),
+    log:
+        "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/representative_pdist.log"
+    params:
+        dirname = "results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa",
+        src=srcdir("scripts/extract-pdist.py"),
+    shell:
+        """
+        python {params.src} {input.taxinfo} --directory {params.dirname} > {output} 2>{log}
+        """
