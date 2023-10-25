@@ -86,8 +86,14 @@ def precision_recall(df, cluster_col, rank, silent=False):
     # totalNegatives = pairs(df) - totalPositives
     FN = falseNegatives(df, cluster_col, rank, silent)
     # TN = totalNegatives - FN
-    precision = float(TP) / (TP + FP)
-    recall = float(TP) / (TP + FN)
+    if TP + FP == 0:
+        precision = 0.0
+    else:
+        precision = float(TP) / (TP + FP)
+    if TP + FN == 0:
+        recall = 0.0
+    else:
+        recall = float(TP) / (TP + FN)
     if not silent:
         sys.stdout.write(f"Total clusters {totalClusters}\n")
         sys.stdout.write(f"Total number of {rank} {totalTaxa}\n")
@@ -144,7 +150,7 @@ def main(args):
     sys.stderr.write(f"#Removing ASVs without assignments for {args.rank}\n")
     asv_taxa = asv_taxa.loc[
         (~asv_taxa[args.rank].str.contains("_X+$"))
-        & (~asv_taxa[args.rank].str.startswith("unclassified."))
+        & (~asv_taxa[args.rank].str.startswith("unclassified"))
     ]
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASVs remaining\n")
     # Read cluster files

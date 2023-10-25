@@ -56,7 +56,7 @@ def write_counts(countsfile, totalcounts, countsout, ids):
             items = line.rstrip().rsplit()
             if not items[0] in ids:
                 continue
-            s = sum([int(x) for x in items[1:]])
+            s = int(sum([float(x) for x in items[1:]]))
             fh_total.write(f"{items[0]}\t{s}\n")
             fh_counts.write(line)
             written += 1

@@ -11,21 +11,27 @@ import time
 
 
 def add_size_column(df):
-    size = [int(i.split("=")[-1]) for i in df.index]
+    size = [int(float(i.split("=")[-1])) for i in df.index]
     df.rename(index=lambda x: x.split(";")[0], inplace=True)
     return df.assign(Size=pd.Series(size, index=df.index))
 
 
-def filter_uchime(df, minh, mindiff, mindiv):
+def filter_uchime(df, minh, mindiff, mindiv, algorithm):
     """
     Performs first round filtering according to uchime settings
     """
-    return df.loc[
-        (df.Score >= minh)
-        & (df.sumL >= mindiff)
-        & (df.sumR >= mindiff)
-        & (df.Div >= mindiv)
-    ]
+    if algorithm in ["uchime2_denovo", "uchime3_denovo"]:
+        return df.loc[
+            (df.IdQM == 100)
+            & (df.IdQT == 100)
+        ]
+    else:
+        return df.loc[
+            (df.Score >= minh)
+            & (df.sumL >= mindiff)
+            & (df.sumR >= mindiff)
+            & (df.Div >= mindiv)
+        ]
 
 
 def read_uchime(f):
@@ -136,7 +142,7 @@ def write_seqs(f, d):
             fhout.write(text)
 
 
-def filter_samplewise_chimeras(files, minh, mindiff, mindiv, min_chimeric_samples):
+def filter_samplewise_chimeras(files, minh, mindiff, mindiv, min_chimeric_samples, algorithm):
     all_seqs = []
     asvs = defaultdict(lambda: 0)
     nonchims = []
@@ -147,7 +153,7 @@ def filter_samplewise_chimeras(files, minh, mindiff, mindiv, min_chimeric_sample
             continue
         all_asvs = set(uchime_res.index)
         all_seqs = list(set(all_seqs + list(uchime_res.index)))
-        uchime_filtered = filter_uchime(uchime_res, minh, mindiff, mindiv)
+        uchime_filtered = filter_uchime(uchime_res, minh, mindiff, mindiv, algorithm)
         chim_asvs = set(uchime_filtered.index)
         asv_diffs = all_asvs.difference(chim_asvs)
         # if there are asvs in all_asvs that are not in chim_asvs and
@@ -179,6 +185,7 @@ def main(args):
             args.mindiff,
             args.mindiv,
             args.min_chimeric_samples,
+            args.algorithm,
         )
     else:
         sys.stderr.write(
@@ -198,7 +205,7 @@ def main(args):
             f"1st round of filtering with minh={args.minh}, mindiff={args.mindiff}, mindiv={args.mindiv}\n"
         )
         uchime_filtered = filter_uchime(
-            uchime_res, args.minh, args.mindiff, args.mindiv
+            uchime_res, args.minh, args.mindiff, args.mindiv, args.algorithm
         )
         sys.stderr.write(f"{uchime_filtered.shape[0]} potential chimeras remaining\n")
         # Filter according to shared samples
@@ -295,6 +302,14 @@ if __name__ == "__main__":
         type=int,
         default=1000,
         help="Read counts file in chunks of <chunk> rows",
+    )
+    parser.add_argument(
+        "--algorithm",
+        type=str,
+        default="uchime_denovo",
+        choices=["uchime_denovo", "uchime2_denovo", "uchime3_denovo"],
+        help="Algorithm to filter by. Note than when 'uchime2_denovo' or 'uchime3_denovo' is specified this requires"
+             "100%% matching between the alignment and the model (perfect chimeras). "
     )
     args = parser.parse_args()
     main(args)
