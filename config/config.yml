@@ -67,7 +67,7 @@ opticlust:
   threads: 10
 
 swarm:
-  differences: 5
+  differences: 13
   no-otu-breaking: False
   fastidious: False
   boundary: 0
