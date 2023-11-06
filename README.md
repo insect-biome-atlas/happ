@@ -25,6 +25,21 @@ Activate the environment:
 conda activate ASV-clustering
 ```
 
+> **Note**
+Make sure `mamba` is installed in your `base` environment by running `conda
+install -n base -c conda-forge mamba`.
+
+Install specific conda environments for the tools:
+
+```bash
+snakemake --profile test --conda-create-envs-only
+```
+
+> **Note**
+If you are using a Mac with the new M-chips you will need to prepend the
+snakemake command above with `CONDA_SUBDIR=osx-64` to be able to install the
+required environments, like so `CONDA_SUBDIR=osx-64 snakemake --profile test --conda-create-envs-only`.
+
 ## Running the workflow
 
 There are several parameters that can be set for the different tools, but the
