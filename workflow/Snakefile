@@ -127,14 +127,14 @@ def log_files(wildcards):
 rule all:
     input:
         expand(
-            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.{suff}",
+            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{f}",
             tool=config["software"],
             rundir=config["rundir"],
             chimdir=config["chimdir"],
             chimera_run=config["chimera"]["run_name"],
             rank=config["split_rank"],
             run_name=config["run_name"],
-            suff=["taxonomy.tsv", "fasta", "counts.tsv", "pdist.tsv"],
+            f=["asv_reps.fasta", "asv_taxonomy.tsv", "asv_cluster.counts.tsv", "asv_reps.pdist.tsv"],
         ),
         expand(
             "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.{suff}",
@@ -307,8 +307,11 @@ rule write_asv_reps:
 
 
 rule sum_rep_counts:
+    """
+    Sums the counts of ASVs within each cluster and writes the counts to a file
+    """
     output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_reps.counts.tsv",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_cluster.counts.tsv",
     input:
         taxinfo=rules.write_asv_reps.output.taxinfo,
         counts=rules.filter_seqs.output.counts,
@@ -323,7 +326,7 @@ rule sum_rep_counts:
             taxdf.loc[:, ["cluster"]], countsdf, left_index=True, right_index=True
         )
         clustsum = dataf.groupby("cluster").sum()
-        clustsum.rename(index=repdict, inplace=True)
+        #clustsum.rename(index=repdict, inplace=True)
         clustsum.to_csv(output[0], sep="\t")
 
 
@@ -342,7 +345,7 @@ rule merge_rep_files:
     output:
         taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.taxonomy.tsv",
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.fasta",
-        counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.counts.tsv",
+        counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_cluster.counts.tsv",
     input:
         fasta=expand(
             "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.fasta",
@@ -353,7 +356,7 @@ rule merge_rep_files:
             tax=taxa,
         ),
         counts=expand(
-            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.counts.tsv",
+            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_cluster.counts.tsv",
             tax=taxa,
         ),
     run:
