@@ -8,7 +8,7 @@ import sys
 
 
 def main(args):
-    df = pl.read_csv(args.infile, has_header=True, sep="\t")
+    df = pl.read_csv(args.infile, has_header=True, separator="\t")
     asv_tot = df.select(pl.col(pl.Int64)).sum(axis=1)
     x = df.select("ASV_ID").to_series()
     asvs = [x[i] for i in range(0, x.shape[0])]
