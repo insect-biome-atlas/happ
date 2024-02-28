@@ -281,7 +281,7 @@ rule calc_colsums:
 rule write_asv_reps:
     output:
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_reps.fasta",
-        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_reps.taxonomy.tsv",
+        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_taxonomy.tsv",
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/write_asv_reps.log",
     input:
@@ -343,7 +343,7 @@ def merge_dataframes(input):
 
 rule merge_rep_files:
     output:
-        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.taxonomy.tsv",
+        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_taxonomy.tsv",
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.fasta",
         counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_cluster.counts.tsv",
     input:
@@ -352,7 +352,7 @@ rule merge_rep_files:
             tax=taxa,
         ),
         taxinfo=expand(
-            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
+            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_taxonomy.tsv",
             tax=taxa,
         ),
         counts=expand(
