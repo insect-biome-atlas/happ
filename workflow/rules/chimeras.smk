@@ -197,9 +197,10 @@ rule split_counts:
         "../envs/polars.yml"
     shell:
         """
+        exec &> {log}
         mkdir -p {params.tmpdir}
         cp {input.counts} {params.tmpdir}/counts.tsv
-        python {params.src} {params.tmpdir}/counts.tsv {params.tmpdir} 2>{log}
+        python {params.src} {params.tmpdir}/counts.tsv {params.tmpdir}
         rm {params.tmpdir}/counts.tsv
         mv {params.tmpdir}/* {params.outdir}
         rm -rf {params.tmpdir}
