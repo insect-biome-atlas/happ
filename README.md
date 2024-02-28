@@ -50,6 +50,9 @@ subdirectory under `data/` that should contain:
 2. a file `asv_counts.tsv` which should be a tab-separated file with ASV ids as rows and sample names as columns giving the counts of ASVs  in the different samples.
 3. a file `asv_taxa.tsv` which should be a tab-separated file with taxonomic assignments for ASVs
 
+> **Note**
+The first column in the `asv_counts.tsv` file **must** be named 'ASV_ID'.
+
 Note that the `asv_taxa.tsv` file should have ranks in the header that match with
 the configuration settings for `split_rank` and `evaluation_rank` (`Family` and `Species`
 by default, respectively).
