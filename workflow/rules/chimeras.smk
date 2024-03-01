@@ -5,6 +5,7 @@ import os
 localrules:
     chimera_samplewise,
     add_sums,
+    nonchimeric_taxa,
     append_size,
     split_counts,
     filter_samplewise_chimeras,
@@ -37,16 +38,15 @@ samples = fetch_samples(f=f"data/{config['rundir']}/asv_counts.tsv")
 
 ## Utilities ##
 
-
 rule chimera_filtering:
     input:
         expand(
-            "results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{f}.fasta",
+            "results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{f}",
             rundir=config["rundir"],
             chimera_run=config["chimera"]["run_name"],
             method=config["chimera"]["method"],
             algo=config["chimera"]["algorithm"],
-            f=["nonchimeras", "chimeras"],
+            f=["nonchimeras.fasta", "chimeras.fasta", f"{config['split_rank']}.txt"],
         ),
         expand(
             "results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.{suff}",
@@ -57,6 +57,42 @@ rule chimera_filtering:
             suff=["json", "cmd"],
         ),
 
+rule nonchimeric_taxa:
+    """
+    Filter the taxonomy file to remove taxa in which all sequences have been marked as chimeric
+    """
+    output:
+        expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{split_rank}.txt",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            method=config["chimera"]["method"],
+            algo=config["chimera"]["algorithm"],
+            split_rank=config["split_rank"],
+        ),
+    input:
+        taxfile=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
+        nonchimeras=expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/nonchimeras.fasta",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            method=config["chimera"]["method"],
+            algo=config["chimera"]["algorithm"],
+        )
+    params:
+        split_rank=config["split_rank"]
+    run:
+        df = pd.read_csv(input.taxfile[0], sep="\t", index_col=0)
+        nonchim = []
+        with open(input.nonchimeras[0], 'r') as fhin:
+            for line in fhin:
+                line = line.rstrip()
+                if line.startswith(">"):
+                    asv = line.lstrip(">")
+                    nonchim.append(asv)
+        df = df.loc[nonchim]
+        taxa = list(df[params.split_rank].unique())
+        with open(output[0], 'w') as fhout:
+            for t in taxa:
+                fhout.write(f"{t}\n")
 
 rule sum_asvs:
     """
@@ -256,6 +292,11 @@ rule chimera_samplewise:
 
 ### FILTERING ###
 
+def get_min_frac_chimeric_samples(config):
+    if "min_frac_chimeric_samples" in config["chimera"]:
+        return f"--min_frac_chimeric_samples {config['chimera']['min_frac_chimeric_samples']}"
+    else:
+        return ""
 
 rule filter_samplewise_chimeras:
     """
@@ -278,6 +319,7 @@ rule filter_samplewise_chimeras:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_samplewise",
         src=srcdir("../scripts/filter_chimeras.py"),
         min_chimeric_samples=config["chimera"]["min_chimeric_samples"],
+        min_frac_chimeric_samples=get_min_frac_chimeric_samples(config),
         minh=config["chimera"]["minh"],
         mindiff=config["chimera"]["mindiffs"],
         mindiv=config["chimera"]["mindiv"],
@@ -287,7 +329,7 @@ rule filter_samplewise_chimeras:
         mkdir -p {params.tmpdir}
         cp {input.fasta} {params.tmpdir}/asv_seqs.fasta
         python {params.src} --uchimeout {input.uchimeout} --fasta {params.tmpdir}/asv_seqs.fasta \
-            --min_chimeric_samples {params.min_chimeric_samples} \
+            --min_chimeric_samples {params.min_chimeric_samples} {params.min_frac_chimeric_samples} \
             --chimfasta {params.tmpdir}/chimeras.fasta --nonchimfasta {params.tmpdir}/nonchimeras.fasta \
             --mindiff {params.mindiff} --mindiv {params.mindiv} --algorithm {params.algorithm} \
             --minh {params.minh} 2>{log}
