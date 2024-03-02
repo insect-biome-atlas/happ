@@ -15,9 +15,21 @@ def mem_allowed(wildcards, threads):
 def read_taxa(config):
     rundir = config["rundir"]
     split_rank = config["split_rank"]
+    chimera_run=config["chimera"]["run_name"]
+    method=config["chimera"]["method"]
+    algo=config["chimera"]["algorithm"]
+    taxa = []
     # See if the list of taxa already exists
-    if os.path.exists(f"data/{rundir}/{split_rank}.txt"):
-        taxa = []
+    # If there exists a taxfile from chimera filtering, only containing taxa with ASVs remaining
+    # after filtering, use that
+    # Example: If split_rank is set to 'Family', look for a file 'Family.txt' in the chimera filtered output
+    # and use that if present
+    if os.path.exists(f"results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{split_rank}.txt"):
+        with open(f"results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{split_rank}.txt", "r") as fhin:
+            for line in fhin:
+                taxa.append(line.rstrip())
+        return taxa
+    elif os.path.exists(f"data/{rundir}/{split_rank}.txt"):
         with open(f"data/{rundir}/{split_rank}.txt", "r") as fhin:
             for line in fhin:
                 taxa.append(line.rstrip())

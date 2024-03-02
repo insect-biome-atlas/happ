@@ -77,6 +77,20 @@ clustering runs can then be executed without having to re-create the alignments
 for each run.
 
 ### 0. Chimera detection (optional)
+
+> [!IMPORTANT]
+>Please note that running the chimera filtering on your input data may in some
+>cases result in taxa with 0 sequences. The workflow cannot take this into account
+>and will fail in downstream steps. We therefore recommend to **first** run the chimera
+>filtering step by using `chimera_filtering` as a target to snakemake, _e.g._:
+>
+>```commandline
+>snakemake --profile local --configfile <yourconfig.yaml> -c 4 chimera_filtering
+>```
+>
+>Once this part of the workflow is done, on subsequent runs of the workflow only taxa
+>with ASVs remaining after chimera filtering will be used as input to clustering.
+
 The workflow supports optional chimera removal using the uchime algorithm 
 implemented in vsearch. Chimera detection can be run either in 'batchwise' mode
 using the data under `rundir` directly or in 'samplewise' mode in which the 
@@ -271,17 +285,18 @@ workflow will read the `asv_taxa.tsv` file, identify taxa at `{split_rank}` but
 only output those that have at least one ASV with a total count > 0 in the counts
 file **and** that have a sequence in the `asv_seqs.fasta` file. 
 
-Please note that running the chimera filtering on your input data may in the worst
-case result in taxa with 0 sequences. The workflow cannot take this into account
-and will fail in downstream steps. As a workaround you can first run the chimera
-filtering step by using `chimera_filtering` as a target to snakemake, _e.g._:
-
-```commandline
-snakemake --profile local --configfile <yourconfig.yaml> -c 4 chimera_filtering
-```
-
-Then check the resulting `nonchimeras.fasta` file and if there are taxa that 
-lack any sequences, remove these from the `asv_taxa.tsv` file.
+> [!IMPORTANT]
+>Please note that running the chimera filtering on your input data may in some
+>cases result in taxa with 0 sequences. The workflow cannot take this into account
+>and will fail in downstream steps. We therefore recommend to **first** run the chimera
+>filtering step by using `chimera_filtering` as a target to snakemake, _e.g._:
+>
+>```commandline
+>snakemake --profile local --configfile <yourconfig.yaml> -c 4 chimera_filtering
+>```
+>
+>Once this part of the workflow is done, on subsequent runs of the workflow only taxa
+>with ASVs remaining after chimera filtering will be used as input to clustering.
 
 ### 2. Filtering and formatting
 Initially, the counts for each sequence is summed across samples and any potential 
