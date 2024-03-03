@@ -8,11 +8,11 @@ from collections import defaultdict
 import numpy as np
 
 
-def get_special_asvs(special_asv_seqs_file):
-    asvid_isspecial = {}
-    for record in parse(special_asv_seqs_file, "fasta"):
-        asvid_isspecial[record.id] = 1
-    return asvid_isspecial
+def read_fasta(f):
+    records = {}
+    for record in parse(f, "fasta"):
+        records[record.id] = 1
+    return records
 
 
 def get_taxonomy(taxonomy_file):
@@ -90,15 +90,10 @@ def read_uchime(f, nonchims=[]):
 
 def eval_uchime(
     uchime_res,
-    asv_taxonomy,
-    minh="0.001,0.005,0.01,0.02,0.04,0.08,0.16,0.28,0.5,1.0,1000",
-    mindiffs="1,2,3,4",
-    mindiv="0.5,0.8,1.2,1.5",
+    minh,
+    mindiffs,
+    mindiv,
 ):
-    minh = [float(x) for x in minh.split(",")]
-    mindiffs = [int(x) for x in mindiffs.split(",")]
-    mindiv = [float(x) for x in mindiv.split(",")]
-    uchime_res = pd.merge(uchime_res, asv_taxonomy, left_index=True, right_index=True)
     with sys.stdout as fhout:
         fhout.write(
             "minh\tmindiff\tmindiv\tASVs\totus\tbins\tspecies\treads\tFIN_ASVs\tFIN_otus\tFIN_bins\tFIN_species\tFIN_reads\tzero_bin_otus\tzero_species_otus\tmulti_otu_species\tzero_bin_otus_lepidoptera\tzero_species_otus_lepidoptera\tmulti_otu_species_lepidoptera\n"
@@ -225,15 +220,35 @@ def eval_uchime(
 
 
 def main(args):
+    minh = args.minh
+    mindiffs = args.mindiffs
+    mindiv = args.mindiv
     sys.stderr.write(f"#Reading 'special' ASVs from {args.special_asv_seqs_file}\n")
-    asvid_isspecial = get_special_asvs(args.special_asv_seqs_file)
+    asvid_isspecial = read_fasta(args.special_asv_seqs_file)
     sys.stderr.write(f"#Read {len(asvid_isspecial.keys())} ASVs\n")
-    sys.stderr.write(f"#Reading uchime results from {args.uchime_file}\n")
-    uchime_res = read_uchime(args.uchime_file, nonchims=list(asvid_isspecial.keys()))
     sys.stderr.write(f"#Reading taxonomy from {args.taxonomy_file}\n")
     asv_taxonomy = get_taxonomy(args.taxonomy_file)
+    if args.uchime_file:
+        sys.stderr.write(f"#Reading uchime results from {args.uchime_file}\n")
+        uchime_res = read_uchime(args.uchime_file, nonchims=list(asvid_isspecial.keys()))
+        uchime_res = pd.merge(uchime_res, asv_taxonomy, left_index=True, right_index=True)
+        format = "batchwise"
+    elif args.nochimera_fasta:
+        sys.stderr.write(f"#Reading chimeric ASVs from {args.chimera_fasta}\n")
+        uchime_res = read_fasta(args.chimera_fasta)
+        uchime_res = asv_taxonomy.loc[uchime_res.keys()]
+        if len(minh) > 1 or len(mindiffs) > 1 or len(mindiv) > 1:
+            sys.exit(
+                "Multiple minh, mindiffs and/or mindiv values provided but no uchime results file to read from."
+            )
+
+    else:
+        sys.stderr.write(
+            "No uchime file or chimera fasta provided. Exiting without evaluating uchime results"
+        )
+        sys.exit(1)
     sys.stderr.write("#Evaluating results\n")
-    eval_uchime(uchime_res, asv_taxonomy, args.minh, args.mindiffs, args.mindiv)
+    eval_uchime(uchime_res, format, minh, mindiffs, mindiv)
 
 
 if __name__ == "__main__":
@@ -246,24 +261,28 @@ if __name__ == "__main__":
     parser.add_argument(
         "taxonomy_file", type=str, help="File with taxonomic info for ASVs"
     )
-    parser.add_argument("uchime_file", type=str, help="Uchime output file")
+    parser.add_argument("--uchime_file", type=str, help="Uchime output file")
+    parser.add_argument("--chimera_fasta", type=str, help="Fasta file with chimeric ASVs")
     parser.add_argument(
         "--minh",
-        type=str,
-        default="0.001,0.005,0.01,0.02,0.04,0.08,0.16,0.28,0.5,1.0,1000",
-        help="Comma separated values of minh to evaluate",
+        type=float,
+        nargs="+",
+        default=[0.28],
+        help="Value(s) of minh to evaluate",
     )
     parser.add_argument(
         "--mindiffs",
-        type=str,
-        default="1,2,3,4",
-        help="Comma separated values of mindiffs to evaluate",
+        type=int,
+        nargs="+",
+        default=[3],
+        help="Value(s) of mindiffs to evaluate",
     )
     parser.add_argument(
         "--mindiv",
-        type=str,
-        default="0.5,0.8,1.2,1.5",
-        help="Comma separated values of mindiv to evaluate",
+        type=float,
+        nargs="+",
+        default=[0.8],
+        help="Value(s) of mindiv to evaluate",
     )
     args = parser.parse_args()
     main(args)
