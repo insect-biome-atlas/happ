@@ -134,7 +134,7 @@ rule all:
             chimera_run=config["chimera"]["run_name"],
             rank=config["split_rank"],
             run_name=config["run_name"],
-            suff=["taxonomy.tsv", "fasta", "counts.tsv", "pdist.tsv"],
+            suff=["taxonomy.tsv", "fasta", "counts.tsv"],
         ),
         expand(
             "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.{suff}",
