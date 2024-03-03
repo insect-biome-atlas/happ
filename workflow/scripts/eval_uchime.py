@@ -233,7 +233,7 @@ def main(args):
         uchime_res = read_uchime(args.uchime_file, nonchims=list(asvid_isspecial.keys()))
         uchime_res = pd.merge(uchime_res, asv_taxonomy, left_index=True, right_index=True)
         format = "batchwise"
-    elif args.nochimera_fasta:
+    elif args.chimera_fasta:
         sys.stderr.write(f"#Reading chimeric ASVs from {args.chimera_fasta}\n")
         uchime_res = read_fasta(args.chimera_fasta)
         uchime_res = asv_taxonomy.loc[uchime_res.keys()]
