@@ -108,3 +108,4 @@ if __name__ == "__main__":
     parser.add_argument("--counts", help="Counts file of ASVs", required=True)
     parser.add_argument("--trusted_fasta", help="Trusted fasta file")
     args = parser.parse_args()
+    main(args)
