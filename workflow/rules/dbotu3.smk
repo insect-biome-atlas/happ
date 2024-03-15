@@ -30,8 +30,9 @@ rule run_dbotu3:
     conda:
         "../envs/dbotu3.yml"
     resources:
-        runtime=60 * 24,
+        runtime=lambda wildcards: 60 * 24 * 10 if wildcards.tax in ["unclassified","Chironomidae"] else 60*24,
         mem_mb=mem_allowed,
+    threads: lambda wildcards: 4 if wildcards.tax == "unclassified" else 1,
     shell:
         """
         mkdir -p {params.tmpdir}
