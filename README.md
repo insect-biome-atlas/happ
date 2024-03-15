@@ -527,39 +527,110 @@ where `N` is the total number of ASVs.
 
 ## Benchmarking
 
-### FINBOL
+### Chimera benchmark
 
-We benchmarked the workflow on the FINBOL database (see the 
-[README](data/finbol/README.md)) using the following parameters:
+We benchmarked the performance of the chimera detection on an initial version of the ASV dataset (636297 ASVs in 5231 samples) using opticlust (implemented in mothur v1.44.11).
 
-| run name  | swarm                  | opticlust    |
-|-----------|------------------------|--------------|
-| default   | -d 1 --fastidious -b 3 | cutoff=0.03  |
-| params1   | -d 2 -b 0              | cutoff=0.01  |
-| params2   | -d 3 -b 0              | cutoff=0.015 |
-| params3   | -d 4 -b 0              | cutoff=0.02  |
-| params4   | -d 5 -b 0              | cutoff=0.025 |
-| params5   | -d 4 -m 6 -p 3 -b 0    | cutoff=0.035 |
-| params6   | -d 13 -b 0             | cutoff=0.04  |
-| params7   | -d 15 -b 0             | cutoff=0.05  |
-| params8   | -d 17 -b 0             | cutoff=0.06  |
-| params9   | -d 20 -b 0             | cutoff=0.07  |
-| params10  | -d 22 -b 0             | cutoff=0.08  |
-| params11  | -d 23 -b 0             | cutoff=0.09  |
-| params12  | -d 25 -b 0             | cutoff=0.1   |
+The following chimera filtering runs were tested:
 
-Our analysis showed that for opticlust the `params4` setting (`cutoff=0.025`)
-gave the highest precision/recall.  
+| Name | Mode | Settings | Config file |
+|------|------|----------|-------------|
+| batchwise.strict | batchwise | ASVs had to share samples with their parents in 50% of samples in which they were present | `config/AllSamples_2209.run1.yml` |
+| batchwise.lenient | batchwise | ASVs had to share samples with their parents in at least 1 sample | `config/AllSamples_2209.run2.yml` |
+| samplewise.strict | samplewise | ASVs had to be identified as chimeric in all samples where they were present in order to be removed | `config/AllSamples_2209.run3.yml` |
+| samplewise.lenient | samplewise | ASVs had to be identified as chimeric in at least 1 sample in order to be removed | `config/AllSamples_2209.run4.yml` |
 
-However, when we used this setting on real-world data for >630,000 ASVs in 
-5000+ samples the results showed a very low recall and a much greater number 
-of clusters than anticipated. Looking more closely at the Lepidoptera order 
-there were ~4,300 clusters but only ~1,400 unique species in the data. We 
-hypothesized that chimeric ASV sequences were causing problems for the 
-clustering algorithms, something we did not observe in the benchmarking 
-because it was done on presumably high-quality non-chimeric sequences.
+These configurations were run as:
 
+```bash
+snakemake --profile slurm --configfile <config-file>
+```
 
-## More references
+In order to evaluate the chimera filtering we matched our ASVs to a set of [trusted CO1 reference sequences](http://dx.doi.org/10.5883/DS-FINPRO) and considered ASVs with perfect matches to these sequences as non-chimeric in order to estimate 'false positives', *i.e.* true biological sequences identified as chimeras. We also calculated:
 
-- [Brandt et al 2021](https://onlinelibrary.wiley.com/doi/10.1111/1755-0998.13398)
+- total number of ASVs removed as chimeric
+- number of ASVs removed that were only found in one sample
+- sum of reads for removed ASVs
+- sum of reads for removed 'trusted' ASVs
+- ratio of generated clusters/species assignments
+- number of species split across multiple clusters, and
+- precision and recall (as described above) of the clustering results
+
+These are the commands used to generate the evaluation results under `results/chimera_eval/`:
+
+```bash
+#constants
+taxfile="data/AllSamples_2209.221216/asv_taxa.tsv"
+$countsfile="data/AllSamples_2209.221216/asv_counts.tsv"
+trusted_fasta="data/AllSamples_2209.221216/asv_seqs_in_finbol.fasta"
+
+#runs
+run_name="run1"
+chimera_run_name="bw.strict"
+clustfile="results/opticlust/AllSamples_2209.221216/$chimera_run_name/samplewise.uchime_denovo/Family/runs/$run_name/asv_reps.taxonomy.tsv"
+chimera_fasta="results/chimera/AllSamples_2209.221216/filtered/$chimera_run_name/samplewise.uchime_denovo/chimeras.fasta"
+nonchimera_fasta="results/chimera/AllSamples_2209.221216/filtered/$chimera_run_name/samplewise.uchime_denovo/nonchimeras.fasta"
+outfile="results/chimera_eval/AllSamples_2209.221216.opticlust.$chimera_run_name.$run_name.tsv"
+logfile="results/chimera_eval/AllSamples_2209.221216.opticlust.$chimera_run_name.$run_name.log"
+python workflow/scripts/evaluate_chimeras.py -t $taxfile -c $clustfile --counts $countsfile --trusted_fasta $trusted_fasta \
+    --chimera_fasta $chimera_fasta --nonchimera_fasta $nonchimera_fasta > $outfile 2> $logfile
+
+run_name="run2"
+chimera_run_name="bw.lenient"
+clustfile="results/opticlust/AllSamples_2209.221216/$chimera_run_name/samplewise.uchime_denovo/Family/runs/$run_name/asv_reps.taxonomy.tsv"
+chimera_fasta="results/chimera/AllSamples_2209.221216/filtered/$chimera_run_name/samplewise.uchime_denovo/chimeras.fasta"
+nonchimera_fasta="results/chimera/AllSamples_2209.221216/filtered/$chimera_run_name/samplewise.uchime_denovo/nonchimeras.fasta"
+outfile="results/chimera_eval/AllSamples_2209.221216.opticlust.$chimera_run_name.$run_name.tsv"
+logfile="results/chimera_eval/AllSamples_2209.221216.opticlust.$chimera_run_name.$run_name.log"
+python workflow/scripts/evaluate_chimeras.py -t $taxfile -c $clustfile --counts $countsfile --trusted_fasta $trusted_fasta \
+    --chimera_fasta $chimera_fasta --nonchimera_fasta $nonchimera_fasta > $outfile 2> $logfile
+
+run_name="run3"
+chimera_run_name="sw.strict"
+clustfile="results/opticlust/AllSamples_2209.221216/$chimera_run_name/samplewise.uchime_denovo/Family/runs/$run_name/asv_reps.taxonomy.tsv"
+chimera_fasta="results/chimera/AllSamples_2209.221216/filtered/$chimera_run_name/samplewise.uchime_denovo/chimeras.fasta"
+nonchimera_fasta="results/chimera/AllSamples_2209.221216/filtered/$chimera_run_name/samplewise.uchime_denovo/nonchimeras.fasta"
+outfile="results/chimera_eval/AllSamples_2209.221216.opticlust.$chimera_run_name.$run_name.tsv"
+logfile="results/chimera_eval/AllSamples_2209.221216.opticlust.$chimera_run_name.$run_name.log"
+python workflow/scripts/evaluate_chimeras.py -t $taxfile -c $clustfile --counts $countsfile --trusted_fasta $trusted_fasta \
+    --chimera_fasta $chimera_fasta --nonchimera_fasta $nonchimera_fasta > $outfile 2> $logfile
+
+run_name="run4"
+chimera_run_name="sw.lenient"
+clustfile="results/opticlust/AllSamples_2209.221216/$chimera_run_name/samplewise.uchime_denovo/Family/runs/$run_name/asv_reps.taxonomy.tsv"
+chimera_fasta="results/chimera/AllSamples_2209.221216/filtered/$chimera_run_name/samplewise.uchime_denovo/chimeras.fasta"
+nonchimera_fasta="results/chimera/AllSamples_2209.221216/filtered/$chimera_run_name/samplewise.uchime_denovo/nonchimeras.fasta"
+outfile="results/chimera_eval/AllSamples_2209.221216.opticlust.$chimera_run_name.$run_name.tsv"
+logfile="results/chimera_eval/AllSamples_2209.221216.opticlust.$chimera_run_name.$run_name.log"
+python workflow/scripts/evaluate_chimeras.py -t $taxfile -c $clustfile --counts $countsfile --trusted_fasta $trusted_fasta \
+    --chimera_fasta $chimera_fasta --nonchimera_fasta $nonchimera_fasta > $outfile 2> $logfile
+```
+
+### Clustering benchmark
+
+We benchmarked the performance of three tools for clustering ASVs into OTUs:
+
+- SWARM (v3.1.0)
+- opticlust (implemented in mothur v1.44.11)
+- dbotu3 (v1.5.3)
+
+For each tool we filtered chimeras using the strict samplewise method described above. We ran each tool with a range of parameters (see table below) and evaluated the results by calculating precision and recall values as described above.
+
+| Run name | Swarm | Opticlust | dbOTU3 | Config file |
+|----------|-------|-----------|--------|-------------|
+| eval1 (default) | d=1, fastidious=True, boundary=3 | cutoff=0.03 | dist=0.1, abund=10 | `config/cluster_eval/eval1.yml` |
+| eval2 | d=3 | cutoff=0.01  | dist=0.01, abund=10 | `config/cluster_eval/eval2.yml` |
+| eval3 | d=5 | cutoff=0.015 | dist=0.1, abund=30 | `config/cluster_eval/eval3.yml` |
+| eval4 | d=7 | cutoff=0.02 | dist=0.15, abund=10 | `config/cluster_eval/eval4.yml` |
+| eval5 | d=9 | cutoff=0.025 | dist=0.01, abund=0 | `config/cluster_eval/eval5.yml` |
+| eval6 | d=11 | cutoff=0.04 | dist=0.1, abund=0 | `config/cluster_eval/eval6.yml` |
+| eval7 | d=13 | cutoff=0.05 | dist=0.15, abund=0 | `config/cluster_eval/eval7.yml` |
+| eval8 | d=15 | cutoff=0.07 | dist=0.01, abund=20 | `config/cluster_eval/eval8.yml` |
+| eval9 | d=17 | cutoff=0.1 | dist=0.1, abund=20 | `config/cluster_eval/eval9.yml` |
+| eval10 | d=19 | cutoff=0.15 | dist=0.15, abund=20 | `config/cluster_eval/eval10.yml` |
+
+These configurations were run as:
+
+```bash
+snakemake --profile slurm --configfile <config-file>
+```

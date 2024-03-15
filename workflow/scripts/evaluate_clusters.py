@@ -82,6 +82,8 @@ def precision_recall(df, cluster_col, rank, silent=False):
         TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum().values[0]
     else:
         TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum()
+    if type(TP) == pd.Series:
+        TP = TP.sum()
     FP = totalPositives - TP
     # totalNegatives = pairs(df) - totalPositives
     FN = falseNegatives(df, cluster_col, rank, silent)
