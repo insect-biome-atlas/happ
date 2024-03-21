@@ -191,7 +191,7 @@ def main(args):
         # Run samplewise chimera detection
         sys.stderr.write(f"Found {len(args.uchimeout)} chimera result files\n")
         sys.stderr.write(
-            f"Running in samplewise mode using: minh={args.minh}, mindiff={args.mindiff}, mindiv={args.mindiv}, min_chimeric_samples={args.min_chimeric_samples}\n"
+            f"Running in samplewise mode using: minh={args.minh}, mindiff={args.mindiff}, mindiv={args.mindiv}, min_chimeric_samples={args.min_chimeric_samples}, min_frac_chimeric_samples={args.min_frac_chimeric_samples}\n"
         )
         chimeras, nonchimeras = filter_samplewise_chimeras(
             args.uchimeout,
@@ -199,6 +199,7 @@ def main(args):
             args.mindiff,
             args.mindiv,
             args.min_chimeric_samples,
+            args.min_frac_chimeric_samples,
             args.algorithm,
         )
     else:
@@ -298,7 +299,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--min_frac_chimeric_samples",
-        type=int,
+        type=float,
         help="Minimum fraction of samples in which a sequence has to be marked as chimeric for it to be classified as a chimera",
     )
     parser.add_argument(
