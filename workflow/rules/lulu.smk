@@ -32,8 +32,8 @@ rule run_lulu:
     conda:
         "../envs/lulu.yml"
     params:
-        dist="$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/asv_seqs.dist",
-        tmpdir="$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}",
+        dist=os.path.expandvars("$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/asv_seqs.dist"),
+        tmpdir=os.path.expandvars("$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}"),
         minimum_ratio_type=config["lulu"]["minimum_ratio_type"],
         minimum_ratio=config["lulu"]["minimum_ratio"],
         minimum_match=config["lulu"]["minimum_match"],
@@ -51,8 +51,8 @@ rule lulu2tab:
     output:
         "results/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir="$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/{run_name}",
-        out="$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/{run_name}/asv_clusters.tsv",
+        tmpdir=os.path.expandvars("$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/{run_name}"),
+        out=os.path.expandvars("$TMPDIR/lulu/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/{run_name}/asv_clusters.tsv"),
     script:
         "../scripts/lulu_utils.py"
 
