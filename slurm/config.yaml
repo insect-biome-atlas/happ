@@ -1,3 +1,4 @@
+keep-going: "True"
 reason: "True"
 cluster-sidecar: "slurm-sidecar.py"
 cluster-cancel: "scancel"
