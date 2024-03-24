@@ -1,2 +1,7 @@
 results
 data
+.snakemake
+envs/
+logs/
+config/BAK
+config/cluster_eval
