@@ -46,8 +46,8 @@ rule reformat_distmat:
     output:
         out="results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.reformat.gz",
     params:
-        out="$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{tax}_reformat_distmat/asv_seqs.dist.reformat.gz",
-        tmpdir="$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{tax}_reformat_distmat",
+        out=os.path.expandvars("$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{tax}_reformat_distmat/asv_seqs.dist.reformat.gz"),
+        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{tax}_reformat_distmat"),
     script:
         "../scripts/opticlust_utils.py"
 
@@ -106,8 +106,8 @@ rule opticlust2tab:
     output:
         "results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}",
-        out="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_clusters.tsv",
+        tmpdir=os.path.expandvars("$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}"),
+        out=os.path.expandvars("$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_clusters.tsv"),
     script:
         "../scripts/opticlust_utils.py"
 

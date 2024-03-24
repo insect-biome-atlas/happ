@@ -52,8 +52,8 @@ rule dbotu32tab:
     output:
         "results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir="$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}",
-        out="$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
+        tmpdir=os.path.expandvars("$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}"),
+        out=os.path.expandvars("$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv"),
     script:
         "../scripts/dbotu3_utils.py"
 

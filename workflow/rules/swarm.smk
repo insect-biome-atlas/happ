@@ -14,8 +14,8 @@ rule format_swarm:
             "results/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/derep.txt"
         ),
     params:
-        tmpdir="$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_format_swarm",
-        fasta="$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_format_swarm/reformat.fasta.gz",
+        tmpdir=os.path.expandvars("$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_format_swarm"),
+        fasta=os.path.expandvars("$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_format_swarm/reformat.fasta.gz"),
     script:
         "../scripts/swarm_utils.py"
 
@@ -89,8 +89,8 @@ rule swarm2tab:
     output:
         "results/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
     params:
-        tmpdir="$TMPDIR/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}",
-        out="$TMPDIR/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_clusters.tsv",
+        tmpdir=os.path.expandvars("$TMPDIR/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}"),
+        out=os.path.expandvars("$TMPDIR/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_clusters.tsv"),
     script:
         "../scripts/swarm_utils.py"
 
