@@ -154,76 +154,6 @@ rule all:
             suff=["json", "cmd"],
         ),
 
-
-rule evaluate:
-    input:
-        txt=cluster_files,
-        txt_o=cluster_order_files,
-        log=log_files,
-    output:
-        tsv=expand(
-            "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.tsv",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            chimdir=config["chimdir"],
-            rank=config["split_rank"],
-            run_name=config["run_name"],
-        ),
-        ordertsv=expand(
-            "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.order.tsv",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            chimdir=config["chimdir"],
-            rank=config["split_rank"],
-            run_name=config["run_name"],
-        ),
-    run:
-        import pandas as pd
-
-        stats = {}
-        for f in input.txt:
-            tool = f.split("/")[1]
-            with open(f, "r") as fhin:
-                items = {}
-                for i, line in enumerate(fhin):
-                    items[i] = line.rstrip().split(" ")[-1]
-                stats[tool] = {
-                    "clusters": items[0],
-                    "species": items[1],
-                    "precision": items[6].split("\t")[-1],
-                    "recall": items[7].split("\t")[-1],
-                    "homogeneity": items[8].split("\t")[-1],
-                    "completeness": items[9].split("\t")[-1],
-                }
-        for f in input.log:
-            tool = f.split("/")[1]
-            with open(f, "r") as fhin:
-                for line in fhin:
-                    line = line.rstrip()
-                    if line.endswith("ASVs remaining after merging"):
-                        stats[tool]["ASVs"] = line.split(" ")[0].lstrip("#")
-        df = pd.DataFrame(stats).T
-        df.to_csv(output.tsv[0], sep="\t")
-        orderdf = pd.DataFrame()
-        cols = [
-            "precision",
-            "recall",
-            "homogeneity",
-            "completeness",
-            config["evaluation_rank"],
-            "ASVs",
-            "tool",
-            "clusters",
-        ]
-        for f in input.txt_o:
-            tool = f.split("/")[1]
-            _df = pd.read_csv(f, sep="\t", index_col=0)
-            _df = _df.assign(tool=pd.Series([tool] * _df.shape[0], index=_df.index))
-            _df = _df.loc[:, cols]
-            orderdf = pd.concat([orderdf, _df])
-        orderdf.to_csv(output.ordertsv[0], sep="\t")
-
-
 rule write_settings:
     output:
         json="results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.json",
@@ -280,8 +210,8 @@ rule calc_colsums:
 
 rule write_asv_reps:
     output:
-        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_reps.fasta",
-        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_reps.taxonomy.tsv",
+        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_reps.fasta",
+        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_taxonomy.tsv",
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/write_asv_reps.log",
     input:
@@ -306,15 +236,17 @@ rule write_asv_reps:
         """
 
 
-rule sum_rep_counts:
+rule sum_cluster_counts:
+    """
+    Sums counts for each cluster
+    """
     output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_reps.counts.tsv",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_counts.tsv",
     input:
         taxinfo=rules.write_asv_reps.output.taxinfo,
         counts=rules.filter_seqs.output.counts,
     run:
         import pandas as pd
-
         taxdf = pd.read_csv(input.taxinfo, sep="\t", index_col=0)
         countsdf = pd.read_csv(input.counts, sep="\t", index_col=0)
         repdf = taxdf.loc[taxdf.representative == 1, ["cluster"]]
@@ -323,7 +255,6 @@ rule sum_rep_counts:
             taxdf.loc[:, ["cluster"]], countsdf, left_index=True, right_index=True
         )
         clustsum = dataf.groupby("cluster").sum()
-        clustsum.rename(index=repdict, inplace=True)
         clustsum.to_csv(output[0], sep="\t")
 
 
@@ -340,20 +271,20 @@ def merge_dataframes(input):
 
 rule merge_rep_files:
     output:
-        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.taxonomy.tsv",
-        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.fasta",
-        counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.counts.tsv",
+        taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv", # file with cluster membership and taxonomy
+        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
+        counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_counts.tsv",
     input:
-        fasta=expand(
-            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.fasta",
+        fasta=expand(rules.write_asv_reps.output.fasta,
+            #"results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.fasta",
             tax=taxa,
         ),
-        taxinfo=expand(
-            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
+        taxinfo=expand(rules.write_asv_reps.output.taxinfo,
+            #"results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.taxonomy.tsv",
             tax=taxa,
         ),
-        counts=expand(
-            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.counts.tsv",
+        counts=expand(rules.sum_cluster_counts.output,
+            #"results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_reps.counts.tsv",
             tax=taxa,
         ),
     run:
@@ -362,75 +293,3 @@ rule merge_rep_files:
         countsdf = merge_dataframes(input.counts)
         countsdf.to_csv(output.counts, sep="\t")
         shell("cat {input.fasta} > {output.fasta}")
-
-
-rule calculate_mean_dist:
-    output:
-        "results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.average_dist.tsv",
-    input:
-        rules.vsearch_align.output.dist,
-    run:
-        import gzip as gz
-        import numpy as np
-        import pandas as pd
-
-        taxdist = []
-        with gz.open(input[0], "rt") as fhin:
-            for line in fhin:
-                dist = float(line.rstrip().split("\t")[-1])
-                taxdist.append(dist)
-        if len(taxdist) > 0:
-            res = {
-                "mean": np.mean(taxdist),
-                "median": np.median(taxdist),
-                "min": np.min(taxdist),
-                "max": np.max(taxdist),
-            }
-        else:
-            res = {"mean": np.nan, "median": np.nan, "min": np.nan, "max": np.nan}
-        df = pd.DataFrame(res, index=[wildcards.tax]).loc[
-            :, ["mean", "median", "min", "max"]
-        ]
-        df.to_csv(output[0], sep="\t")
-
-
-rule collate_mean_dist:
-    output:
-        "results/vsearch/{rundir}/{chimera_run}/{chimdir}/asv_seqs.average_dist.tsv",
-    input:
-        expand(
-            "results/vsearch/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/asv_seqs.average_dist.tsv",
-            tax=taxa,
-        ),
-    run:
-        import pandas as pd
-
-        df = pd.DataFrame()
-        for f in input:
-            _df = pd.read_csv(f, sep="\t", index_col=0)
-            _df.index.name = "tax"
-            df = pd.concat([_df, df])
-        df.to_csv(output[0], sep="\t")
-
-rule representative_pdist:
-    output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/asv_reps.pdist.tsv"
-    input:
-        taxinfo = rules.merge_rep_files.output.taxinfo,
-        distfiles = expand(
-            "results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
-            rundir=config["rundir"],
-            chimdir=config["chimdir"],
-            chimera_run=config["chimera"]["run_name"],
-            rank=config["split_rank"],
-            tax=taxa,
-        ),
-    log:
-        "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/representative_pdist.log"
-    params:
-        dirname = "results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa",
-        src=srcdir("scripts/extract-pdist.py"),
-    shell:
-        """
-        python {params.src} {input.taxinfo} --directory {params.dirname} > {output} 2>{log}
-        """
