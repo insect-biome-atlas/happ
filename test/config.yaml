@@ -4,5 +4,4 @@ use-conda: True
 printshellcmds: True
 local-cores: 4
 configfile: test/configfile.yml
-reason: True
 cores: 4
