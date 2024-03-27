@@ -47,11 +47,16 @@ chimera:
   min_samples_shared: 1
   # In batchwise method, require that a sequence marked as chimeric is present
   # with its parents in at least <min_frac_samples_shared> fraction of samples
-  min_frac_samples_shared: 0.5
+  min_frac_samples_shared: 0
   # In samplewise method, require that a sequence is marked as chimeric in at least
   # <min_chimeric_samples> in order for it to be removed from analysis. If this
   # value is set to 0, ASVs have to be marked as chimeric in all samples
   min_chimeric_samples: 0
+  # In samplewise method, require that a sequence is marked as chimeric in at least
+  # <min_frac_chimeric_samples> fraction of samples in which the ASV is present in 
+  # order for it to be removed from analysis. If this value is set to 0, ASVs have 
+  # to be marked as chimeric in all samples
+  min_frac_chimeric_samples: 0
   # Chimera detection settings
   # Note that these are not used for uchime2_denovo or uchime3_denovo. Instead these
   # algorithms require 'perfect chimeras' (see the Uchime manual for more info)
