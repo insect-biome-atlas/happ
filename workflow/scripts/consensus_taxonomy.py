@@ -7,25 +7,6 @@ import sys
 from collections import defaultdict
 
 
-def generate_reader(f, chunksize, nrows):
-    """
-    Sets up a reader with pandas. Handles both chunksize>=1 and chunksize=None
-
-    :param f: Input file
-    :param chunksize: Number of rows to read per chunk
-    :param nrows: Number of total rows to read
-    :return:
-    """
-    if nrows == 0:
-        nrows = None
-    r = pd.read_csv(
-        f, sep="\t", index_col=0, header=0, nrows=nrows, chunksize=chunksize
-    )
-    if chunksize is not None:
-        return r
-    return [r]
-
-
 def find_consensus_taxonomies(
     clustdf, clust_column, ranks, consensus_ranks, consensus_threshold
 ):
@@ -74,23 +55,11 @@ def find_consensus_taxonomies(
     return pd.DataFrame(cluster_taxonomies).T
 
 
-def sum_asvs(countsfile, chunksize=None, nrows=None):
-    reader = generate_reader(f=countsfile, chunksize=chunksize, nrows=nrows)
-    asv_sum = pd.DataFrame()
-    for df in tqdm.tqdm(reader, unit="chunks"):
-        _asv_sum = pd.DataFrame(
-            df.sum(numeric_only=True, axis=1),
-            columns=["ASV_sum"],
-        )
-        asv_sum = pd.concat([asv_sum, _asv_sum])
-    return asv_sum.sort_values(by="ASV_sum", ascending=False)
-
-
 def main(args):
     sys.stderr.write("####\n" f"Reading ASV clusters from {args.clustfile}\n")
     clustdf = pd.read_csv(args.clustfile, sep="\t", index_col=0, header=0)
     sys.stderr.write("####\n Summing counts for ASVs\n")
-    asv_sum = pd.read_csv(args.countsfile, sep="\t", index_col=0)
+    asv_sum = pd.read_csv(args.countsfile, sep="\t", index_col=0, header=None, names=["ASV", "ASV_sum"])
     clustdf = clustdf.loc[:, [args.clust_column] + args.ranks]
     clustdf = pd.merge(asv_sum, clustdf, left_index=True, right_index=True)
     sys.stderr.write(
