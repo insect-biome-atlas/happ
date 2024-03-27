@@ -9,7 +9,27 @@ split_rank: "Family"
 # Method to use for calculating representative sequences for clusters
 # select between "median", "mean" and "sum"
 rep_method: "median"
-
+# Ranks included in the asv_taxa.tsv taxonomy file
+ranks: 
+  - "Kingdom"
+  - "Phylum"
+  - "Class"
+  - "Order"
+  - "Family"
+  - "Genus"
+  - "Species"
+  - "BOLD_bin"
+# Ranks to use for calculating consensus taxonomy for clusters
+consensus_ranks:
+  - "Family"
+  - "Genus"
+  - "Species"
+# % threshold to use for calculating consensus taxonomy for clusters
+# As an example, if a cluster has 10 sequences, and at least 8 of them are classified
+# as "Species X" at the Species level, the consensus taxonomy for the cluster
+# will be "Species X" if the threshold is set to 80, otherwise taxonomy will
+# be attempted to be resolved at Genus level etc.
+consensus_threshold: 80
 chimera:
   run_name: "chimera1"
   # Should chimera detection and removal be performed on the input data?

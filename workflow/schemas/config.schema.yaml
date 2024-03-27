@@ -16,6 +16,24 @@ properties:
     description: "rank at which to split input file prior to clustering"
     default: "Family"
     enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+  ranks:
+    type: array
+    description: "ranks included in the asv_taxa.tsv taxonomy file"
+    default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+    items:
+      type: string
+  consensus_ranks:
+    type: array
+    description: "ranks to use for calculating consensus taxonomy for clusters"
+    default: ["Family", "Genus", "Species"]
+    items:
+      type: string
+  consensus_threshold:
+    type: number
+    description: "threshold to use for calculating consensus taxonomy for clusters"
+    default: 80
+    minimum: 0.0
+    maximum: 100
   rep_method:
     type: string
     description: "method to calculate representative for clusters"
