@@ -4,21 +4,24 @@ from argparse import ArgumentParser
 import pandas as pd
 import numpy as np
 import sys
-from os.path import splitext
+import os
 from Bio.SeqIO import parse
 import tqdm
 import time
 
 
-def rank_max(df, method):
-    reps = df.loc[df[method] == df.max()[method]]
-    rep = reps.loc[sorted(reps.index)[0]]
-    return pd.DataFrame(rep).T
+def rank_max(df):
+    idx = df.idxmax(numeric_only=True)
+    for method in ["median", "mean", "sum"]:
+        if len(df[method].unique()) > 1:
+            break
+    rep = idx.loc[method]
+    return pd.DataFrame(df.loc[rep]).T
 
 
-def get_reps(df, method, rank):
+def get_reps(df, rank):
     start = time.time()
-    reps = df.groupby(rank, group_keys=False).apply(rank_max, method)
+    reps = df.groupby(rank, group_keys=False).apply(rank_max)
     sys.stderr.write(f"Found representatives in {time.time()-start} seconds\n")
     return reps
 
@@ -79,7 +82,7 @@ def read_input(f):
     return df
 
 
-def calc_counts(countsdf, colsums, method="median", ids=None, normalize=False):
+def calc_counts(countsdf, colsums, ids=None, normalize=False):
     if ids is None:
         ids = []
     if len(ids) > 0:
@@ -90,15 +93,16 @@ def calc_counts(countsdf, colsums, method="median", ids=None, normalize=False):
     if normalize:
         size_factor = colsums.loc[countsdf.columns][colsums.columns[0]]
         countsdf = countsdf.div(size_factor, axis=1)
-    if method == "sum":
-        func = np.sum
-    elif method == "mean":
-        func = np.mean
-    elif method == "median":
-        func = np.nanmedian
-    calculated_counts = pd.DataFrame(countsdf.apply(func, axis=1), columns=[method])
+    median = pd.DataFrame(countsdf.apply(np.nanmedian, axis=1), columns=["median"])
+    mean = pd.DataFrame(countsdf.apply(np.mean, axis=1), columns=["mean"])
+    s = pd.DataFrame(countsdf.apply(np.sum, axis=1), columns=["sum"])
+    calculated_counts = pd.merge(
+        pd.merge(median, mean, left_index=True, right_index=True),
+        s, left_index=True, right_index=True
+    )
+    
     sys.stderr.write(
-        f"Calculated counts using {method} in " f"{time.time()-start} seconds\n"
+        f"Calculated counts in" f"{time.time()-start} seconds\n"
     )
     return calculated_counts
 
@@ -133,7 +137,6 @@ def main(args):
     counts = calc_counts(
         countsdf,
         colsums,
-        method=args.method,
         ids=list(filtered.index),
         normalize=args.normalize,
     )
@@ -143,8 +146,7 @@ def main(args):
     if dataframe.shape[0] == 1:
         reps = dataframe
     else:
-        reps = get_reps(dataframe, args.method,
-                                               args.rank)
+        reps = get_reps(dataframe, args.rank)
     rep_size = reps.groupby(args.rank).size()
     sys.stderr.write(
         f"{rep_size.loc[rep_size>1].shape[0]} {args.rank} reps with >1 ASV\n"
@@ -158,7 +160,7 @@ def main(args):
             representative=pd.Series([0] * taxdf.shape[0], index=taxdf.index)
         )
         taxdf.loc[reps.index, "representative"] = 1
-        taxaout = f"{splitext(args.outfile)[0]}.taxonomy.tsv"
+        taxaout = f"{os.path.dirname(args.outfile)}/cluster_taxonomy.tsv"
         taxdf.to_csv(taxaout, sep="\t")
     sys.stderr.write(f"Reading sequences from {args.seqs}\n")
     seqs = get_seqs(args.seqs, reps, ranks, args.rank)
@@ -178,7 +180,7 @@ if __name__ == "__main__":
         help="Write representatives to outfile",
     )
     parser.add_argument(
-        "--rank", type=str, default="BOLD_bin", help="What level o group TAX "
+        "--rank", type=str, default="BOLD_bin", help="What level to group TAX "
                                                      "ids"
     )
     parser.add_argument("--prefix", type=str, help="Prefix cluster name with "
