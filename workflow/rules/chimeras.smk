@@ -113,8 +113,6 @@ rule sum_asvs:
     params:
         src="workflow/scripts/sum_counts.py",
         tmpdir="$TMPDIR/{rundir}.sum_counts",
-    conda:
-        "../envs/polars.yml"
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -231,8 +229,6 @@ rule split_counts:
         src="workflow/scripts/split_counts.py",
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         tmpdir="$TMPDIR/{rundir}.split",
-    conda:
-        "../envs/polars.yml"
     shell:
         """
         exec &> {log}
