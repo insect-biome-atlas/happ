@@ -70,8 +70,8 @@ chimera:
 software:
   - "swarm"
   - "opticlust"
+  - "dbotu3"
   #- "lulu"
-  #- "dbotu3"
 evaluation_rank: "Species"
 
 # Tool-specific settings
