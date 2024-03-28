@@ -10,3 +10,6 @@ dependencies:
   - scikit-learn
   - biopython
   - tqdm
+  - pip:
+    - snakemake-executor-plugin-slurm
+    
