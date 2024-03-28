@@ -41,9 +41,6 @@ wildcard_constraints:
     algo=config["chimera"]["algorithm"],
 
 
-container: "docker://continuumio/miniconda3:4.11.0"
-
-
 include: "rules/common.smk"
 
 
