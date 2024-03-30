@@ -2,42 +2,61 @@
 
 ## Overview
 
-Sub-project aimed at benchmarking clustering software for ASV sequences
+This repository contains a Snakemake workflow for clustering Amplicon Sequence Variants (ASVs). Currently the following tools are supported:
 
 | Software  | Reference                                                                                      | Code                                                                    |
 |-----------|------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
 | SWARM     | [Mahé et al 2014](https://peerj.com/articles/593/)                                             | [GitHub](https://github.com/torognes/swarm)                             |
 | OptiClust | [Westcott & Schloss 2017](https://journals.asm.org/doi/10.1128/mSphereDirect.00073-17)         | [GitHub](https://github.com/SchlossLab/Westcott_OptiClust_mSphere_2017) |
 | dbOTU3    | [Olesen et al 2017](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0176335) | [GitHub](https://github.com/swo/dbotu3)                                 |
-| LuLu      | [Guldberg et al 2017](https://www.nature.com/articles/s41467-017-01312-x)                      | [GitHub](https://github.com/tobiasgf/lulu)                              |
+
+## Requirements
+
+- Linux system
+- [pixi](https://prefix.dev/) software manager
 
 ## Installing
 
-Use conda to install the base environment needed to run the workflow:
+Clone the repository and change into the directory:
 
 ```bash
-conda env create -f environment.yml
+git clone git@github.com:johnne/ASV-clustering.git
+cd ASV-clustering
 ```
 
-Activate the environment:
+If you don't have [pixi](https://prefix.dev/) installed, install it by running:
 
 ```bash
-conda activate ASV-clustering
+curl -fsSL https://pixi.sh/install.sh | bash
 ```
 
-## Running the workflow
+## Quickstart
 
-There are several parameters that can be set for the different tools, but the
-minimum required information needed is `rundir:` which should be the name of a 
-subdirectory under `data/` that should contain:
+To try the workflow on a small test dataset, simply run:
 
-1. a file `asv_seqs.fasta` which should be a fasta file with sequences for ASVs, 
-2. a file `asv_counts.tsv` which should be a tab-separated file with ASV ids as rows and sample names as columns giving the counts of ASVs  in the different samples.
-3. a file `asv_taxa.tsv` which should be a tab-separated file with taxonomic assignments for ASVs
+```bash
+pixi run local
+```
 
-Note that the `asv_taxa.tsv` file should have ranks in the header that match with
-the configuration settings for `split_rank` and `evaluation_rank` (`Family` and `Species`
-by default, respectively).
+## Detailed instructions
+
+The workflow is configured using the file `config/config.yml`. To modify the workflow behaviour simply change settings directly in this file.
+
+### Input parameters
+
+The `rundir` parameter is the name of a subdirectory under data/ that **must** contain:
+
+- asv_seqs.fasta (ASV sequences in FASTA format) 
+- asv_counts.tsv (tab separated file with counts of ASVs (rows) in samples (columns)) 
+- and asv_taxa.tsv (tab separated file taxonomic assignments of each ASV)
+
+> [!NOTE]
+>
+>Note that the `asv_taxa.tsv` file should have ranks in the header that match with
+>the configuration settings for `split_rank`, `evaluation_rank` and `ranks` (see below).
+
+The `run_name` parameter is the name of the workflow run and is used to separate runs with specific parameters of the clustering tools. With different run_name parameters on the same rundir you can cluster the ASVs while automatically using the same alignment output (from vsearch).
+
 
 As an example, with the subdirectory `project1` under `data/` like so:
 
