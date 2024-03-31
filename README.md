@@ -40,7 +40,9 @@ pixi run local
 
 ## Detailed instructions
 
-The workflow is configured using the file `config/config.yml`. To modify the workflow behaviour simply change settings directly in this file.
+The workflow is configured using the file [config/config.yml](config/config.yml). To modify the workflow behaviour simply change settings directly in this file.
+
+The configurable parameters in the config file are explained below.
 
 ### Input parameters
 
@@ -50,42 +52,46 @@ The `rundir` parameter is the name of a subdirectory under data/ that **must** c
 - asv_counts.tsv (tab separated file with counts of ASVs (rows) in samples (columns)) 
 - and asv_taxa.tsv (tab separated file taxonomic assignments of each ASV)
 
+The `run_name` parameter designates a name of the workflow run and can be used to separate runs with different parameters of the clustering tools. This allows you to try different settings of the clustering tools without having to rerun the entire workflow from start to finish.
+
+The `split_rank` parameter is used to split the input ASVs by a taxonomic rank prior to clustering. For example, setting `split_rank: "Family"` (the default) splits the ASVs by family assignments (as given in the `asv_taxa.tsv` file). Each split of ASVs can then be clustered in parallell which can help speed things up especially on large datasets. The final output of the workflow will still be combined ASV cluster files.
+
+The `ranks` parameter lists the ranks given in the `asv_taxonomy.tsv` file and determines the columns reported in the `cluster_consensus_taxonomy.tsv` results file.
+
+The `consensus_ranks` parameters specifies what ranks to use when attempting to assign a conensus taxonomy to generated clusters. The default is `["Family", "Genus", "Species"]`.
+
 > [!NOTE]
 >
->Note that the `asv_taxa.tsv` file should have ranks in the header that match with
->the configuration settings for `split_rank`, `evaluation_rank` and `ranks` (see below).
+>Please note that column matching between the `asv_taxa.tsv` file and the `split_rank`, `evaluation_rank` and `ranks` parameters is case-sensitive and that the `asv_taxa.tsv` file **must** have ranks in the header that match with your configuration settings.
 
-The `run_name` parameter is the name of the workflow run and is used to separate runs with specific parameters of the clustering tools. With different run_name parameters on the same rundir you can cluster the ASVs while automatically using the same alignment output (from vsearch).
+The `consensus_threshold` parameter is used when assigning consensus taxonomies to clusters and 
+is the threshold (in %) at which the abundance weighted taxonomic assignments for ASVs in a 
+cluster must agree in order to assign the taxonomy to the cluster.
+As an example, if a cluster contains 3 ASVs with the following taxonomic assignments and total 
+sum of counts across samples:
 
+| ASV | Family | Genus | Species | ASV_sum |
+|-----|--------|-------|---------|---------|
+| ASV1 | Tenthredinidae | Pristiphora | Pristiphora mollis | 20 |
+| ASV2 | Tenthredinidae	| Pristiphora	| Pristiphora cincta | 60 |
+| ASV3 | Tenthredinidae	| Pristiphora	| Pristiphora leucopodia | 20 |
 
-As an example, with the subdirectory `project1` under `data/` like so:
+then at Species the abundance weighted taxonomic assignment is 60% _Pristiphora cincta_ and 20% 
+_Pristiphora mollis_ and _Pristiphora leucopodia_ each. At a 80% consensus threshold we cannot 
+assign a taxonomy at Species level to the cluster, so the algorithm will move up to Genus level 
+where we have 100% agreement for Pristiphora. The final consensus taxonomy for the cluster will 
+then be:
 
-```bash
-data/
-├── project1
-│ ├── asv_counts.tsv
-│ ├── asv_seqs.fasta
-│ ├── asv_taxa.tsv
-```
+| Cluster | Family | Genus | Species |
+|---------|--------|-------|---------|
+| Cluster1 | Tenthredinidae | Pristiphora | unresolved.Pristiphora |
 
-you should set `rundir: project1`. This can be done either in a configuration
-file in YAML format:
+At `consensus_threshold: 60` we would have been able to assign taxonomy at the Species level and 
+the cluster taxonomy would have been:
 
-```yaml
-rundir: project1
-```
-
-which you then point to with `--configfile <your-config-file>.yml` in the 
-snakemake call. Or you can set it directly with `--config rundir=project1` when
-you start the workflow.
-
-### Test run
-You can try the workflow out by running it on a small test dataset under `data/test/`.
-To do so, simply run:
-
-```bash
-snakemake --profile test
-```
+| Cluster | Family | Genus | Species |
+|---------|--------|-------|---------|
+| Cluster1 | Tenthredinidae | Pristiphora | Pristiphora cincta |
 
 ## Workflow overview
 The idea with this workflow is to make it easy to run OTU clustering with many 
