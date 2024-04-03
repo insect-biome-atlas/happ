@@ -10,6 +10,13 @@ This repository contains a Snakemake workflow for clustering Amplicon Sequence V
 | OptiClust | [Westcott & Schloss 2017](https://journals.asm.org/doi/10.1128/mSphereDirect.00073-17)         | [GitHub](https://github.com/SchlossLab/Westcott_OptiClust_mSphere_2017) |
 | dbOTU3    | [Olesen et al 2017](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0176335) | [GitHub](https://github.com/swo/dbotu3)                                 |
 
+The idea with this workflow is to make it easy to run OTU clustering with many 
+different parameter settings then evaluate which settings you think works best
+for your data. `vsearch` makes up the basis of the workflow by creating pairwise
+alignments of the sequences (often the most time-consuming step) and several 
+clustering runs can then be executed without having to re-create the alignments
+for each run.
+
 ## Requirements
 
 - Linux system
@@ -52,23 +59,46 @@ The `rundir` parameter is the name of a subdirectory under data/ that **must** c
 - asv_counts.tsv (tab separated file with counts of ASVs (rows) in samples (columns)) 
 - and asv_taxa.tsv (tab separated file taxonomic assignments of each ASV)
 
-The `run_name` parameter designates a name of the workflow run and can be used to separate runs with different parameters of the clustering tools. This allows you to try different settings of the clustering tools without having to rerun the entire workflow from start to finish.
+The `run_name` parameter designates a name of the workflow run and can be used
+to separate runs with different parameters of the clustering tools. This allows
+you to try different settings of the clustering tools without having to rerun
+the entire workflow from start to finish.
 
-The `split_rank` parameter is used to split the input ASVs by a taxonomic rank prior to clustering. For example, setting `split_rank: "Family"` (the default) splits the ASVs by family assignments (as given in the `asv_taxa.tsv` file). Each split of ASVs can then be clustered in parallell which can help speed things up especially on large datasets. The final output of the workflow will still be combined ASV cluster files.
+The `split_rank` parameter is used to split the input ASVs by a taxonomic rank
+prior to clustering. For example, setting `split_rank: "Family"` (the default)
+splits the ASVs by family assignments (as given in the `asv_taxa.tsv` file).
+Each split of ASVs can then be clustered in parallell which can help speed
+things up especially on large datasets. The workflow will by default run on all
+unique taxa names at rank `split_rank` found in the `data/{rundir}/asv_taxa.tsv`
+file, and will list the taxa in the file `data/{rundir}/{split_rank}.txt`.
 
-The `ranks` parameter lists the ranks given in the `asv_taxonomy.tsv` file and determines the columns reported in the `cluster_consensus_taxonomy.tsv` results file.
+The `ranks` parameter lists the ranks given in the `asv_taxonomy.tsv` file and
+determines the columns reported in the `cluster_consensus_taxonomy.tsv` results
+file.
 
-The `consensus_ranks` parameters specifies what ranks to use when attempting to assign a conensus taxonomy to generated clusters. The default is `["Family", "Genus", "Species"]`.
+The `evaluation_rank` parameter specifies a taxonomic rank in the
+`asv_taxonomy.tsv` which will be considered as "ground truth" when calculating
+precision and recall values for the clustering. By default, this is set to
+"Species" which means that the precision and recall values will reflect how
+often the generated clusters only contain ASVs assigned to a single species, and
+how often ASVs from the same species are clustered together, respectively.
+
+The `consensus_ranks` parameters specifies what ranks to use when attempting to
+assign a conensus taxonomy to generated clusters. The default is `["Family",
+"Genus", "Species"]`.
 
 > [!NOTE]
 >
->Please note that column matching between the `asv_taxa.tsv` file and the `split_rank`, `evaluation_rank` and `ranks` parameters is case-sensitive and that the `asv_taxa.tsv` file **must** have ranks in the header that match with your configuration settings.
+>Please note that column matching between the `asv_taxa.tsv` file and the
+>`split_rank`, `evaluation_rank` and `ranks` parameters is case-sensitive and
+>that the `asv_taxa.tsv` file **must** have ranks in the header that match with
+>your configuration settings.
 
-The `consensus_threshold` parameter is used when assigning consensus taxonomies to clusters and 
-is the threshold (in %) at which the abundance weighted taxonomic assignments for ASVs in a 
-cluster must agree in order to assign the taxonomy to the cluster.
-As an example, if a cluster contains 3 ASVs with the following taxonomic assignments and total 
-sum of counts across samples:
+The `consensus_threshold` parameter is used when assigning consensus taxonomies
+to clusters and is the threshold (in %) at which the abundance weighted
+taxonomic assignments for ASVs in a cluster must agree in order to assign the
+taxonomy to the cluster. As an example, if a cluster contains 3 ASVs with the
+following taxonomic assignments and total sum of counts across samples:
 
 | ASV | Family | Genus | Species | ASV_sum |
 |-----|--------|-------|---------|---------|
@@ -76,45 +106,38 @@ sum of counts across samples:
 | ASV2 | Tenthredinidae	| Pristiphora	| Pristiphora cincta | 60 |
 | ASV3 | Tenthredinidae	| Pristiphora	| Pristiphora leucopodia | 20 |
 
-then at Species the abundance weighted taxonomic assignment is 60% _Pristiphora cincta_ and 20% 
-_Pristiphora mollis_ and _Pristiphora leucopodia_ each. At a 80% consensus threshold we cannot 
-assign a taxonomy at Species level to the cluster, so the algorithm will move up to Genus level 
-where we have 100% agreement for Pristiphora. The final consensus taxonomy for the cluster will 
-then be:
+then at Species the abundance weighted taxonomic assignment is 60% _Pristiphora
+cincta_ and 20% _Pristiphora mollis_ and _Pristiphora leucopodia_ each. At a 80%
+consensus threshold we cannot assign a taxonomy at Species level to the cluster,
+so the algorithm will move up to Genus level where we have 100% agreement for
+Pristiphora. The final consensus taxonomy for the cluster will then be:
 
 | Cluster | Family | Genus | Species |
 |---------|--------|-------|---------|
 | Cluster1 | Tenthredinidae | Pristiphora | unresolved.Pristiphora |
 
-At `consensus_threshold: 60` we would have been able to assign taxonomy at the Species level and 
-the cluster taxonomy would have been:
+At `consensus_threshold: 60` we would have been able to assign taxonomy at the
+Species level and the cluster taxonomy would have been:
 
 | Cluster | Family | Genus | Species |
 |---------|--------|-------|---------|
 | Cluster1 | Tenthredinidae | Pristiphora | Pristiphora cincta |
 
-## Workflow overview
-The idea with this workflow is to make it easy to run OTU clustering with many 
-different parameter settings then evaluate which settings you think works best
-for your data. `vsearch` makes up the basis of the workflow by creating pairwise
-alignments of the sequences (often the most time-consuming step) and several 
-clustering runs can then be executed without having to re-create the alignments
-for each run.
+### Chimera detection
 
-### 0. Chimera detection (optional)
-
-> [!IMPORTANT]
->Please note that running the chimera filtering on your input data may in some
->cases result in taxa with 0 sequences. The workflow cannot take this into account
->and will fail in downstream steps. We therefore recommend to **first** run the chimera
->filtering step by using `chimera_filtering` as a target to snakemake, _e.g._:
+> [!IMPORTANT] Please note that running the chimera filtering on your input data
+>may in some cases result in taxa with 0 sequences. The workflow cannot take
+>this into account and will fail in downstream steps. We therefore recommend to
+>**first** run the chimera filtering step by using `chimera_filtering` as a
+>target to snakemake, _e.g._:
 >
 >```commandline
->snakemake --profile local --configfile <yourconfig.yaml> -c 4 chimera_filtering
+>pixi run chimera_filtering
 >```
 >
->Once this part of the workflow is done, on subsequent runs of the workflow only taxa
->with ASVs remaining after chimera filtering will be used as input to clustering.
+>Once this part of the workflow is done, on subsequent runs of the workflow only
+>taxa with ASVs remaining after chimera filtering will be used as input to
+>clustering.
 
 The workflow supports optional chimera removal using the uchime algorithm 
 implemented in vsearch. Chimera detection can be run either in 'batchwise' mode
@@ -123,9 +146,8 @@ using the data under `rundir` directly or in 'samplewise' mode in which the
 sequences with a count > 0 in each sample. Sequences identified as non-chimeric
 are then passed downstream in the workflow and used as input for clustering.
 
-#### Parameters for chimera detection and filtering
 Config parameters for the chimera removal part of the workflow are nested 
-under `chimera:` in the config file and below are the default values.
+under `chimera:` in the config file and below are the default values:
 
 ```yaml
 chimera:
@@ -136,231 +158,87 @@ chimera:
   min_samples_shared: 1
   min_frac_samples_shared: 0.5
   min_chimeric_samples: 0
+  min_frac_chimeric_samples: 0
   dn: 1.4
   mindiffs: 3
   mindiv: 0.8
   minh: 0.28
 ```
 
-- `run_name`: this parameter allows you to define different runs of the 
-chimera filtering. A fasta file with non-chimeric sequences will be produced 
-under `results/chimera/<rundir>/filterred/<run_name>/<method>.<algorithm>/nonchimeras.fasta`.
-- `remove_chimeras`: set this to False to skip chimera filtering
-- `method`: run chimera detection in `batchwise` or `samplewise` mode.
-- `algorithm`: select between `uchime_denovo`, `uchime2_denovo` or 
-  `uchime3_denovo`. The latter two require perfect matches between the ASV
-  sequence and a chimeric model, whereas 'uchime_denovo' does not.
-- `min_samples_shared`: in batchwise mode, chimeric ASVs have to be present 
-  with their 'parents' (see Uchime [docs](https://drive5.com/usearch/manual/chimeras.html)) 
-  in `min_samples_shared` number of samples in order to be filtered as chimeric.
-- `min_frac_samples_shared`: similar to `min_samples_shared`, but instead of 
-  an absolute number require that sequences are present with their parents 
-  in a fraction of the samples
-- `min_chimeric_samples`: in samplewise mode, chimeric ASVs have to be 
-  marked as chimeras in `min_chimeric_samples` number of samples in order to 
-  be filtered as chimeric. Setting this value to 0 (the default) means that 
-  sequences have to be marked as chimeric in **all** samples where they are 
-  present in order to be filtered as chimeric.
+The `run_name` parameter works in a similar manner as the base level `run_name`
+and allows you to define different runs of the chimera filtering. A fasta file
+with non-chimeric sequences will be produced under
+`results/chimera/<rundir>/filterred/<run_name>/<method>.<algorithm>/nonchimeras.fasta`. 
+This fasta file will be used as input to the rest of the workflow.
 
-The `dn`, `mindiffs`, `mindiv` and `minh` parameters are specific to how the 
-chimeric score of sequences is calculated. Please see the Uchime [docs](https://www.drive5.com/usearch/manual6/UCHIME_score.html) 
-for details. 
+The `remove_chimeras` parameter is a boolean controlling whether to run chimera
+filtering or not. Set this to False to skip chimera filtering.
+
+The `method` parameter can be either `batchwise` (all ASVs are taken into
+consideration) or `samplewise` (only ASVs occurring in the same samples are
+considered).
+
+The `algorithm` parameter can be either `uchime_denovo`, `uchime2_denovo` or
+`uchime3_denovo`. The latter two require perfect matches between the ASV
+sequence and a chimeric model, whereas 'uchime_denovo' does not.
+
+The `min_samples_shared` parameter is specific to the batchwise mode and
+specifies the number of  samples in which chimeric ASVs have to be present with
+their 'parents' (see Uchime
+[docs](https://drive5.com/usearch/manual/chimeras.html)) in ordered to be marked
+as chimeric.
+
+The `min_frac_samples_shared` parameter is similar to `min_samples_shared`, but
+instead of an absolute number require that sequences are present with their
+parents in a fraction of the samples in which they are present.
+
+The `min_chimeric_samples` parameter refers to the samplewise chimera mode, and
+determines in how many samples an ASVs has to be marked as chimeras in to be
+filtered as chimeric. Setting this value to 0 (the default) means that sequences
+have to be marked as chimeric in **all** samples where they are present in order
+to be filtered as chimeric.
+
+The `min_frac_chimeric_samples` is analogous to `min_chimeric_samples` but specifies
+a fraction of samples, instead of an absolute number
+
+The `dn`, `mindiffs`, `mindiv` and `minh` parameters are specific to how the
+chimeric score of sequences is calculated. Please see the Uchime
+[docs](https://www.drive5.com/usearch/manual6/UCHIME_score.html) for details. 
 
 In all algorithms ASV sequences are first aligned to other ASVs that are above a 
 certain abundance threshold. This so called [abundance skew](https://www.drive5.com/usearch/manual6/abundance_skew.html)
 threshold is by default set to 2.0 for the 'uchime_denovo' and 'uchime2_denovo'
 algorithms and to 16.0 for 'uchime3_denovo'. However, this value can be overridden
-by explicitly setting `abskew` in the config file under `chimera:`, _e.g._:
+by explicitly setting `abskew` in the config file under `chimera:`.
 
-The `run_name` parameter nested under `chimera:` in the config file
-controls the output structure of the chimeric filtering part of the workflow and
-influences input to downstream rules. Changing this value allows you to 
-tune the chimeric detection without rerunning unnecessary jobs. 
+### Aligning
 
-For example:
+Pairwise identities between ASVs are obtained by running vsearch with the
+`usearch_global` setting. The `vsearch` config entry determines the behaviour of this step.
 
-Say you have input data under `data/project1/` with counts of ASVs in two samples
-`sample1` and `sample2`. Then the `rundir` config parameter should be set to 
-`project1`. 
+The `threads` parameter specifies how many threads to use for the vsearch alignment.
 
-Now say you want to run chimera detection using the `batchwise` method and the 
-`uchime_denovo` algorithm. Then you should set:
+The `id` parameter sets the minimum pairwise identity to report. The default is 0.84 meaning that sequences with a pairwise identity less than 84% is rejected.
 
-```yaml
-chimera:
-  remove_chimeras: True
-  method: "batchwise"
-  algorithm: "uchime_denovo"
-```
-in your config file. In addition, setting the `run_name` under `chimera` in your
-config file gives the chimera detection with this set of parameters a name:
+The `iddef` parameter sets the identity definition used by vsearch. The default
+setting of `1` means that identity is calculated as `(matching columns) /(alignment length)`. Refer to the vsearch manual for other settings.
 
-```yaml
-chimera:
-  remove_chimeras: True
-  method: "batchwise"
-  algorithm: "uchime_denovo"
-  run_name: "chimera1"
-```
+The `query_cov` parameter sets the minimum aligned fraction of the query
+sequence. The default setting of `0.9` means that alignments are rejected if
+this fraction is less than 905.
 
-Running 
+### ASV clustering
 
-```commandline
-snakemake --profile local --configfile <yourconfig.yaml> -c 1 chimera_filtering 
-```
-
-will generate:
-
-```
-results/chimera/project1
-├── batchwise.uchime_denovo
-│   └── uchimeout.txt
-└── filtered
-    └── chimera1
-        └── batchwise.uchime_denovo
-            ├── chimeras.fasta
-            ├── nonchimeras.fasta
-            └── uchimeout.tsv
-```
-
-This means that the main output from chimera detection (with `vsearch`) using the `minh`,
-`mindiffs` and `mindiv` defined in the config file are placed under 
-`results/chimera/project1/batchwise.uchime_denovo/`. The `uchimeout.txt` file in
-this folder is then used to filter chimeras with the `min_samples_shared` and 
-`min_frac_samples_shared` values set in the same config file, resulting in the 
-`chimeras.fasta` and `nonchimeras.fasta` files under 
-`results/chimera/project1/filtered/chimera1/batchwise.uchime_denovo/` folder.
-
-Changing the `method` parameter to 'samplewise' and rerunning the workflow will
-trigger a new run of chimera detection, this time on sample-specific fasta 
-files, and result in:
-
-```
-results/chimera/project1
-├── batchwise.uchime_denovo
-│   └── uchimeout.txt
-├── filtered
-│   └── chimera1
-│       ├── batchwise.uchime_denovo
-│       │   ├── chimeras.fasta
-│       │   ├── nonchimeras.fasta
-│       │   └── uchimeout.tsv
-│       └── samplewise.uchime_denovo
-│           ├── chimeras.fasta
-│           └── nonchimeras.fasta
-└── samplewise.uchime_denovo
-    └── samples
-        ├── sample1
-        │   └── uchimeout.txt.gz
-        └── sample2
-            └── uchimeout.txt.gz
-```
-
-Say that you now want to try chimera detection either with different values
-of `minh`, `mindiffs` or `mindiv` or requiring that a sequence is only required
-to be marked as chimeric in a single sample (controlled via the 
-`min_chimeric_samples` parameter) you can modify these parameters and change the
-`run_name` under the chimera config section to _e.g._ `chimera2`. Now a rerun of 
-the workflow will only trigger the filtering step to be run again with the 
-updated parameters. The actual vsearch chimera detection is not run again.
-The resulting output will be:
-
-```
-results/chimera/project1/
-├── batchwise.uchime_denovo
-│   └── uchimeout.txt
-├── filtered
-│   ├── chimera1
-│   │   ├── batchwise.uchime_denovo
-│   │   │   ├── chimeras.fasta
-│   │   │   ├── nonchimeras.fasta
-│   │   │   └── uchimeout.tsv
-│   │   └── samplewise.uchime_denovo
-│   │       ├── chimeras.fasta
-│   │       └── nonchimeras.fasta
-│   └── chimera2
-│       └── samplewise.uchime_denovo
-│           ├── chimeras.fasta
-│           └── nonchimeras.fasta
-└── samplewise.uchime_denovo
-    └── samples
-        ├── sample1
-        │   └── uchimeout.txt.gz
-        └── sample2
-            └── uchimeout.txt.gz
-```
-
-**Note that the setting for the `run_name` under the chimera parameters will
-carry downstream in the workflow. Disabling chimera detection will 
-
-### 1. Splitting the input
-The workflow is set up to split the input data (either raw or chimera filtered)
-by taxonomic rank family and perform clustering of sequences in each family in 
-parallell. However, the data can be arbitrarily split on any taxonomic rank, 
-configurable via the `split_rank` config parameter. The workflow will by default 
-run on all unique taxa names at rank `split_rank` found in the 
-`data/{rundir}/asv_taxa.tsv` file, and will list the taxa in the file 
-`data/{rundir}/{split_rank}.txt`. You can create that latter file yourself if 
-you want, which will override the default behaviour and cause 
-the workflow to only run on taxa listed. For example, if you list (one per row)
-only your families of interest in `data/{rundir}/Family.txt` then the workflow
-will only run with sequences belonging to those families.
-Note that if you do not specify a file with ranks, _e.g._ `Family.txt` then the
-workflow will read the `asv_taxa.tsv` file, identify taxa at `{split_rank}` but 
-only output those that have at least one ASV with a total count > 0 in the counts
-file **and** that have a sequence in the `asv_seqs.fasta` file. 
-
-> [!IMPORTANT]
->Please note that running the chimera filtering on your input data may in some
->cases result in taxa with 0 sequences. The workflow cannot take this into account
->and will fail in downstream steps. We therefore recommend to **first** run the chimera
->filtering step by using `chimera_filtering` as a target to snakemake, _e.g._:
->
->```commandline
->snakemake --profile local --configfile <yourconfig.yaml> -c 4 chimera_filtering
->```
->
->Once this part of the workflow is done, on subsequent runs of the workflow only taxa
->with ASVs remaining after chimera filtering will be used as input to clustering.
-
-### 2. Filtering and formatting
-Initially, the counts for each sequence is summed across samples and any potential 
-sequence with a sum of 0 is removed. The filtering step also ensures that the 
-taxonomic and sequence data lines up with no missing sequences in either. If you
-have set chimera detection to True (see above) then this part of the workflow
-will use the nonchimeric sequences identified.
-
-### 3. Aligning
-Filtered sequences are then aligned per `split_rank` (Family by default) using
-`vsearch` like so:
-
-```bash
-vsearch --usearch_global <input> --db <input> --self --userout <output-distance> \
-  -userfields query+target+id --maxaccepts 0 --maxrejects 0 --id {params.id} \
-  --iddef {params.iddef}  --query_cov {params.query_cov} --threads {threads}
-```
-
-where `params.id=0.84`, `params.iddef=1`, `params.query_cov=0.9` are the default
-settings (configurable via the config file):
-
-```yaml
-vsearch:
-  threads: 10
-  id: 0.84
-  iddef: "1"
-  query_cov: 0.9
-```
-
-### 4. OTU clustering
-When sequences have been aligned and pairwise distances are available the workflow
-continues with clustering of ASVs into OTUs using the tools listed in `config["software"]`.
-By default the tools are:
+The workflow can be configured to run one or more ASV clustering tools. The `software` parameter takes a list of supported tool names: `swarm`, `opticlust` and `dbotu3` currently.
 
 - opticlust
 - swarm
 - dbotu3
 
-#### 4.1 opticlust
+Below are descriptions of the configurable tool-specific parameters.
+
+#### Opticlust
+
 The opticlust method is implemented in `mothur`. Here the optimal clustering of 
 sequences is found by iteratively moving sequences between OTU clusters in an 
 attempt to maximize the Matthew’s Correlation Coefficient (MCC) which is a metric
@@ -374,30 +252,77 @@ other (defined by the `cutoff` parameter) and that share an OTU cluster
 Opticlust takes as input a pairwise similarity matrix and a file with sum of counts
 across samples for each ASV.
 
-#### 4.2 swarm
-Swarm clusters sequences using a local linking threshold `d` (set to 1 by default)
-which represents the maximum number of differences between two amplicons. The input
-is a single fasta sequence where the total count of each sequence is suffixed
-to the sequence ID.
+For a full description of opticlust parameters, see the
+[manual](https://mothur.org/wiki/cluster/).
 
-#### 4.3 dbotu3
+The `aligner` parameter specifies whether to use `vsearch` (default) or the
+built-in aligner in `mothur` for generating pairwise identities. Note that the
+latter has not been tested for this workflow.
+
+The `delta` parameter sets the stable value for the metric in opticlust Default
+delta=0.0001. 
+
+The `cutoff` parameter controls at what similarity threshold clusters are
+generated. 
+
+The `initialize` parameter sets the initial randomization for opticlust. The
+default is `singleton` where each sequence is randomly assigned to its own OTU.
+The other accepted setting `oneotu` means that all sequences are assigned to one
+otu. 
+
+The `precision` parameter sets the floating point precision for opticlust.
+
+The `threads` parameter specifies how many threads to allocate for the opticlust command.
+
+#### Swarm
+
+Swarm clusters sequences using a local linking threshold `d` which represents
+the maximum number of differences between two amplicons. The input is a single
+fasta sequence where the total count of each sequence is suffixed to the
+sequence ID.
+
+For a full description of Swarm parameters, see the
+[manual](https://github.com/torognes/swarm/blob/master/man/swarm_manual.pdf).
+
+The `differences` parameter specifies the maximum number of differences
+(mismatches) allowed between two ASVs, meaning that two ASVs will be grouped if
+they have integer (or less) differences.
+
+The `no-otu-breaking` parameter deactivates Swarms built-in cluster refinement
+when using `d=1`.
+
+The `fastidious` parameter specifies whether to perform a second clustering pass
+(when set to True) to reduce the number of small clusters when using `d=1`.
+
+The `boundary` parameter defines the minimum abundance of what should be
+considered a _large_ cluster when using `d=1`.
+
+The `threads` parameter specifies how many threads to allocate to the swarm
+command.
+
+The parameters `match-reward`, `mismatch-penalty`, `gap-opening-penalty` and
+`gap-extension-penalty` allows control of Swarms advanced Pairwise alignment
+options.
+
+
+#### dbotu3
+
 dbotu3 uses both sequences and their distribution across samples to cluster ASVs
-into OTUs.
+into OTUs. It takes as input ASV sequences in fasta format and a table of
+counts.
 
-### 5. Generating OTU tables
-While the output from the tools used here differ, the workflow will generate a 
-standardized table called `asv_clusters.tsv` with ASVs and their corresponding 
-cluster for each combination of tool and taxa. This table has the following format:
+For a full description of dbotu3 parameters, see the
+[documentation](https://dbotu3.readthedocs.io/en/latest/).
 
-| ASV   | cluster  |
-|-------|----------|
-| asv1  | cluster1 |
-| asv2  | cluster1 |
-| asv3  | cluster2 |
+The `dist` parameter sets the maximum allowed genetic dissimilarity between
+sequences.
 
+The `abund` parameter sets the minimum fold difference for comparing two OTUs.
+
+The `pval` parameter sets the minimum p-value for merging ASVs.
 
 
-### 6. Workflow output
+### Workflow output
 Below is an example of the results directory after a typical run of the 
 workflow. Config settings in this example are shown below:
 
@@ -414,6 +339,7 @@ chimera:
 ```
 
 #### Vsearch output
+
 Pairwise distance output from vsearch forms the base of the clustering. This is 
 placed under `results/vsearch/<rundir>/<chimera_run_name>/<chimera_method>.<chimera_algorithm>/`.
 
@@ -429,6 +355,7 @@ results/vsearch/project1/sw.strict
 ```
 
 #### Swarm output
+
 Output files specific to swarm are placed under 
 `results/swarm/<rundir>/<chimera_run_name>/<chimera_method>.<chimera_algorithm>/`.
 
