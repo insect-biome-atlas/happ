@@ -125,11 +125,12 @@ Species level and the cluster taxonomy would have been:
 
 ### Chimera detection
 
-> [!IMPORTANT] Please note that running the chimera filtering on your input data
->may in some cases result in taxa with 0 sequences. The workflow cannot take
->this into account and will fail in downstream steps. We therefore recommend to
->**first** run the chimera filtering step by using `chimera_filtering` as a
->target to snakemake, _e.g._:
+> [!IMPORTANT] 
+>
+> Running the chimera filtering on your input data may in some cases result in
+>taxa with 0 sequences. The workflow cannot take this into account and will fail
+>in downstream steps. We therefore recommend to **first** run the chimera
+>filtering step by using `chimera_filtering` as a target to snakemake, _e.g._:
 >
 >```commandline
 >pixi run chimera_filtering
