@@ -1,12 +1,13 @@
-use-conda: True
-use-envmodules: False
-use-apptainer: False
 keep-going: True
 printshellcmds: True
 rerun-triggers: mtime
 rerun-incomplete: True
 local-cores: 1
 jobs: 100
-default-resources: "slurm_account=<your-slurm-account>"
+default-resources: 
+  slurm_account: <your_slurm_account>
+  slurm_partition: main
 latency-wait: 5
 executor: slurm
+software-deployment-method: "conda"
+configfile: config/config.yml
