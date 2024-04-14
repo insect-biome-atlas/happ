@@ -283,14 +283,13 @@ rule write_asv_reps:
         seqs="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     params:
         src="workflow/scripts/get_asv_reps.py",
-        method=config["rep_method"],
         tmpdir="$TMPDIR/{tool}.{rundir}.{chimera_run}.{chimdir}.{rank}.{tax}.{run_name}.write_asv_reps",
     shell:
         """
         mkdir -p {params.tmpdir}
         gunzip -c {input.counts} > {params.tmpdir}/counts.tsv
         gunzip -c {input.seqs} > {params.tmpdir}/seqs.fasta
-        python {params.src} --method {params.method} --prefix {wildcards.tax} --normalize \
+        python {params.src} --prefix {wildcards.tax} --normalize \
             --colsums {input.colsums} --taxa-table {input.extra_taxa} --rank cluster \
             {input.taxa} {params.tmpdir}/counts.tsv {params.tmpdir}/seqs.fasta {output.fasta} 2>{log}
         rm -rf {params.tmpdir}
