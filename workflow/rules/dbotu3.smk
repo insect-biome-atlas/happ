@@ -14,7 +14,7 @@ rule run_dbotu3:
         counts=rules.filter_seqs.output.counts,
     output:
         tsv="results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/dbotu3.tsv",
-        memb="results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxxa/{tax}/{run_name}/dbotu3.clusters.tsv",
+        memb="results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/dbotu3.clusters.tsv",
     log:
         log="logs/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/dbotu3.log",
         err="logs/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/dbotu3.err",
