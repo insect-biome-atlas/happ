@@ -361,7 +361,7 @@ rule consensus_taxonomy:
     output:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv",
     input:
-        total_counts=expand("results/common/{{rundir}}/{{chimera_run}}/{{chimdir}}/rank/taxa/{tax}/total_counts.tsv",
+        total_counts=expand("results/common/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/total_counts.tsv",
             tax = taxa),
         clustfile=rules.merge_rep_files.output.taxinfo,
     log:
@@ -374,7 +374,6 @@ rule consensus_taxonomy:
     shell:
         """
         mkdir -p {params.tmpdir}
-        echo -e "ASV\tASV_sum" > {params.tmpdir}/total_counts.tsv
         cat {input.total_counts} | egrep -v '^Representative_Sequence' > {params.tmpdir}/total_counts.tsv
         python workflow/scripts/consensus_taxonomy.py --countsfile {params.tmpdir}/total_counts.tsv \
             --clustfile {input.clustfile} --ranks {params.ranks} --consensus_ranks {params.cons_ranks} \
