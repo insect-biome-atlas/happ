@@ -120,4 +120,4 @@ numts:
   # specify which orders (if any) are known to contain a large number of clusters
   # if any order has > 10 k clusters then add them to this list
   # this will increase the resources (threads) requested when running numt filtering
-  large_orders: []
+  large_orders: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "unclassified", "Diptera", "unclassified"]

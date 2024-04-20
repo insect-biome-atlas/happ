@@ -216,7 +216,7 @@ properties:
       non_numt_ASVs: ""
       spikein_file: ""
       spikein_method: "BOLD_bin"
-      large_orders: []
+      large_orders: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "unclassified", "Diptera", "unclassified"]
     properties:
       n_closest:
         type: integer
@@ -238,7 +238,7 @@ properties:
       large_orders:
         type: array
         description: "List of orders known to contain a large number of clusters"
-        default: []
+        default: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "unclassified", "Diptera", "unclassified"]
   chimera:
     type: object
     default:
