@@ -209,6 +209,36 @@ properties:
         type: number
         description: "reject if fraction of query seq. aligned lower"
         default: 0.9
+  numts:
+    type: object
+    default:
+      n_closest: 5
+      non_numt_ASVs: ""
+      spikein_file: ""
+      spikein_method: "BOLD_bin"
+      large_orders: []
+    properties:
+      n_closest:
+        type: integer
+        description: "Maximum number of closest sequences to compare to when filtering numts"
+        default: 5
+      non_numt_ASVs:
+        type: string
+        description: "Path to a file containing ASVs that are known to be non-numts"
+        default: ""
+      spikein_file: 
+        type: string
+        description: "Path to a tab-separated file containing taxonomic information for biological spike-ins"
+        default: ""
+      spikein_method:
+        type: string
+        description: "Method to identify spike-in clusters"
+        default: "BOLD_bin"
+        enum: ["BOLD_bin", "species"]
+      large_orders:
+        type: array
+        description: "List of orders known to contain a large number of clusters"
+        default: []
   chimera:
     type: object
     default:

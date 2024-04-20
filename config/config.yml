@@ -107,3 +107,17 @@ lulu:
   minimum_ratio: 1
   minimum_match: 84
   minimum_relative_cooccurence: 0.95
+
+numts:
+  n_closest: 5
+  # non_numt_ASVs is a list of ASVs that are known to be non-numts
+  non_numt_ASVs: ""
+  # spikein_file is a tab-separated file with taxonomic information for biological spike ins
+  # this file should have either species labels or BOLD_bin ids
+  spikein_file: ""
+  # method to identify spikein clusters, either using 'BOLD_bin' ids or 'species'
+  spikein_method: "BOLD_bin"
+  # specify which orders (if any) are known to contain a large number of clusters
+  # if any order has > 10 k clusters then add them to this list
+  # this will increase the resources (threads) requested when running numt filtering
+  large_orders: []
