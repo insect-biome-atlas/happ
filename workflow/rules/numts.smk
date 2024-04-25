@@ -257,5 +257,7 @@ rule filtered:
         taxonomy = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     log: 
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/filtered.log"
+    params:
+        filter_unclassified_rank = config["numts"]["filter_unclassified_rank"],
     conda: "../envs/r-env.yml"
     script: "../scripts/numt_filtering/filter.R"
