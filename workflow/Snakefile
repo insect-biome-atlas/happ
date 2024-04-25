@@ -19,10 +19,7 @@ if config["chimera"]["remove_chimeras"]:
     # under the chimera settings in the config allows different chimera detection
     # settings using the same vsearch output
     config["chimdir"] = f"{method}.{algorithm}"
-
     include: "rules/chimeras.smk"
-
-
 else:
     config["chimdir"] = "raw"
     config["chimera"]["run_name"] = "raw"
@@ -67,6 +64,7 @@ if "lulu" in config["software"]:
 
     include: "rules/lulu.smk"
 
+include: "rules/numts.smk"
 
 localrules:
     all,
@@ -151,6 +149,7 @@ rule all:
             run_name=config["run_name"],
             suff=["json", "cmd"],
         ),
+        rules.numts_filtering.input
 
 rule evaluate:
     input:
