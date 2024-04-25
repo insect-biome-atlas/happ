@@ -57,5 +57,5 @@ threads <- snakemake@threads
 outfile <- snakemake@output[[1]]
 
 spikein_clusters <- id_spikein_clusters(taxonomy_file, counts_file, spikein_file, method, threads)
-fwrite(list(spikein_clusters), file = opt$outfile)
+fwrite(list(spikein_clusters), file = outfile)
 sink()
