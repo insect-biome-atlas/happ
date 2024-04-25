@@ -47,7 +47,7 @@ properties:
   software:
     type: array
     description: "clustering software to run"
-    default: ["swarm","opticlust", "dbotu3", "lulu"]
+    default: ["swarm"]
     items:
       type: string
       enum: ["swarm", "opticlust", "dbotu3", "lulu"]
@@ -216,7 +216,8 @@ properties:
       non_numt_ASVs: ""
       spikein_file: ""
       spikein_method: "BOLD_bin"
-      large_orders: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "unclassified", "Diptera", "unclassified"]
+      large_orders: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "Diptera"]
+      skip_orders: ["unclassified"]
     properties:
       n_closest:
         type: integer
@@ -238,7 +239,11 @@ properties:
       large_orders:
         type: array
         description: "List of orders known to contain a large number of clusters"
-        default: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "unclassified", "Diptera", "unclassified"]
+        default: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "Diptera"]
+      filter_unclassified_rank:
+        type: string
+        description: "Remove ASVs that are unclassified at this rank (begin with unclassified) prior to chimera filtering and clustering"
+        default: "Order"
   chimera:
     type: object
     default:
