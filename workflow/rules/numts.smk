@@ -41,7 +41,7 @@ rule numts_filtering:
         expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{f}",
                     tool=config["software"], rundir=config["rundir"], chimera_run=config["chimera"]["run_name"], 
                     chimdir=config["chimdir"], rank=config["split_rank"], run_name=config["run_name"], 
-                    f=["non_numts_clusters.tsv", "non_numts_clusters.fasta"]),
+                    f=["non_numts.tsv", "non_numts_clusters.fasta", "precision_recall.non_numts.txt"]),
 
 rule generate_order_seqs:
     """
@@ -234,7 +234,7 @@ def filtered_input(wc):
         taxfile = taxonomy
     # if not, use the taxonomy file from the input directory
     else:
-        taxfile = f"{config[wc.rundir]['taxonomy']}/asv_taxa.tsv"
+        taxfile = f"data/{config['rundir']}/asv_taxa.tsv"
     df = pd.read_csv(taxfile, sep="\t", index_col=0)
     df.rename(columns = lambda x: x.lower(), inplace=True)
     orders = df["order"].unique().tolist()
@@ -249,7 +249,7 @@ rule filtered:
     as well as a fasta file of the non-numt clusters.
     """
     output:
-        tsv="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/non_numts_clusters.tsv",
+        tsv="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/non_numts.tsv",
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/non_numts_clusters.fasta",
     input:
         numt_files=filtered_input,
@@ -261,3 +261,19 @@ rule filtered:
         filter_unclassified_rank = config["numts"]["filter_unclassified_rank"],
     conda: "../envs/r-env.yml"
     script: "../scripts/numt_filtering/filter.R"
+
+rule precision_recall_numts:
+    input:
+        clust_file=rules.filtered.output.tsv
+    output:
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.non_numts.txt",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.non_numts.order.txt",
+    log:
+        "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
+    params:
+        src="workflow/scripts/evaluate_clusters.py",
+        eval_rank=config["evaluation_rank"],
+    shell:
+        """
+        python {params.src} {input[0]} {input[0]} --rank {params.eval_rank} --order_level {output[1]} > {output[0]} 2>{log}
+        """
