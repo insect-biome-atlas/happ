@@ -360,7 +360,7 @@ rule consensus_taxonomy:
     output:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv",
     input:
-        total_counts=expand("results/common/{{rundir}}/{{chimera_run}}/{{chimdir}}/rank/taxa/{tax}/total_counts.tsv",
+        total_counts=expand("results/common/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/total_counts.tsv",
             tax = taxa),
         clustfile=rules.merge_rep_files.output.taxinfo,
     log:
