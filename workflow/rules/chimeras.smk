@@ -59,6 +59,24 @@ rule chimera_filtering:
             suff=["json", "cmd"],
         ),
 
+def filter_nonchimeric_taxa(taxfile, nonchimeras, rank, output):
+    """
+    Filter the taxonomy file to remove taxa in which all sequences have been marked as chimeric
+    """
+    df = pd.read_csv(taxfile, sep="\t", index_col=0)
+    nonchim = []
+    with open(nonchimeras, 'r') as fhin:
+        for line in fhin:
+            line = line.rstrip()
+            if line.startswith(">"):
+                asv = line.lstrip(">")
+                nonchim.append(asv)
+    df = df.loc[nonchim]
+    taxa = list(df[rank].unique())
+    with open(output, 'w') as fhout:
+        for t in taxa:
+            fhout.write(f"{t}\n")
+
 rule nonchimeric_taxa:
     """
     Filter the taxonomy file to remove taxa in which all sequences have been marked as chimeric
@@ -82,19 +100,33 @@ rule nonchimeric_taxa:
     params:
         split_rank=config["split_rank"]
     run:
-        df = pd.read_csv(input.taxfile[0], sep="\t", index_col=0)
-        nonchim = []
-        with open(input.nonchimeras[0], 'r') as fhin:
-            for line in fhin:
-                line = line.rstrip()
-                if line.startswith(">"):
-                    asv = line.lstrip(">")
-                    nonchim.append(asv)
-        df = df.loc[nonchim]
-        taxa = list(df[params.split_rank].unique())
-        with open(output[0], 'w') as fhout:
-            for t in taxa:
-                fhout.write(f"{t}\n")
+        filter_nonchimeric_taxa(taxfile=input.taxfile[0], nonchimeras=input.nonchimeras[0], rank=params.split_rank, output=output[0])
+
+rule nonchimeric_orders:
+    """
+    Filter the taxonomy file to remove orders in which all sequences have been marked as chimeric
+    """
+    output:
+        expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/orders.txt",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            method=config["chimera"]["method"],
+            algo=config["chimera"]["algorithm"],
+        ),
+    input:
+        taxfile=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
+        nonchimeras=expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/nonchimeras.fasta",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            method=config["chimera"]["method"],
+            algo=config["chimera"]["algorithm"],
+        )
+    params:
+        ranks = config["ranks"]
+    run:
+        # case-insensitive search for 'order' in ranks
+        rank = ranks[[x.lower() for x in ranks].index("order")]
+        filter_nonchimeric_taxa(taxfile=input.taxfile[0], nonchimeras=input.nonchimeras[0], rank=rank, output=output[0])
 
 rule sum_asvs:
     """
