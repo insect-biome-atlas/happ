@@ -258,6 +258,7 @@ properties:
       min_samples_shared: 1
       min_frac_samples_shared: 0
       min_chimeric_samples: 0
+      min_frac_chimeric_samples: 0
     properties:
       run_name:
         type: string
@@ -303,4 +304,8 @@ properties:
       min_chimeric_samples:
         type: integer
         description: "In samplewise mode this is the minimum number of times a sequence has to be marked as chimeric"
-        default: 1
+        default: 0
+      min_frac_chimeric_samples:
+        type: integer
+        description: "In samplewise mode this is the minimum fraction of samples in which a sequence has to be marked as chimeric"
+        default: 0

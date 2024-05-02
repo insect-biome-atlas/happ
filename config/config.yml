@@ -1,15 +1,22 @@
-# Update with the name of a subdirectory directory under data/ that contains
-# asv_seqs.fasta, asv_counts.tsv and asv_taxa.tsv
+############################
+##### INPUT PARAMETERS #####
+############################
+# The rundir parameter is the name of a subdirectory under data/ that must contain
+# - asv_seqs.fasta (ASV sequences in FASTA format) 
+# - asv_counts.tsv (counts of ASVs (rows) in samples (columns)) 
+# - and asv_taxa.tsv (taxonomic assignments of each ASV)
 rundir: "test"
-# Specify a name of the run. Using different run_name you can run clustering
-# with different parameters using the same vsearch output.
+# The run_name parameter is the name of the workflow run and is used to separate
+# runs with specific parameters of the clustering tools. 
+# With different run_name parameters on the same rundir you can cluster the ASVs
+# while automatically using the same alignment output (from vsearch).
 run_name: "default"
-# At what rank should the data be split prior to aligning and clustering
+# With the split_rank parameter you can split the ASVs by a certain taxonomic rank
+# prior to alignment and clustering, which parallellizes the workflow and can help
+# speed things up on large datasets. 
+# Note that the split_rank must exactly match one of the columns in the asv_taxa.tsv file
 split_rank: "Family"
-# Method to use for calculating representative sequences for clusters
-# select between "median", "mean" and "sum"
-rep_method: "median"
-# Ranks included in the asv_taxa.tsv taxonomy file
+# The ranks parameter specifies what taxonomic ranks are included in the asv_taxa.tsv taxonomy file
 ranks: 
   - "Kingdom"
   - "Phylum"
@@ -19,6 +26,11 @@ ranks:
   - "Genus"
   - "Species"
   - "BOLD_bin"
+# The evaluation rank parameter specifies what taxonomic rank to use for evaluating
+# the clustering results. This rank should correspond to the taxonomic rank that
+# you expect the clustering to represent, e.g. if you expect the clustering to
+# represent species, set this parameter to "Species".
+evaluation_rank: "Species"
 # Ranks to use for calculating consensus taxonomy for clusters
 consensus_ranks:
   - "Family"
@@ -30,6 +42,7 @@ consensus_ranks:
 # will be "Species X" if the threshold is set to 80, otherwise taxonomy will
 # be attempted to be resolved at Genus level etc.
 consensus_threshold: 80
+
 chimera:
   run_name: "chimera1"
   # Should chimera detection and removal be performed on the input data?
@@ -47,11 +60,16 @@ chimera:
   min_samples_shared: 1
   # In batchwise method, require that a sequence marked as chimeric is present
   # with its parents in at least <min_frac_samples_shared> fraction of samples
-  min_frac_samples_shared: 0.5
+  min_frac_samples_shared: 0
   # In samplewise method, require that a sequence is marked as chimeric in at least
   # <min_chimeric_samples> in order for it to be removed from analysis. If this
   # value is set to 0, ASVs have to be marked as chimeric in all samples
   min_chimeric_samples: 0
+  # In samplewise method, require that a sequence is marked as chimeric in at least
+  # <min_frac_chimeric_samples> fraction of samples in which the ASV is present in 
+  # order for it to be removed from analysis. If this value is set to 0, ASVs have 
+  # to be marked as chimeric in all samples
+  min_frac_chimeric_samples: 0
   # Chimera detection settings
   # Note that these are not used for uchime2_denovo or uchime3_denovo. Instead these
   # algorithms require 'perfect chimeras' (see the Uchime manual for more info)
@@ -67,7 +85,6 @@ software:
   #- "opticlust"
   #- "lulu"
   #- "dbotu3"
-evaluation_rank: "Species"
 
 # Tool-specific settings
 vsearch:
@@ -75,6 +92,13 @@ vsearch:
   id: 0.84
   iddef: "1"
   query_cov: 0.9
+
+# Specify what clustering software to use. Choose from 'swarm', 'opticlust',
+# and 'dbotu3'.
+software:
+  - "swarm"
+  - "opticlust"
+  #- "dbotu3"
 
 opticlust:
   # For opticlust, choose whether pairwise alignments should be generated with

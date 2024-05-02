@@ -32,7 +32,9 @@ def get_abskew(wildcards):
 
 
 samples = fetch_samples(f=f"data/{config['rundir']}/asv_counts.tsv")
-
+wildcard_constraints:
+    sample=f"({'|'.join(samples)})",
+    
 ## CHIMERA DETECTION ##
 #######################
 
@@ -141,10 +143,8 @@ rule sum_asvs:
         mem_mb=mem_allowed,
     threads: 10
     params:
-        src=srcdir("../scripts/sum_counts.py"),
+        src="workflow/scripts/sum_counts.py",
         tmpdir="$TMPDIR/{rundir}.sum_counts",
-    conda:
-        "../envs/polars.yml"
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -167,7 +167,7 @@ rule append_size:
     log:
         "logs/append_size/{rundir}.log",
     params:
-        src=srcdir("../scripts/add_size_to_fastaheader.py"),
+        src="workflow/scripts/add_size_to_fastaheader.py",
         tmpdir="$TMPDIR/{rundir}.addsums",
     shell:
         """
@@ -191,7 +191,7 @@ rule add_sums:
     log:
         "logs/chimeras/{rundir}/{sample}.add-sums.log",
     params:
-        src=srcdir("../scripts/add_size_to_fastaheader.py"),
+        src="workflow/scripts/add_size_to_fastaheader.py",
         tmpdir="$TMPDIR/{rundir}.{sample}.addsums",
     shell:
         """
@@ -258,11 +258,9 @@ rule split_counts:
     log:
         "logs/chimeras/{rundir}/split_counts.log",
     params:
-        src=srcdir("../scripts/split_counts.py"),
+        src="workflow/scripts/split_counts.py",
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         tmpdir="$TMPDIR/{rundir}.split",
-    conda:
-        "../envs/polars.yml"
     shell:
         """
         exec &> {log}
@@ -349,7 +347,7 @@ rule filter_samplewise_chimeras:
         "logs/chimeras/{rundir}/filtered/{chimera_run}/samplewise.{algo}/filter_samplewise_chimeras.log",
     params:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_samplewise",
-        src=srcdir("../scripts/filter_chimeras.py"),
+        src="workflow/scripts/filter_chimeras.py",
         min_chimeric_samples=config["chimera"]["min_chimeric_samples"],
         min_frac_chimeric_samples=get_min_frac_chimeric_samples(config),
         minh=config["chimera"]["minh"],
@@ -389,7 +387,7 @@ rule filter_batchwise_chimeras:
         "logs/chimeras/{rundir}/filtered/{chimera_run}/batchwise.{algo}/filter_batchwise_chimeras.log",
     params:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_batchwise",
-        src=srcdir("../scripts/filter_chimeras.py"),
+        src="workflow/scripts/filter_chimeras.py",
         min_samples_shared=config["chimera"]["min_samples_shared"],
         min_frac_samples_shared=config["chimera"]["min_frac_samples_shared"],
         minh=config["chimera"]["minh"],

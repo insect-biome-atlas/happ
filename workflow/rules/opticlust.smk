@@ -20,7 +20,7 @@ rule mothur_align:
         fasta="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta",
     threads: config["opticlust"]["threads"]
     resources:
-        runtime=60 * 24 * 10,
+        runtime=60 * 24,
         mem_mb=mem_allowed,
     shell:
         """
