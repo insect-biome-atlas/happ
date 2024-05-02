@@ -32,7 +32,9 @@ def get_abskew(wildcards):
 
 
 samples = fetch_samples(f=f"data/{config['rundir']}/asv_counts.tsv")
-
+wildcard_constraints:
+    sample=f"({'|'.join(samples)})",
+    
 ## CHIMERA DETECTION ##
 #######################
 
@@ -57,6 +59,24 @@ rule chimera_filtering:
             suff=["json", "cmd"],
         ),
 
+def filter_nonchimeric_taxa(taxfile, nonchimeras, rank, output):
+    """
+    Filter the taxonomy file to remove taxa in which all sequences have been marked as chimeric
+    """
+    df = pd.read_csv(taxfile, sep="\t", index_col=0)
+    nonchim = []
+    with open(nonchimeras, 'r') as fhin:
+        for line in fhin:
+            line = line.rstrip()
+            if line.startswith(">"):
+                asv = line.lstrip(">")
+                nonchim.append(asv)
+    df = df.loc[nonchim]
+    taxa = list(df[rank].unique())
+    with open(output, 'w') as fhout:
+        for t in taxa:
+            fhout.write(f"{t}\n")
+
 rule nonchimeric_taxa:
     """
     Filter the taxonomy file to remove taxa in which all sequences have been marked as chimeric
@@ -80,19 +100,33 @@ rule nonchimeric_taxa:
     params:
         split_rank=config["split_rank"]
     run:
-        df = pd.read_csv(input.taxfile[0], sep="\t", index_col=0)
-        nonchim = []
-        with open(input.nonchimeras[0], 'r') as fhin:
-            for line in fhin:
-                line = line.rstrip()
-                if line.startswith(">"):
-                    asv = line.lstrip(">")
-                    nonchim.append(asv)
-        df = df.loc[nonchim]
-        taxa = list(df[params.split_rank].unique())
-        with open(output[0], 'w') as fhout:
-            for t in taxa:
-                fhout.write(f"{t}\n")
+        filter_nonchimeric_taxa(taxfile=input.taxfile[0], nonchimeras=input.nonchimeras[0], rank=params.split_rank, output=output[0])
+
+rule nonchimeric_orders:
+    """
+    Filter the taxonomy file to remove orders in which all sequences have been marked as chimeric
+    """
+    output:
+        expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/orders.txt",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            method=config["chimera"]["method"],
+            algo=config["chimera"]["algorithm"],
+        ),
+    input:
+        taxfile=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
+        nonchimeras=expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/nonchimeras.fasta",
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            method=config["chimera"]["method"],
+            algo=config["chimera"]["algorithm"],
+        )
+    params:
+        ranks = config["ranks"]
+    run:
+        # case-insensitive search for 'order' in ranks
+        rank = ranks[[x.lower() for x in ranks].index("order")]
+        filter_nonchimeric_taxa(taxfile=input.taxfile[0], nonchimeras=input.nonchimeras[0], rank=rank, output=output[0])
 
 rule sum_asvs:
     """
@@ -109,10 +143,8 @@ rule sum_asvs:
         mem_mb=mem_allowed,
     threads: 10
     params:
-        src=srcdir("../scripts/sum_counts.py"),
+        src="workflow/scripts/sum_counts.py",
         tmpdir="$TMPDIR/{rundir}.sum_counts",
-    conda:
-        "../envs/polars.yml"
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -135,7 +167,7 @@ rule append_size:
     log:
         "logs/append_size/{rundir}.log",
     params:
-        src=srcdir("../scripts/add_size_to_fastaheader.py"),
+        src="workflow/scripts/add_size_to_fastaheader.py",
         tmpdir="$TMPDIR/{rundir}.addsums",
     shell:
         """
@@ -159,7 +191,7 @@ rule add_sums:
     log:
         "logs/chimeras/{rundir}/{sample}.add-sums.log",
     params:
-        src=srcdir("../scripts/add_size_to_fastaheader.py"),
+        src="workflow/scripts/add_size_to_fastaheader.py",
         tmpdir="$TMPDIR/{rundir}.{sample}.addsums",
     shell:
         """
@@ -226,11 +258,9 @@ rule split_counts:
     log:
         "logs/chimeras/{rundir}/split_counts.log",
     params:
-        src=srcdir("../scripts/split_counts.py"),
+        src="workflow/scripts/split_counts.py",
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         tmpdir="$TMPDIR/{rundir}.split",
-    conda:
-        "../envs/polars.yml"
     shell:
         """
         exec &> {log}
@@ -317,7 +347,7 @@ rule filter_samplewise_chimeras:
         "logs/chimeras/{rundir}/filtered/{chimera_run}/samplewise.{algo}/filter_samplewise_chimeras.log",
     params:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_samplewise",
-        src=srcdir("../scripts/filter_chimeras.py"),
+        src="workflow/scripts/filter_chimeras.py",
         min_chimeric_samples=config["chimera"]["min_chimeric_samples"],
         min_frac_chimeric_samples=get_min_frac_chimeric_samples(config),
         minh=config["chimera"]["minh"],
@@ -357,7 +387,7 @@ rule filter_batchwise_chimeras:
         "logs/chimeras/{rundir}/filtered/{chimera_run}/batchwise.{algo}/filter_batchwise_chimeras.log",
     params:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_batchwise",
-        src=srcdir("../scripts/filter_chimeras.py"),
+        src="workflow/scripts/filter_chimeras.py",
         min_samples_shared=config["chimera"]["min_samples_shared"],
         min_frac_samples_shared=config["chimera"]["min_frac_samples_shared"],
         minh=config["chimera"]["minh"],

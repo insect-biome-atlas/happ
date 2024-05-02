@@ -130,8 +130,7 @@ def main(args):
             sys.stderr.write(f"Calculating column sums for normalization\n")
             colsums = calc_colsum(args.counts)
     sys.stderr.write(
-        f"Reading countsfile {args.counts} and calculating abundance of ASVs "
-        f"using {args.method} across samples\n"
+        f"Reading countsfile {args.counts} and calculating abundance of ASVs\n"
     )
     countsdf = read_input(args.counts)
     counts = calc_counts(
@@ -186,17 +185,9 @@ if __name__ == "__main__":
     parser.add_argument("--prefix", type=str, help="Prefix cluster name with "
                                                    "string")
     parser.add_argument(
-        "--method",
-        type=str,
-        choices=["sum", "median", "mean"],
-        default="median",
-        help="Method to select representative base on counts. Defaults to "
-             "'sum' across samples",
-    )
-    parser.add_argument(
         "--normalize",
         action="store_true",
-        help="Normalize counts before applying method",
+        help="Normalize counts",
     )
     parser.add_argument(
         "--colsums",

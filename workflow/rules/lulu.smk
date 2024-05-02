@@ -39,7 +39,7 @@ rule run_lulu:
         minimum_match=config["lulu"]["minimum_match"],
         minimum_relative_cooccurence=config["lulu"]["minimum_relative_cooccurence"],
     resources:
-        runtime=60 * 24 * 10,
+        runtime=60 * 24 * 7,
         mem_mb=mem_allowed,
     script:
         "../scripts/lulu.R"

@@ -47,7 +47,7 @@ properties:
   software:
     type: array
     description: "clustering software to run"
-    default: ["swarm","opticlust", "dbotu3", "lulu"]
+    default: ["swarm"]
     items:
       type: string
       enum: ["swarm", "opticlust", "dbotu3", "lulu"]
@@ -209,6 +209,41 @@ properties:
         type: number
         description: "reject if fraction of query seq. aligned lower"
         default: 0.9
+  numts:
+    type: object
+    default:
+      n_closest: 5
+      non_numt_ASVs: ""
+      spikein_file: ""
+      spikein_method: "BOLD_bin"
+      large_orders: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "Diptera"]
+      skip_orders: ["unclassified"]
+    properties:
+      n_closest:
+        type: integer
+        description: "Maximum number of closest sequences to compare to when filtering numts"
+        default: 5
+      non_numt_ASVs:
+        type: string
+        description: "Path to a file containing ASVs that are known to be non-numts"
+        default: ""
+      spikein_file: 
+        type: string
+        description: "Path to a tab-separated file containing taxonomic information for biological spike-ins"
+        default: ""
+      spikein_method:
+        type: string
+        description: "Method to identify spike-in clusters"
+        default: "BOLD_bin"
+        enum: ["BOLD_bin", "species"]
+      large_orders:
+        type: array
+        description: "List of orders known to contain a large number of clusters"
+        default: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "Diptera"]
+      filter_unclassified_rank:
+        type: string
+        description: "Remove ASVs that are unclassified at this rank (begin with unclassified) prior to chimera filtering and clustering"
+        default: "Order"
   chimera:
     type: object
     default:
@@ -223,6 +258,7 @@ properties:
       min_samples_shared: 1
       min_frac_samples_shared: 0
       min_chimeric_samples: 0
+      min_frac_chimeric_samples: 0
     properties:
       run_name:
         type: string
@@ -268,4 +304,8 @@ properties:
       min_chimeric_samples:
         type: integer
         description: "In samplewise mode this is the minimum number of times a sequence has to be marked as chimeric"
-        default: 1
+        default: 0
+      min_frac_chimeric_samples:
+        type: integer
+        description: "In samplewise mode this is the minimum fraction of samples in which a sequence has to be marked as chimeric"
+        default: 0

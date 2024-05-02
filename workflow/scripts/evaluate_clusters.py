@@ -43,7 +43,7 @@ def truepos(res, rank):
     """
     Take dataframe as input and groupby rank, then return number of pairs
     """
-    return res.groupby(rank).apply(pairs)
+    return res.groupby(rank).apply(pairs, include_groups=False)
 
 
 def falseNegatives(df, cluster_col, rank, silent=False):
@@ -77,11 +77,11 @@ def precision_recall(df, cluster_col, rank, silent=False):
     """
     totalClusters = len(df[cluster_col].unique())
     totalTaxa = len(df[rank].unique())
-    totalPositives = sum(df.groupby(cluster_col).apply(pairs))
+    totalPositives = sum(df.groupby(cluster_col).apply(pairs, include_groups=False))
     if totalTaxa == 1:
-        TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum().values[0]
+        TP = df.groupby(cluster_col).apply(truepos, include_groups=False, rank=rank).sum().values[0]
     else:
-        TP = df.groupby(cluster_col).apply(truepos, rank=rank).sum()
+        TP = df.groupby(cluster_col).apply(truepos,include_groups=False, rank=rank).sum()
     if type(TP) == pd.Series:
         TP = TP.sum()
     FP = totalPositives - TP
@@ -159,6 +159,9 @@ def main(args):
     sys.stderr.write(f"#Loading cluster results from {len(args.clustfiles)} files\n")
     clustdf = read_asv_clusters(args.clustfiles)
     # Merge with taxonomies
+    # If taxfile and clustfile are the same, extract only cluster column from the clust table
+    if args.taxfile == args.clustfiles[0]:
+        clustdf = clustdf.loc[:, "cluster"]
     sys.stderr.write("#Merging with taxonomic assignments\n")
     clustdf = merge_cluster_df(clustdf, asv_taxa)
     sys.stderr.write(f"#{clustdf.shape[0]} ASVs remaining after merging\n")

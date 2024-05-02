@@ -1,0 +1,24 @@
+# This is the configuration profile for the Dardel HPC system
+# Read more about the available partitions at https://www.pdc.kth.se/support/documents/run_jobs/job_scheduling.html#dardel-partitions
+# and about the compute nodes at https://www.pdc.kth.se/support/documents/run_jobs/job_scheduling.html#dardel-compute-nodes
+
+# Update <your-slurm-account> under default-resources to your own slurm compute account
+default-resources: 
+  slurm_account: <your-slurm-account>
+  slurm_partition: shared
+
+# The settings below override the default-resources for specific rules
+#set-resources:
+#    <rule-name>:
+#        slurm_partition: "main"
+
+keep-going: True
+printshellcmds: True
+rerun-triggers: mtime
+rerun-incomplete: True
+local-cores: 1
+jobs: 100
+latency-wait: 5
+executor: slurm
+software-deployment-method: "conda"
+configfile: config/config.yml

@@ -85,7 +85,7 @@ rule vsearch_align:
     conda:
         "../envs/vsearch.yml"
     resources:
-        runtime=60 * 24 * 10,
+        runtime=60 * 24,
         mem_mb=mem_allowed,
     shell:
         """
