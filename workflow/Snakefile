@@ -368,7 +368,6 @@ rule consensus_taxonomy:
     shell:
         """
         mkdir -p {params.tmpdir}
-        echo -e "ASV\tASV_sum" > {params.tmpdir}/total_counts.tsv
         cat {input.total_counts} | egrep -v '^Representative_Sequence' > {params.tmpdir}/total_counts.tsv
         python workflow/scripts/consensus_taxonomy.py --countsfile {params.tmpdir}/total_counts.tsv \
             --clustfile {input.clustfile} --ranks {params.ranks} --consensus_ranks {params.cons_ranks} \

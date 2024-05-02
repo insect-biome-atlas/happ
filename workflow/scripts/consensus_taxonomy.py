@@ -58,7 +58,7 @@ def find_consensus_taxonomies(
 def main(args):
     sys.stderr.write("####\n" f"Reading ASV clusters from {args.clustfile}\n")
     clustdf = pd.read_csv(args.clustfile, sep="\t", index_col=0, header=0)
-    sys.stderr.write("####\n Reading sums of counts for ASVs\n")
+    sys.stderr.write("####\nSumming counts for ASVs\n")
     asv_sum = pd.read_csv(args.countsfile, sep="\t", index_col=0, header=None, names=["ASV", "ASV_sum"])
     clustdf = clustdf.loc[:, [args.clust_column] + args.ranks]
     clustdf = pd.merge(asv_sum, clustdf, left_index=True, right_index=True)
