@@ -6,3 +6,4 @@ logs/
 config/BAK
 config/cluster_eval
 .vscode
+!workflow/envs
