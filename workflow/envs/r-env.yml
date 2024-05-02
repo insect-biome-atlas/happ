@@ -1,0 +1,9 @@
+name: r-env
+channels:
+  - conda-forge
+  - bioconda
+  - r
+dependencies:
+  - r-ape
+  - r-seqinr
+  - r-data.table
