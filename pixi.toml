@@ -15,11 +15,11 @@ local = {cmd="snakemake --profile local", depends_on = ["init"]}
 slurm = {cmd="snakemake --profile slurm", depends_on = ["init"]}
 chimera_filtering = {cmd="snakemake chimera_filtering", depends_on = ["init"]}
 [dependencies]
-python = ""
+python = "3.11"
 mamba = "*"
-snakemake = "*"
-scikit-learn = "*"
-biopython = "*"
+snakemake = "8.*"
+scikit-learn = "1.1.3"
+biopython = "1.80"
 tqdm = "*"
 polars = "*"
 pandas = "*"
