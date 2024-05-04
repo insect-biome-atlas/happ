@@ -42,7 +42,35 @@ system. Once pixi is installed you're ready to start using the workflow.
 
 ## Running the workflow
 
-This workflow was written in [Snakemake](https://snakemake.readthedocs.io/en/stable/index.html)
+```mermaid
+flowchart LR
+    A[ASV sequences] --> D(Chimera filter)
+    B[ASV counts] -->D
+    C[ASV taxonomy] -->D
+    D --> E(Clustering)
+    E --> F(Numts removal)
+    F --> G[ASV clusters]
+```
+
+This workflow was written in
+[Snakemake](https://snakemake.readthedocs.io/en/stable/index.html) but is
+executed using pixi via the `pixi.toml` file in the root of the repository. Thus
+you start the workflow with `pixi run <run options>` from the repository root.
+
+The workflow is preconfigured to run on a small test dataset, so you can try it
+out directly by running:
+
+```bash
+pixi run all -n
+```
+
+Here `all` is the name of a task which triggers snakemake to run the entire
+workflow from start to finish. The `-n` flag means that a 'dry-run' is performed
+which will give you a summary of jobs without actually doing anything.
+
+You will see that pixi installs the required software such as `snakemake`,
+`biopython` *etc.* as well as a number of other dependencies. You will then get
+a summary of the jobs that would be run.
 
 ### Configuration profiles
 
