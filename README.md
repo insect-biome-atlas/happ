@@ -1,3 +1,5 @@
+[![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
+
 # ASV-clustering
 
 ## Overview
@@ -19,23 +21,42 @@ for each run.
 
 ## Requirements
 
-- Linux system
-- [pixi](https://prefix.dev/) software manager
+This workflow was developed for a Linux system. The easiest way to get set up
+is to use the [pixi](https://pixi.sh/latest/) package manager to handle all 
+software requirements.
 
 ## Installing
 
-Clone the repository and change into the directory:
+1. Clone the repository and change into the directory:
 
 ```bash
 git clone git@github.com:johnne/ASV-clustering.git
 cd ASV-clustering
 ```
 
-If you don't have [pixi](https://prefix.dev/) installed, install it by running:
+2. Install pixi
 
-```bash
-curl -fsSL https://pixi.sh/install.sh | bash
-```
+If you don't have [pixi](https://pixi.sh/) installed, follow the
+[instructions](https://pixi.sh/latest/#installation) to install it on your
+system. Once pixi is installed you're ready to start using the workflow.
+
+## Running the workflow
+
+This workflow was written in [Snakemake](https://snakemake.readthedocs.io/en/stable/index.html)
+
+### Configuration profiles
+
+The workflow comes with three different configuration profiles. These profiles set a number of 
+
+| Profile name | Description | Command line flag |
+| ------------ | ----------- | ----------------- |
+| local | for running the workflow locally on your own computer | `--profile local` |
+| dardel | for running on the high performance computing system [Dardel](https://www.pdc.kth.se/hpc-services/computing-systems/about-the-dardel-hpc-system-1.1053338)
+
+1. `local` 
+
+3. `slurm` which is a general purpose profile for running on HPC systems other than Dardel
+
 
 ## Quickstart
 
@@ -45,9 +66,12 @@ To try the workflow on a small test dataset, simply run:
 pixi run local
 ```
 
-## Detailed instructions
+## Configuration
 
-The workflow is configured using the file [config/config.yml](config/config.yml). To modify the workflow behaviour simply change settings directly in this file.
+The workflow is configured using the file
+[config/config.yml](config/config.yml). To modify the workflow behaviour simply
+change settings directly in this file, or copy it and make your changes in the
+copy.
 
 The configurable parameters in the config file are explained below.
 
