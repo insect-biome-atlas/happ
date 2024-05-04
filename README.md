@@ -4,7 +4,29 @@
 
 ## Overview
 
-This repository contains a Snakemake workflow for clustering Amplicon Sequence Variants (ASVs). Currently the following tools are supported:
+```mermaid
+%%{init: 
+{
+  "theme": "default",
+  "themeVariables": {
+    "nodeBorder" : "#077773",
+    "mainBkg" : "#dcf0ff00",
+ }
+}
+}%%
+flowchart LR
+    markdown[("ASV sequences
+    ASV counts
+    ASV taxonomy")] --> D(Chimera filter)
+    D --> E(Clustering)
+    E --> F(Numts removal)
+    F --> G[ASV clusters]
+```
+
+This repository contains a Snakemake workflow to filter and cluster Amplicon
+Sequence Variants (ASVs). 
+
+Currently the following clustering tools are supported:
 
 | Software  | Reference                                                                                      | Code                                                                    |
 |-----------|------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
@@ -41,16 +63,6 @@ If you don't have [pixi](https://pixi.sh/) installed, follow the
 system. Once pixi is installed you're ready to start using the workflow.
 
 ## Running the workflow
-
-```mermaid
-flowchart LR
-    A[ASV sequences] --> D(Chimera filter)
-    B[ASV counts] -->D
-    C[ASV taxonomy] -->D
-    D --> E(Clustering)
-    E --> F(Numts removal)
-    F --> G[ASV clusters]
-```
 
 This workflow was written in
 [Snakemake](https://snakemake.readthedocs.io/en/stable/index.html) but is
