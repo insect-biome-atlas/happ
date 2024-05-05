@@ -71,7 +71,7 @@ localrules:
     write_asv_reps,
     sum_cluster_counts,
     write_settings,
-    consensus_taxonomy,
+    collate_consensus_taxonomy,
 
 
 def cluster_files(wildcards):
@@ -215,6 +215,20 @@ rule evaluate:
             orderdf = pd.concat([orderdf, _df])
         orderdf.to_csv(output.ordertsv[0], sep="\t")
 
+rule clustering:
+    input:
+        expand(
+            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_{suff}",
+            tool=config["software"],
+            rundir=config["rundir"],
+            chimdir=config["chimdir"],
+            chimera_run=config["chimera"]["run_name"],
+            rank=config["split_rank"],
+            run_name=config["run_name"],
+            suff=["taxonomy.tsv", "reps.fasta", "counts.tsv", "consensus_taxonomy.tsv"],
+        ),
+        rules.evaluate.output
+
 rule write_settings:
     output:
         json="results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.json",
@@ -352,25 +366,36 @@ rule merge_rep_files:
         shell("cat {input.fasta} > {output.fasta}")
 
 rule consensus_taxonomy:
+    """
+    Calculates the consensus taxonomy for each cluster per split rank
+    """
     output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_consensus_taxonomy.tsv",
     input:
-        total_counts=expand("results/common/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/total_counts.tsv",
-            tax = taxa),
-        clustfile=rules.merge_rep_files.output.taxinfo,
+        clustfile=rules.write_asv_reps.output.taxinfo,
+        countsfile=rules.filter_seqs.output.total_counts,
     log:
-        "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/consensus_taxonomy.log",
+        "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/consensus_taxonomy.log",
     params:
         ranks = config["ranks"],
         cons_ranks = config["consensus_ranks"],
         thresh = config["consensus_threshold"],
-        tmpdir = "$TMPDIR/{tool}.{rundir}.{chimera_run}.{chimdir}.{rank}.{run_name}.consensus_taxonomy"
+    group: "consensus_taxonomy"
     shell:
         """
-        mkdir -p {params.tmpdir}
-        cat {input.total_counts} | egrep -v '^Representative_Sequence' > {params.tmpdir}/total_counts.tsv
-        python workflow/scripts/consensus_taxonomy.py --countsfile {params.tmpdir}/total_counts.tsv \
+        python workflow/scripts/consensus_taxonomy.py --countsfile {input.countsfile} \
             --clustfile {input.clustfile} --ranks {params.ranks} --consensus_ranks {params.cons_ranks} \
             --consensus_threshold {params.thresh} > {output} 2>{log}
-        rm -rf {params.tmpdir}
         """
+
+rule collate_consensus_taxonomy:
+    output:
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv",
+    input:
+        expand("results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/cluster_consensus_taxonomy.tsv",
+            tax = taxa)
+    log:
+        "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/consensus_taxonomy.log",
+    run:
+        df = merge_dataframes(input)
+        df.to_csv(output[0], sep="\t")
