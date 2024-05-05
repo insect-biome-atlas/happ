@@ -3,11 +3,10 @@ import os
 
 
 localrules:
-    chimera_samplewise,
     add_sums,
     nonchimeric_taxa,
+    nonchimeric_orders,
     append_size,
-    split_counts,
     filter_samplewise_chimeras,
     filter_batchwise_chimeras,
 
@@ -48,7 +47,7 @@ rule chimera_filtering:
             chimera_run=config["chimera"]["run_name"],
             method=config["chimera"]["method"],
             algo=config["chimera"]["algorithm"],
-            f=["nonchimeras.fasta", "chimeras.fasta", f"{config['split_rank']}.txt"],
+            f=["nonchimeras.fasta", "chimeras.fasta", "orders.txt", f"{config['split_rank']}.txt"],
         ),
         expand(
             "results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.{suff}",
@@ -124,6 +123,7 @@ rule nonchimeric_orders:
     params:
         ranks = config["ranks"]
     run:
+        ranks = params.ranks
         # case-insensitive search for 'order' in ranks
         rank = ranks[[x.lower() for x in ranks].index("order")]
         filter_nonchimeric_taxa(taxfile=input.taxfile[0], nonchimeras=input.nonchimeras[0], rank=rank, output=output[0])
@@ -140,7 +140,6 @@ rule sum_asvs:
         "logs/sum_asvs/{rundir}.log",
     resources:
         runtime=60,
-        mem_mb=mem_allowed,
     threads: 10
     params:
         src="workflow/scripts/sum_counts.py",
@@ -184,7 +183,7 @@ rule add_sums:
     Adds size annotation to fasta headers for samplewise mode
     """
     output:
-        fasta="data/{rundir}/samplewise/{sample}.fasta",
+        fasta=temp("data/{rundir}/samplewise/{sample}.fasta"),
     input:
         sums="data/{rundir}/samplewise/{sample}.sum.tsv",
         fasta="data/{rundir}/asv_seqs.fasta",
@@ -226,7 +225,6 @@ rule chimera_batchwise:
     threads: 1
     resources:
         runtime=60 * 24,
-        mem_mb=mem_allowed,
     params:
         algorithm="--{algo}",
         abskew=get_abskew,
@@ -249,10 +247,10 @@ rule chimera_batchwise:
 
 rule split_counts:
     output:
-        expand(
+        temp(expand(
             "data/{{rundir}}/samplewise/{sample}.sum.tsv",
             sample=samples,
-        ),
+        )),
     input:
         counts="data/{rundir}/asv_counts.tsv",
     log:
@@ -266,7 +264,7 @@ rule split_counts:
         exec &> {log}
         mkdir -p {params.tmpdir}
         cp {input.counts} {params.tmpdir}/counts.tsv
-        python {params.src} {params.tmpdir}/counts.tsv {params.tmpdir}
+        python {params.src} {params.tmpdir}/counts.tsv {params.tmpdir} >{log} 2>&1
         rm {params.tmpdir}/counts.tsv
         mv {params.tmpdir}/* {params.outdir}
         rm -rf {params.tmpdir}
@@ -292,7 +290,6 @@ rule chimera_samplewise:
     threads: 4
     resources:
         runtime=60 * 4,
-        mem_mb=mem_allowed,
     params:
         tmpdir="$TMPDIR/{rundir}.{algo}.{sample}.chim",
         outdir=lambda wildcards, output: os.path.dirname(output.chim),
