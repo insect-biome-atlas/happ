@@ -4,25 +4,6 @@
 
 ## Overview
 
-```mermaid
-%%{init: 
-{
-  "theme": "default",
-  "themeVariables": {
-    "nodeBorder" : "#077773",
-    "mainBkg" : "#dcf0ff00",
- }
-}
-}%%
-flowchart LR
-    markdown[("ASV sequences
-    ASV counts
-    ASV taxonomy")] --> D(Chimera filter)
-    D --> E(Clustering)
-    E --> F(Numts removal)
-    F --> G[ASV clusters]
-```
-
 This repository contains a Snakemake workflow to filter and cluster Amplicon
 Sequence Variants (ASVs). 
 
@@ -66,8 +47,30 @@ system. Once pixi is installed you're ready to start using the workflow.
 
 This workflow was written in
 [Snakemake](https://snakemake.readthedocs.io/en/stable/index.html) but is
-executed using pixi via the `pixi.toml` file in the root of the repository. Thus
-you start the workflow with `pixi run <run options>` from the repository root.
+executed using pixi via the `pixi.toml` file in the root of the repository. The
+basic commandline syntax for running the workflow is:
+
+```bash
+pixi run <task> --configfile <path-to-your-config-file> <additional snakemake options>
+```
+
+The `tasks` configured in the `pixi.toml` file are:
+
+- `chimera_filtering`: identifies and removes chimeras in the ASV dataset
+- `clustering`: clusters the ASVs using the tools specified in the configuration file
+- `numts_filtering`: identifies and removes ASV clusters that are likely to derive from Nuclear mitochondrial DNA (NUMTs)
+- `all`: runs all the steps above
+
+The config file should be a file in YAML-format specifying various parameters,
+most importantly the path to your input dataset. Read more about how to
+configure the workflow under [Configuration](#configuration).
+
+The additional options are any [command line
+options](https://snakemake.readthedocs.io/en/stable/executing/cli.html#all-options)
+recognized by Snakemake. The most important options are already pre-configured
+in the [Configuration profiles](#configuration-profiles).
+
+### Basic usage
 
 The workflow is preconfigured to run on a small test dataset, so you can try it
 out directly by running:
@@ -77,41 +80,61 @@ pixi run all -n
 ```
 
 Here `all` is the name of a task which triggers snakemake to run the entire
-workflow from start to finish. The `-n` flag means that a 'dry-run' is performed
-which will give you a summary of jobs without actually doing anything.
+workflow from start to finish. The `-n` option is passed to Snakemake and means
+that a 'dry-run' is performed which will give you a summary of jobs without
+doing anything. Remove the `-n` flag to actually run the steps.
 
 You will see that pixi installs the required software such as `snakemake`,
 `biopython` *etc.* as well as a number of other dependencies. You will then get
 a summary of the jobs that would be run.
 
-### Configuration profiles
-
-The workflow comes with three different configuration profiles. These profiles set a number of 
-
-| Profile name | Description | Command line flag |
-| ------------ | ----------- | ----------------- |
-| local | for running the workflow locally on your own computer | `--profile local` |
-| dardel | for running on the high performance computing system [Dardel](https://www.pdc.kth.se/hpc-services/computing-systems/about-the-dardel-hpc-system-1.1053338)
-
-1. `local` 
-
-3. `slurm` which is a general purpose profile for running on HPC systems other than Dardel
-
-
-## Quickstart
-
-To try the workflow on a small test dataset, simply run:
+Similarly, to get a summary of steps in the first `chimera_filtering` part of
+the workflow run:
 
 ```bash
-pixi run local
+pixi run chimera_filtering -n
 ```
+
+And for the `clustering` part:
+
+```bash
+pixi run clustering -n
+```
+
+And finally, for the `numts_filtering` part:
+
+```bash
+pixi run numts_filtering -n
+```
+
+The `clustering` part depends on output from the `chimera_filtering`, and
+`numts_filtering` depends on output from `clustering`. Snakemake keeps track of
+which steps need to be run, so you can in principle run the complete workflow in
+one go with `pixi run all`. **However**, we highly recommend that you run each
+step in succession, starting with `chimera_filtering`, then `clustering` and
+finally `numts_filtering`. Not only does this give you a chance to inspect the
+intermediate output, but also it allows the workflow to update the list of taxa
+to process in subsequent steps.
+
+### Configuration profiles
+
+The workflow comes with three different configuration profiles. These profiles
+set a number of command line options for Snakemake and define resource usage for
+jobs. These can be used by adding `--profile <profile name>` to the commandline.
+
+| Profile name | Description | Command line option |
+| ------------ | ----------- | ------------------- |
+| local | for running the workflow locally on your own computer | `--profile local` |
+| dardel | for running on the high performance computing system [Dardel](https://www.pdc.kth.se/hpc-services/computing-systems/about-the-dardel-hpc-system-1.1053338) | `--profile dardel` |
+| slurm | a general purpose profile for running on HPC systems other than Dardel | `--profile slurm` |
 
 ## Configuration
 
-The workflow is configured using the file
-[config/config.yml](config/config.yml). To modify the workflow behaviour simply
-change settings directly in this file, or copy it and make your changes in the
-copy.
+The workflow can be configured using a configuration file in YAML format and
+supplying it on the command line with `--configfile <path-to-your-configfile>`.
+A default config file is available at [config/config.yml](config/config.yml).
+It's recommended that you copy this file and make your changes in the copy, then
+pass it on the command line.
 
 The configurable parameters in the config file are explained below.
 
@@ -127,6 +150,12 @@ The `run_name` parameter designates a name of the workflow run and can be used
 to separate runs with different parameters of the clustering tools. This allows
 you to try different settings of the clustering tools without having to rerun
 the entire workflow from start to finish.
+
+> [!IMPORTANT]
+>
+>The top-level `run_name` parameter setting is tightly linked to the `run_name` 
+>config parameter under `chimera`. If you change the chimera filtering settings, 
+> be sure to also update the chimera `run_name`.
 
 The `split_rank` parameter is used to split the input ASVs by a taxonomic rank
 prior to clustering. For example, setting `split_rank: "Family"` (the default)
