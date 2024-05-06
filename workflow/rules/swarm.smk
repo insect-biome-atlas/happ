@@ -67,7 +67,6 @@ rule run_swarm:
         "../envs/swarm.yml"
     resources:
         runtime=60 * 24,
-        mem_mb=mem_allowed,
     shell:
         """
         exec &>{log}
