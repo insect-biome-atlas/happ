@@ -29,10 +29,7 @@ rule run_dbotu3:
         memb="$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/dbotu3.clusters.tsv",
     conda:
         "../envs/dbotu3.yml"
-    resources:
-        runtime=lambda wildcards: 60 * 24 * 7 if wildcards.tax in ["unclassified","Chironomidae"] else 60*24,
-        mem_mb=mem_allowed,
-    threads: lambda wildcards: 4 if wildcards.tax in ["unclassified","Chironomidae"] else 1,
+    threads: 4
     shell:
         """
         mkdir -p {params.tmpdir}
