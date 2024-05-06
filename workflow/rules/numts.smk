@@ -99,7 +99,6 @@ rule mafft_align:
     conda: "../envs/mafft.yml"
     resources:
         runtime = 60 * 2,
-        mem_mb = mem_allowed,
     threads: 4
     shell:
         "mafft --auto --thread {threads} {input} > {output} 2>{log}"
@@ -122,7 +121,6 @@ rule pal2nal:
     threads: 1
     resources:
         runtime = 60 * 2,
-        mem_mb = mem_allowed,
     shell:
         """
         pal2nal.pl {input.pep} {input.nuc} -output fasta -codontable {params.table} > {output} 2>{log}
@@ -140,6 +138,8 @@ if os.path.exists(config["numts"]["spikein_file"]):
             taxonomy_file = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
             counts_file = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_counts.tsv",
             spikein_file = config["numts"]["spikein_file"]
+        log:
+            "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/id_spikeins.log"
         params:
             method = config["numts"]["spikein_method"],
         conda: "../envs/r-env.yml"
@@ -166,13 +166,13 @@ rule combined_filter:
         spikeins = rules.id_spikeins.output,
     log:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_combined_filter.log"
-    threads: lambda wildcards: 20 if wildcards.order in config["numts"]["large_orders"] else 1
+    threads: 1
     resources:
-        runtime = 60*24, #lambda wildcards: 60 * 24 if wildcards.order in ["unclassified", "Diptera", "Hymenoptera"] else 60 * 4,
-        mem_mb = mem_allowed,
+        runtime = 60*24,
+        mem_mb = lambda wildcards: 128000 if wildcards.order in config["numts"]["large_orders"] else 32000
     params:
-        functions="../workflow/scripts/numt_filtering/functions.R",
-        codon_model="../workflow/scripts/numt_filtering/codon_model.R",
+        functions="workflow/scripts/numt_filtering/functions.R",
+        codon_model="workflow/scripts/numt_filtering/codon_model.R",
         n_closest=config["numts"]["n_closest"]
     conda: "../envs/r-env.yml"
     script: "../scripts/numt_filtering/combined_filter.R"    
@@ -189,7 +189,7 @@ rule abundance_filter:
     log:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_abundance_filter.log"
     params:
-        functions="../workflow/scripts/numt_filtering/functions.R",
+        functions="workflow/scripts/numt_filtering/functions.R",
     conda: "../envs/r-env.yml"
     script: "../scripts/numt_filtering/abundance_filter.R"
 
@@ -203,7 +203,7 @@ rule generate_cluster_analysis:
     log:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_generate_cluster_analysis.log"
     params:
-        functions = "../workflow/scripts/numt_filtering/functions.R",
+        functions = "workflow/scripts/numt_filtering/functions.R",
     conda: "../envs/r-env.yml"
     script: "../scripts/numt_filtering/generate_cluster_analysis.R"
 
@@ -218,7 +218,7 @@ rule evaluate_order:
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     params:
         trusted=config["numts"]["non_numt_ASVs"],
-        functions="../workflow/scripts/numt_filtering/functions.R",
+        functions="workflow/scripts/numt_filtering/functions.R",
     log:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_evaluate_order.log"
     conda: "../envs/r-env.yml"
@@ -271,7 +271,7 @@ rule precision_recall_numts:
     log:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
     params:
-        src="workflow/scripts/evaluate_clusters.py",
+        src="../scripts/evaluate_clusters.py",
         eval_rank=config["evaluation_rank"],
     shell:
         """
