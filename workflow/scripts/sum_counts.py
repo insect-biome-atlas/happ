@@ -8,9 +8,11 @@ import sys
 
 
 def main(args):
+    r = pd.read_csv(args.infile, sep="\t", nrows=1, index_col=0)
+    index_name = r.index.name
     df = pl.read_csv(args.infile, has_header=True, separator="\t")
     asv_tot = df.select(pl.col(pl.Int64)).sum(axis=1)
-    x = df.select("ASV_ID").to_series()
+    x = df.select(index_name).to_series()
     asvs = [x[i] for i in range(0, x.shape[0])]
     asv_summed = pd.DataFrame(
         {"ASV_ID": asvs, "Sum": [asv_tot[i] for i in range(0, asv_tot.shape[0])]}
