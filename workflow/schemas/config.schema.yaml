@@ -8,9 +8,11 @@ properties:
   run_name:
     type: string
     description: "Specify a name of the run. Using different run_name you can run clustering with different parameters using the same vsearch output"
+    default: "run1"
   rundir:
     type: string
     description: "name of input directories, each should contain a 'asv_counts.tsv', a 'asv_seqs.fasta' file and a 'asv_taxa.tsv' file"
+    default: "test"
   split_rank:
     type: string
     description: "rank at which to split input file prior to clustering"
@@ -34,11 +36,6 @@ properties:
     default: 80
     minimum: 0.0
     maximum: 100
-  rep_method:
-    type: string
-    description: "method to calculate representative for clusters"
-    default: "median"
-    enum: ["median", "mean", "sum"]
   evaluation_rank:
     type: string
     description: "rank at which to evaluate clusters"
@@ -54,10 +51,10 @@ properties:
   swarm:
     type: object
     default:
-      differences: 1
+      differences: 13
       no-otu-breaking: False
-      fastidious: True
-      boundary: 3
+      fastidious: False
+      boundary: 0
       threads: 10
       match-reward: 5
       mismatch-penalty: 4
@@ -83,7 +80,7 @@ properties:
       differences:
         type: integer
         description: "maximum number of differences allowed between two amplicons"
-        default: 1
+        default: 13
       no-otu-breaking:
         type: boolean
         description: "when working with d = 1, deactivate the built-in cluster refinement (not recommended)"
@@ -91,11 +88,11 @@ properties:
       fastidious:
         type: boolean
         description: "when working with d = 1, perform a second clustering pass to reduce the number of small clusters (recommended option)."
-        default: True
+        default: False
       boundary:
         type: integer
         description: "when using the option --fastidious (-f), define the minimum abundance of what should be considered a large cluster"
-        default: 3
+        default: 0
       threads:
         type: integer
         description: "number of threads to use for swarm"
@@ -125,7 +122,7 @@ properties:
     default:
       aligner: "vsearch"
       delta: 0.0001
-      cutoff: 0.03
+      cutoff: 0.05
       initialize: "singleton"
       precision: 1000
       threads: 10
@@ -217,7 +214,7 @@ properties:
       spikein_file: ""
       spikein_method: "BOLD_bin"
       large_orders: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "Diptera"]
-      skip_orders: ["unclassified"]
+      filter_unclassified_rank: "Order"
     properties:
       n_closest:
         type: integer
