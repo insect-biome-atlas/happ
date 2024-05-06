@@ -10,7 +10,7 @@ rundir: "test"
 # runs with specific parameters of the clustering tools. 
 # With different run_name parameters on the same rundir you can cluster the ASVs
 # while automatically using the same alignment output (from vsearch).
-run_name: "default"
+run_name: "run1"
 # With the split_rank parameter you can split the ASVs by a certain taxonomic rank
 # prior to alignment and clustering, which parallellizes the workflow and can help
 # speed things up on large datasets. 
@@ -26,6 +26,10 @@ ranks:
   - "Genus"
   - "Species"
   - "BOLD_bin"
+
+###############################
+##### TAXONOMY PARAMETERS #####
+###############################
 # The evaluation rank parameter specifies what taxonomic rank to use for evaluating
 # the clustering results. This rank should correspond to the taxonomic rank that
 # you expect the clustering to represent, e.g. if you expect the clustering to
@@ -43,6 +47,9 @@ consensus_ranks:
 # be attempted to be resolved at Genus level etc.
 consensus_threshold: 80
 
+########################################
+##### CHIMERA FILTERING PARAMETERS #####
+########################################
 chimera:
   run_name: "chimera1"
   # Should chimera detection and removal be performed on the input data?
@@ -105,7 +112,7 @@ opticlust:
   # 'vsearch' or 'mothur'
   aligner: "vsearch"
   delta: 0.0001
-  cutoff: 0.03
+  cutoff: 0.05
   initialize: "singleton"
   precision: 1000
   threads: 10
