@@ -9,9 +9,7 @@ source(functions)
 ## INPUT
 taxfile <- snakemake@input$taxonomy
 countsfile <- snakemake@input$counts
-
-## PARAMS
-consensus_taxfile <- snakemake@params$consensus_taxonomy
+consensus_taxfile <- snakemake@input$consensus_taxonomy
 
 ## OUTPUT
 outfile <- snakemake@output$tsv
