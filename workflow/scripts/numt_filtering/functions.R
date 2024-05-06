@@ -182,7 +182,6 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
   for (i in 2:nrow(counts)) {    
     # Find cluster name
     cluster <- counts$cluster[i]
-
     # Find sequence
     s1 <- seqs$seq[[which(sequence_names==cluster)]]
 
@@ -512,31 +511,28 @@ complementing_data <- function(order_name, taxfile, consensus_taxfile, countsfil
     # on the order clusters
     F <- read.table(taxfile,header=TRUE,sep="\t") # taxonomy
     order_clusters <- F[F$Order==order_name & F$representative==1,]
+    # Add data on resolved cluster taxonomy
+    G <- read.table(consensus_taxfile,header=TRUE,sep="\t")
+    order_clusters <- merge(order_clusters, G[, c("cluster","Family","Genus","Species","BOLD_bin")], by="cluster", suffixes = c("","_resolved"), all.x=TRUE)
 
-    if (consensus_taxfile != "") {
-      # Add data on resolved cluster taxonomy
-      G <- read.table(consensus_taxfile,header=TRUE,sep="\t")
-      order_clusters <- merge(order_clusters, G[, c("cluster","Family","Genus","Species","BOLD_bin")], by="cluster", suffixes = c("","_resolved"), all.x=TRUE)
+    # Assume that the original species identification is correct for the representative ASV in the cases where the
+    # cluster was filtered out before the name resolution in version 1 of the pipeline. And that the resolved species
+    # identification is correct for the remaining ones
+    order_clusters$Species_updated <- order_clusters$Species_resolved
+    for (i in 1:nrow(order_clusters)) {
+      if (is.na(order_clusters$Species_updated[i]))
+        order_clusters$Species_updated[i] <- order_clusters$Species[i]
+    }
 
-      # Assume that the original species identification is correct for the representative ASV in the cases where the
-      # cluster was filtered out before the name resolution in version 1 of the pipeline. And that the resolved species
-      # identification is correct for the remaining ones
-      order_clusters$Species_updated <- order_clusters$Species_resolved
-      for (i in 1:nrow(order_clusters)) {
-        if (is.na(order_clusters$Species_updated[i]))
-          order_clusters$Species_updated[i] <- order_clusters$Species[i]
-      }
+  # Get total number of reads for the clusters
+  cat("Reading cluster counts\n")
+  D <- fread(countsfile, check.names=FALSE, nThread=threads, 
+              sep="\t", header=TRUE, data.table=FALSE, )
+  cat(paste0("Subsetting to clusters in", order_name, "\n"))
+  rownames(D) <- D$cluster
+  D <- D[order_clusters$cluster,2:ncol(D)]
 
-    # Get total number of reads for the clusters
-    cat("Reading cluster counts\n")
-    D <- fread(countsfile, check.names=FALSE, nThread=threads, 
-                sep="\t", header=TRUE, data.table=FALSE, )
-    cat(paste0("Subsetting to clusters in", order_name, "\n"))
-    rownames(D) <- D$cluster
-    D <- D[order_clusters$cluster,2:ncol(D)]
-
-    order_clusters$n_reads <- rowSums(D)
-    order_clusters$n_samples <- apply(D[,2:ncol(D)] > 0, 1, sum)
-    write.table(order_clusters, outfile, sep="\t", row.names=FALSE, quote=FALSE)
-}
+  order_clusters$n_reads <- rowSums(D)
+  order_clusters$n_samples <- apply(D[,2:ncol(D)] > 0, 1, sum)
+  write.table(order_clusters, outfile, sep="\t", row.names=FALSE, quote=FALSE)
 }
