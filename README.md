@@ -130,11 +130,10 @@ jobs. These can be used by adding `--profile <profile name>` to the commandline.
 
 ## Configuration
 
-The workflow can be configured using a configuration file in YAML format and
-supplying it on the command line with `--configfile <path-to-your-configfile>`.
+The workflow can be configured using a configuration file in YAML format.
 A default config file is available at [config/config.yml](config/config.yml).
 It's recommended that you copy this file and make your changes in the copy, then
-pass it on the command line.
+pass it on the command line with `--configfile <path-to-your-configfile>`.
 
 The configurable parameters in the config file are explained below.
 
@@ -168,6 +167,8 @@ file, and will list the taxa in the file `data/{rundir}/{split_rank}.txt`.
 The `ranks` parameter lists the ranks given in the `asv_taxonomy.tsv` file and
 determines the columns reported in the `cluster_consensus_taxonomy.tsv` results
 file.
+
+### Taxonomic parameters
 
 The `evaluation_rank` parameter specifies a taxonomic rank in the
 `asv_taxonomy.tsv` which will be considered as "ground truth" when calculating
@@ -216,7 +217,7 @@ Species level and the cluster taxonomy would have been:
 |---------|--------|-------|---------|
 | Cluster1 | Tenthredinidae | Pristiphora | Pristiphora cincta |
 
-### Chimera detection
+### Chimera filtering parameters
 
 > [!IMPORTANT] 
 >
@@ -259,7 +260,7 @@ chimera:
   minh: 0.28
 ```
 
-The `run_name` parameter works in a similar manner as the base level `run_name`
+The `run_name` parameter works in a similar manner as the top level `run_name`
 and allows you to define different runs of the chimera filtering. A fasta file
 with non-chimeric sequences will be produced under
 `results/chimera/<rundir>/filterred/<run_name>/<method>.<algorithm>/nonchimeras.fasta`. 
@@ -277,7 +278,7 @@ The `algorithm` parameter can be either `uchime_denovo`, `uchime2_denovo` or
 sequence and a chimeric model, whereas 'uchime_denovo' does not.
 
 The `min_samples_shared` parameter is specific to the batchwise mode and
-specifies the number of  samples in which chimeric ASVs have to be present with
+specifies the number of samples in which chimeric ASVs have to be present with
 their 'parents' (see Uchime
 [docs](https://drive5.com/usearch/manual/chimeras.html)) in ordered to be marked
 as chimeric.
@@ -305,10 +306,19 @@ threshold is by default set to 2.0 for the 'uchime_denovo' and 'uchime2_denovo'
 algorithms and to 16.0 for 'uchime3_denovo'. However, this value can be overridden
 by explicitly setting `abskew` in the config file under `chimera:`.
 
-### Aligning
+### Clustering tools
+
+The workflow can be configured to run one or more ASV clustering tools. The `software` parameter takes a list of supported tool names: `swarm`, `opticlust` and `dbotu3` currently.
+
+### Tool-specific parameters
+
+Below are specific parameters for tools used in the workflow.
+
+#### vsearch
 
 Pairwise identities between ASVs are obtained by running vsearch with the
-`usearch_global` setting. The `vsearch` config entry determines the behaviour of this step.
+`usearch_global` setting. This is used as input by `opticlust` for clustering
+ASVs.
 
 The `threads` parameter specifies how many threads to use for the vsearch alignment.
 
@@ -320,16 +330,6 @@ setting of `1` means that identity is calculated as `(matching columns) /(alignm
 The `query_cov` parameter sets the minimum aligned fraction of the query
 sequence. The default setting of `0.9` means that alignments are rejected if
 this fraction is less than 905.
-
-### ASV clustering
-
-The workflow can be configured to run one or more ASV clustering tools. The `software` parameter takes a list of supported tool names: `swarm`, `opticlust` and `dbotu3` currently.
-
-- opticlust
-- swarm
-- dbotu3
-
-Below are descriptions of the configurable tool-specific parameters.
 
 #### Opticlust
 
@@ -353,8 +353,7 @@ The `aligner` parameter specifies whether to use `vsearch` (default) or the
 built-in aligner in `mothur` for generating pairwise identities. Note that the
 latter has not been tested for this workflow.
 
-The `delta` parameter sets the stable value for the metric in opticlust Default
-delta=0.0001. 
+The `delta` parameter sets the stable value for the metric in opticlust.
 
 The `cutoff` parameter controls at what similarity threshold clusters are
 generated. 
@@ -398,7 +397,6 @@ The parameters `match-reward`, `mismatch-penalty`, `gap-opening-penalty` and
 `gap-extension-penalty` allows control of Swarms advanced Pairwise alignment
 options.
 
-
 #### dbotu3
 
 dbotu3 uses both sequences and their distribution across samples to cluster ASVs
@@ -418,52 +416,138 @@ The `pval` parameter sets the minimum p-value for merging ASVs.
 
 ### Workflow output
 
-The final output of the workflow is placed in subdirectories for each tool used. The path to the results is determined by your configuration settings and follows the generalized pattern:
+The final output of the workflow is placed in subdirectories for each tool used. The path to the results is determined by your configuration settings.
 
-`results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/`
+Below are some examples of output obtained using the default [config/config.yml](config/config.yml).
 
-where 
+**Chimera filtering output**
 
-- `tool` can be `swarm`, `opticlust` or `dbotu3`
-- `rundir` corresponds to the config parameter with the same name
-- `chimera_run` is the `run_name` config parameter nested under the `chimera` config entry
-- `chimdir` is a combination of the `method` ('samplewise' or 'batchwise') and `algorithm` config parameter
-- `rank` is the config setting for `split_rank`
-- `run_name` is the top-level config parameter with the same name
-
-As an example, with the following config settings:
+The default config file has the following settings for input and chimera filtering:
 
 ```yaml
-rundir: "project1"
+rundir: "test"
 run_name: "run1"
 split_rank: "Family"
-software: ["swarm", "opticlust"]
 chimera:
-  run_name: "sw.strict"
+  run_name: "chimera1"
   method: "samplewise"
   algorithm: "uchime_denovo"
 ```
 
-there would be results created under:
+Running the following on the command line:
 
-`results/swarm/project1/sw.strict/samplewise.uchime_denovo/Family/runs/run1/`
+```bash
+pixi run chimera_filtering --configfile config/config.yml
+```
+
+would result in
+
+```
+results/chimera/test/filtered/chimera1/samplewise.uchime_denovo/
+├── nonchimeras.fasta # ASV sequences identified as non-chimeric (used in clustering)
+├── Family.txt # List of families remaining after chimera filtering (used in clustering)
+├── orders.txt # List of orders remaining after chimera filtering (used in numts filtering)
+└── chimeras.fasta # ASV sequences identified as chimeric
+```
+
+So here the output follows the generalized pattern:
+
+```
+results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algorithm}/
+```
+
+where 
+
+- `rundir` corresponds to the config parameter with the same name
+- `chimera_run` is the `run_name` config parameter nested under the `chimera` config entry
+- `method` is the method ('samplewise' or 'batchwise') chimera config parameter
+- `algorithm` is the vsearch algorith used (`uchime_denovo`, `uchime2_denovo` or `uchime3_denovo`)
+
+
+**Clustering output**
+
+The `nonchimeras.fasta` file generated in the chimera filtering is passed on to
+the clustering tools defined in the config file. The default config file has
+
+```yaml
+software:
+  - "swarm"
+```
+
+which means that only swarm will be run on the chimera-filtered sequences.
+
+Running:
+
+```bash
+pixi run clustering --configfile config/config.yml
+```
+
+would result in the following:
+
+```
+results/swarm/test/chimera1/samplewise.uchime_denovo/Family/runs/run1/
+├── cluster_taxonomy.tsv
+├── cluster_reps.fasta
+├── cluster_counts.tsv
+├── cluster_consensus_taxonomy.tsv
+├── precision_recall.txt
+└── precision_recall.order.txt
+```
+
+where
+
+**cluster_taxonomy.tsv** is a tab-separated file of all non-chimeric ASVs (rows) with the following columns:
+
+| column name | description |
+| ----------- | ----------- |
+| ASV         | ASV id      |
+| cluster     | name of the cluster that the ASV belongs to |
+| median      | the median relative abundance of the ASV in the dataset |
+| mean        | the mean relative abundance of the ASV in the dataset |
+| sum         | the summed relative abundance of the ASV in the dataset |
+| rank1...rankN | columns matching the ranks supplied in the input `asv_taxa.tsv` file |
+| representative | 1 if the ASV was selected as representative of the cluster, otherwise 0
+
+The `cluster` name is prefixed with the corresponding taxonomic label assigned
+to the `split_rank` rank used. So with the default config which has `split_rank:
+Family` the clusters would be prefixed with the assigned Family name of the ASV.
+
+**cluster_reps.fasta** is a fasta file of sequences for all representative ASVs,
+the headers contain both the ASV id and the corresponding cluster name.
+
+**cluster_counts.tsv** is a tab-separated file with the abundance of clusters
+(rows) in samples (columns) obtained by summing the counts of all ASVs contained
+in each cluster.
+
+**cluster_consensus_taxonomy.tsv** is a tab-separated file where the taxonomy of
+clusters have been resolved using a consensus approach (described above) that
+takes into account the taxonomic assignments of all ASVs within a cluster.
+
+**precision_recall.txt** is a text file containing statistics on the clustering.
+This file shows how well the clustering output corresponds to the level of
+taxonomy specified by the `evaluation_rank` in the config file. In the default
+config file, `evaluation_rank` is set to 'Species' which means that the
+statistics will show how the generated clusters correspond to species level
+assignments. For the purpose of this evaluation, only ASVs classified with
+unambiguous assignments at `evaluation_rank` are used. The statistics shown are:
+
+| statistic | description |
+| --------- | ----------- |
+| Total clusters | Number of total clusters evaluated (after removing unclassified and ambiguous assignments) |
+| Total number of `<evaluation_rank>` | Number of unique taxonomic labels at the level of `evaluation_rank` |
+| Total positives | Total number of pairwise ASV comparisons analysed | 
+| True positives | Number of times two compared ASVs from the same `evaluation_rank` were found in *the same* cluster |
+| False positives | Number of times two compared ASVs from the same `evaluation_rank` were found in *different* clusters |
+| False negatives | Number of times two compared ASVs from *different* `evaluation_rank` were found in the same cluster |
+| precision | A measure of how often clusters contain only one unique `evaluation_rank` |
+| recall | A measure of how often ASVs from the same `evaluation_rank` are placed in the same cluster |
+| homogeneity/completeness | These values are calculated using the [homogeneity_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.homogeneity_score.html) and [completeness_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.completeness_score.html) in `scikit-learn`. They mean essentially the same thing as precision/recall but are not as fine-grained on the clustering output.
+`results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/`
 
 and
 
 `results/opticlust/project1/sw.strict/samplewise.uchime_denovo/Family/runs/run1/`
 
-The following files are created by the workflow:
-
-**cluster_taxonomy.tsv**
-
-This is a tab-separated file containing all (filtered) ASVs (rows) along with the following columns:
-
-- cluster: Name of the ASV cluster that the ASV belongs to
-- median: The median of normalized counts of the ASV across all samples
-- mean: The mean of normalized counts of the ASV
-- sum: The sum of normalized counts of the ASV
-- <taxonomic ranks>: The taxonomic assignments taken from the `asv_taxa.tsv` input file
-- representative: A column with value = 1 if the ASV is a representative of the cluster
 
 **cluster_consensus_taxonomy.tsv**
 
