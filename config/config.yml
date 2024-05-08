@@ -51,40 +51,55 @@ consensus_threshold: 80
 ##### CHIMERA FILTERING PARAMETERS #####
 ########################################
 chimera:
+  # Set a run name for the chimera detection and removal step
   run_name: "chimera1"
+  
   # Should chimera detection and removal be performed on the input data?
   remove_chimeras: True
+  
   # Select method for chimera filtering:
   #'batchwise' = run chimera detection on dataset as a whole.
   #'samplewise' = split input fasta into one file per sample and run chimera
   #               detection on each sample individually.
   method: "samplewise"
+  
   # Select algorithm to use, you can choose from 'uchime_denovo', 'uchime2_denovo'
   # and 'uchime3_denovo'.
   algorithm: "uchime_denovo"
+  
   # In batchwise method, require that a sequence marked as chimeric is present
   # with its parents in at least <min_samples_shared> samples
   min_samples_shared: 1
+  
   # In batchwise method, require that a sequence marked as chimeric is present
   # with its parents in at least <min_frac_samples_shared> fraction of samples
   min_frac_samples_shared: 0
+  
   # In samplewise method, require that a sequence is marked as chimeric in at least
   # <min_chimeric_samples> in order for it to be removed from analysis. If this
   # value is set to 0, ASVs have to be marked as chimeric in all samples
   min_chimeric_samples: 0
+  
   # In samplewise method, require that a sequence is marked as chimeric in at least
   # <min_frac_chimeric_samples> fraction of samples in which the ASV is present in 
   # order for it to be removed from analysis. If this value is set to 0, ASVs have 
   # to be marked as chimeric in all samples
   min_frac_chimeric_samples: 0
-  # Chimera detection settings
-  # Note that these are not used for uchime2_denovo or uchime3_denovo. Instead these
-  # algorithms require 'perfect chimeras' (see the Uchime manual for more info)
+  
+  # Thec parameters below are specific to how the chimeric score of sequences is
+  # calculated. Please see the Uchime
+  # [docs](https://www.drive5.com/usearch/manual6/UCHIME_score.html) for
+  # details. Note that these are not used for uchime2_denovo or uchime3_denovo.
+  # Instead these algorithms require 'perfect chimeras' (see the Uchime manual
+  # for more info)
   dn: 1.4
   mindiffs: 3
   mindiv: 0.8
   minh: 0.28
 
+###################################
+##### CLUSTERING TOOLS TO RUN #####
+###################################
 # Specify what clustering software to use. Choose from 'swarm', 'opticlust',
 # 'dbotu3' and 'lulu'.
 software:
@@ -93,64 +108,119 @@ software:
   #- "lulu"
   #- "dbotu3"
 
-# Tool-specific settings
+####################################
+##### TOOL-SPECIFIC PARAMETERS #####
+####################################
 vsearch:
+  # threads to use for vsearch (overridden in dardel profile)
   threads: 10
+  
+  # minimum pairwise identity to report
   id: 0.84
+  
+  # pairwise identity definition (see vsearch manual for details and choices)
   iddef: "1"
-  query_cov: 0.9
 
-# Specify what clustering software to use. Choose from 'swarm', 'opticlust',
-# and 'dbotu3'.
-software:
-  - "swarm"
-  - "opticlust"
-  #- "dbotu3"
+  # threshold for query coverage
+  # reject hits if fraction of query aligned is less than this value
+  query_cov: 0.9
 
 opticlust:
   # For opticlust, choose whether pairwise alignments should be generated with
   # 'vsearch' or 'mothur'
   aligner: "vsearch"
+  
+  # The delta parameter sets the stable value for the metric in opticlust
   delta: 0.0001
+  
+  # sat what similarity threshold clusters are generated. 
   cutoff: 0.05
+
+  # The `initialize` parameter sets the initial randomization for opticlust.
+  # The default is `singleton` where each sequence is randomly assigned to its
+  # own OTU. The other accepted setting `oneotu` means that all sequences are
+  # assigned to one otu. 
   initialize: "singleton"
+
+  # the floating point precision for opticlust.
   precision: 1000
+
+  # the number of threads to use for opticlust
+  # (overridden in dardel profile)
   threads: 10
 
 swarm:
+  # number of differences allowed to cluster sequences
   differences: 13
+
+  # setting 'no-otu-breaking' to True deactivates the built-in cluster
+  # refinement when d=1
   no-otu-breaking: False
+
+  # if 'fastidious' is set to True swarm performs a second clustering pass to
+  # reduce the number of small clusters when d=1
   fastidious: False
+
+  # when 'fastidious' is set to True 'boundary' defines the minimum abundance of
+  # what should be considered a large cluster.
   boundary: 0
+
+  # the number of threads to use for swarm (overridden in dardel profile)
   threads: 10
+
+  # the settings below modify the pairwise global alignment scoring parameters
+  # when d>1
   match-reward: 5
   mismatch-penalty: 4
   gap-opening-penalty: 12
   gap-extension-penalty: 4
 
 dbotu3:
+  # dist sets the maximum allowed genetic dissimilarity between sequences
   dist: 0.1
+
+  # abund sets the minimum fold difference for comparing two OTUs
   abund: 10.0
+
+  # pval sets the minimum p-value for merging ASVs
   pval: 0.0005
 
-lulu:
-  minimum_ratio_type: "min"
-  minimum_ratio: 1
-  minimum_match: 84
-  minimum_relative_cooccurence: 0.95
-
+###########################
+##### NUMTs FILTERING #####
+###########################
 numts:
+  # in NUMTs filtering, n_closest defines how many potential closely related
+  # parent clusters to use in the comparison when identifying NUMTs. Setting
+  # this to a higher value increases the chances to identify NUMTs but results
+  # in longer runtimes.
   n_closest: 5
-  # non_numt_ASVs is a list of ASVs that are known to be non-numts
+
+  # non_numt_ASVs is a list of ASV ids that are known to be non-numts. These are
+  # used to evaluate the NUMTs filtering.
   non_numt_ASVs: ""
-  # spikein_file is a tab-separated file with taxonomic information for biological spike ins
-  # this file should have either species labels or BOLD_bin ids
+
+  # spikein_file is a tab-separated file with taxonomic information for
+  # biological spike ins. This file should have either species labels or
+  # BOLD_bin ids The file should have either 'Species' or 'BOLD_bin' columns.
+  # Multiple BOLD_bins can be given on the same row and should then be quoted
+  # and separated by a ';'. Below is an example. 
+  # Species           BOLD_bin
+  # Orius majusculus  BOLD:ABA5781 
+  # Aphidius colemani "BOLD:AAC7809; BOLD:AAI4338"
   spikein_file: ""
-  # method to identify spikein clusters, either using 'BOLD_bin' ids or 'species'
+  
+  # spikein_method determines how clusters corresponding to biological spike ins
+  # are identified. This setting can be either 'BOLD_bin' or 'Species' which
+  # means that clusters will be identified either using the BOLD_bin or Species
+  # values in the spike in file, respectively.
   spikein_method: "BOLD_bin"
+
   # specify which orders (if any) are known to contain a large number of clusters
   # if any order has > 10 k clusters then add them to this list
   # this will increase the resources (threads) requested when running numt filtering
-  large_orders: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "Diptera"]
-  # Filter out ASVs that are unclassified at this rank (begin with 'unclassified') as part of numts filtering
+  large_orders: ["Diptera"]
+  
+  # filter_unclassified_rank sets a taxonomic rank to used for filtering ASV clusters without a taxonomic assignments.
+  # For example, when this parameter is set to "Order", all ASV clusters that are unclassified at the Order level will be considered NUMTs.
+  # These clusters are not evaluated in the main NUMTs filtering algorithm but are likely to be NUMTs due to the lack of taxonomic information.
   filter_unclassified_rank: "Order"
