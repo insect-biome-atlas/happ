@@ -162,6 +162,7 @@ def main(args):
     # If taxfile and clustfile are the same, extract only cluster column from the clust table
     if args.taxfile == args.clustfiles[0]:
         clustdf = clustdf.loc[:, "cluster"]
+        asv_taxa.drop("cluster", axis=1, inplace=True)
     sys.stderr.write("#Merging with taxonomic assignments\n")
     clustdf = merge_cluster_df(clustdf, asv_taxa)
     sys.stderr.write(f"#{clustdf.shape[0]} ASVs remaining after merging\n")
