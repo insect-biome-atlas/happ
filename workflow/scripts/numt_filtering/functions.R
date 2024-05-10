@@ -130,11 +130,11 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
     # Extract relevant rows in counts data
     counts <- counts[counts$cluster %in% rownames(dist_matr),]
     
-    # Calibrate data using Gryllidae spikeins
+    # Calibrate data using spikeins
     # Note the difference in index in spikein_reads (first element of spikein_reads is column 2 in counts)
     for (i in 2:ncol(counts))
       counts[,i] <- ceiling(mean_spikein_reads * counts[,i]/spikein_reads[i-1])
-}
+  }
   
   # Get total number of reads of each cluster
   cat("Getting total number of reads for each cluster\n")
@@ -219,8 +219,8 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
       # Choose n_closest most closely related filtered co1 clusters
       if (length(filtered_co1clusters) < n_closest) {
         pot_parent_clusters <- filtered_co1clusters
-      }
-      else {
+      } else 
+      {
         pot_parent_clusters <- most_closely_related_co1clusters[1:n_closest]
       }
 
@@ -250,24 +250,23 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
 
       if (!isNumt) {
       ## Branch 1.2 "p_correlation"
-
-      if ((length(pot_parent_clusters)) > 0) {
-        for (p_clust in pot_parent_clusters) {
-          p_reads <- as.numeric(counts[counts$cluster==p_clust,2:ncol(counts)])
-          ix <- reads!=0 & p_reads!=0
-          n_samples_overlap <- sum(ix)
-          if (n_samples_overlap > 3) {
-            fit <- lm(reads[ix]~p_reads[ix])
-            corr_coeff <- as.numeric(fit$coefficients[2])
-            p_val <- as.numeric(summary(fit)$coefficients[2,4])
-            if (corr_coeff < max_corr_coeff && corr_coeff > 0.0 && p_val < max_p_val) {
-              isNumt <- TRUE
-              reason <- "p_correlation"
+        if ((length(pot_parent_clusters)) > 0) {
+          for (p_clust in pot_parent_clusters) {
+            p_reads <- as.numeric(counts[counts$cluster==p_clust,2:ncol(counts)])
+            ix <- reads!=0 & p_reads!=0
+            n_samples_overlap <- sum(ix)
+            if (n_samples_overlap > 3) {
+              fit <- lm(reads[ix]~p_reads[ix])
+              corr_coeff <- as.numeric(fit$coefficients[2])
+              p_val <- as.numeric(summary(fit)$coefficients[2,4])
+              if (corr_coeff < max_corr_coeff && corr_coeff > 0.0 && p_val < max_p_val) {
+                isNumt <- TRUE
+                reason <- "p_correlation"
+              }
             }
           }
         }
       }
-    }
     }
 
     ###
