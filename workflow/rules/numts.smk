@@ -153,6 +153,42 @@ else:
         output:
             temp(touch("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/spikeins.tsv"))
 
+def set_runtime(wildcards):
+    """
+    Set the runtime for the combined filter rule based on the order.
+    """
+    f = f"results/{wildcards.tool}/{wildcards.rundir}/{wildcards.chimera_run}/{wildcards.chimdir}/{wildcards.rank}/runs/{wildcards.run_name}/cluster_taxonomy.tsv"
+    if os.path.exists(f):
+        df = pd.read_csv(f, sep="\t", index_col=0)
+        df.rename(columns = lambda x: x.lower(), inplace=True)
+        reps = df.loc[(df.representative == 1)&(df["order"]==wildcards.order)]
+        clusters = reps.shape[0]
+        if clusters > 20000:
+            return 60*24
+        else:
+            return 60*12
+    else:
+        return 60*24
+
+def set_mem(wildcards):
+    """
+    Set the memory requirement for the combined filter rule based on the order.
+    """
+    f = f"results/{wildcards.tool}/{wildcards.rundir}/{wildcards.chimera_run}/{wildcards.chimdir}/{wildcards.rank}/runs/{wildcards.run_name}/cluster_taxonomy.tsv"
+    if os.path.exists(f):
+        df = pd.read_csv(f, sep="\t", index_col=0)
+        df.rename(columns = lambda x: x.lower(), inplace=True)
+        reps = df.loc[(df.representative == 1)&(df["order"]==wildcards.order)]
+        clusters = reps.shape[0]
+        if clusters < 10000:
+            return 8000
+        elif clusters < 20000:
+            return 20000
+        else: 
+            return 100000
+    else:
+        return 100000
+
 rule combined_filter:
     """
     Filter the data for each order using with default settings.
@@ -168,8 +204,8 @@ rule combined_filter:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_combined_filter.log"
     threads: 1
     resources:
-        runtime = 60*24,
-        mem_mb = lambda wildcards: 128000 if wildcards.order in config["numts"]["large_orders"] else 32000
+        runtime = lambda wildcards: 60*24 if wildcards.order in config["numts"]["large_orders"] else 60*12,
+        mem_mb = lambda wildcards: 100000 if wildcards.order in config["numts"]["large_orders"] else 20000
     params:
         functions="workflow/scripts/numt_filtering/functions.R",
         codon_model="workflow/scripts/numt_filtering/codon_model.R",
