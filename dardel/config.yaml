@@ -6,12 +6,49 @@
 default-resources: 
   slurm_account: <your-slurm-account>
   slurm_partition: shared
+  runtime: 1440
 
 # The settings below override the default-resources for specific rules
-#set-resources:
-#    <rule-name>:
-#        slurm_partition: "main"
+set-resources:
+  sum_asvs:
+    runtime: 60
+    mem_mb: 60000
+  chimera_samplewise:
+    runtime: 60
+    mem_mb: 24000
+  vsearch_align:
+    mem_mb: 60000
+  run_dbotu3:
+    runtime: 10080
+    slurm_partition: long
+    mem_mb: 24000
+  mafft_align:
+    runtime: 120
+    mem_mb: 24000
+  pal2nal:
+    runtime: 120
+  run_opticlust:
+    mem_mb: 60000
+  split_counts:
+    mem_mb: 60000
+  consensus_taxonomy:
+    runtime: 60
+  id_spikeins:
+    mem_mb: 60000
 
+set-threads:
+  vsearch_align: 40
+  mafft_align: 40
+  mothur_align: 40
+  run_opticlust: 40
+  run_swarm: 40
+  sum_asvs: 1
+  split_counts: 1
+  chimera_samplewise: 40
+  id_spikeins: 10
+  #combined_filter: 10
+
+# The settings below define command line flags for snakemake
 keep-going: True
 printshellcmds: True
 rerun-triggers: mtime
@@ -21,4 +58,3 @@ jobs: 100
 latency-wait: 5
 executor: slurm
 software-deployment-method: "conda"
-configfile: config/config.yml
