@@ -1,13 +1,67 @@
+# This is a general-purpose configuration file for the SLURM scheduler. It is
+# used to specify the default resources for the jobs, such as the account and
+# partition to use, as well as the runtime, memory, and number of threads for
+# specific rules. The configuration file also includes settings for the
+# Snakemake workflow management system, such as the number of jobs to run in
+# parallel, the latency wait time, and the software deployment method. The
+# configuration file can be customized to suit the specific requirements of the
+# workflow and the HPC system.
+
+# Update the settings under 'default-resources' to specify the SLURM account and
+# partition to use for the jobs. The 'runtime' setting specifies the maximum
+# runtime for the jobs in minutes.
+default-resources: 
+  slurm_account: <your_slurm_account>
+  slurm_partition: <your_slurm_partition>
+  runtime: 1440
+
+# The settings below override the default-resources for specific rules. You can
+# specify the runtime, memory, and number of threads for individual rules.
+set-resources:
+  sum_asvs:
+    runtime: 60
+    mem_mb: 60000
+  chimera_samplewise:
+    runtime: 60
+    mem_mb: 24000
+  vsearch_align:
+    mem_mb: 60000
+  run_dbotu3:
+    runtime: 10080
+    mem_mb: 24000
+  mafft_align:
+    runtime: 120
+    mem_mb: 24000
+  pal2nal:
+    runtime: 120
+  run_opticlust:
+    mem_mb: 60000
+  split_counts:
+    mem_mb: 60000
+  consensus_taxonomy:
+    runtime: 60
+  id_spikeins:
+    mem_mb: 60000
+
+# The settings below define the number of threads to use for specific rules.
+set-threads:
+  vsearch_align: 10
+  mafft_align: 10
+  mothur_align: 10
+  run_opticlust: 10
+  run_swarm: 10
+  sum_asvs: 10
+  split_counts: 10
+  chimera_samplewise: 10
+  id_spikeins: 10
+
+# The settings below define command line flags for Snakemake.
 keep-going: True
 printshellcmds: True
 rerun-triggers: mtime
 rerun-incomplete: True
 local-cores: 1
 jobs: 100
-default-resources: 
-  slurm_account: <your_slurm_account>
-  slurm_partition: main
 latency-wait: 5
 executor: slurm
 software-deployment-method: "conda"
-configfile: config/config.yml
