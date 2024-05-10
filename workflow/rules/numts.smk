@@ -5,6 +5,7 @@ localrules:
     generate_aa_seqs,
     abundance_filter,
     evaluate_order,
+    precision_recall_numts,
     filtered
 
 def read_orders(config):
@@ -307,7 +308,7 @@ rule precision_recall_numts:
     log:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
     params:
-        src="../scripts/evaluate_clusters.py",
+        src="workflow/scripts/evaluate_clusters.py",
         eval_rank=config["evaluation_rank"],
     shell:
         """
