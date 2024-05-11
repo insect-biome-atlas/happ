@@ -4,6 +4,7 @@ import os
 
 localrules:
     add_sums,
+    split_samplewise,
     nonchimeric_taxa,
     nonchimeric_orders,
     append_size,
@@ -244,31 +245,31 @@ rule chimera_batchwise:
 
 ### SAMPLEWISE ###
 
-
-rule split_counts:
+rule split_counts_samplewise:
     output:
-        temp(expand(
-            "data/{{rundir}}/samplewise/{sample}.sum.tsv",
-            sample=samples,
-        )),
+        temp("data/{rundir}/samplewise/{sample}.sum.tsv"),
     input:
-        counts="data/{rundir}/asv_counts.tsv",
+        counts="data/{rundir}/asv_counts.tsv"
     log:
-        "logs/chimeras/{rundir}/split_counts.log",
+        "logs/chimeras/{rundir}/{sample}.split_counts.log"
     params:
-        src="workflow/scripts/split_counts.py",
-        outdir=lambda wildcards, output: os.path.dirname(output[0]),
-        tmpdir="$TMPDIR/{rundir}.split",
+        src="workflow/scripts/split_counts_samplewise.py",
+        tmpdir="$TMPDIR/split.{rundir}.{sample}"
+    group: "split_counts"
+    resources:
+        runtime=30,
     shell:
         """
-        exec &> {log}
         mkdir -p {params.tmpdir}
         cp {input.counts} {params.tmpdir}/counts.tsv
-        python {params.src} {params.tmpdir}/counts.tsv {params.tmpdir} >{log} 2>&1
-        rm {params.tmpdir}/counts.tsv
-        mv {params.tmpdir}/* {params.outdir}
+        python {params.src} {params.tmpdir}/counts.tsv {wildcards.sample} > {output[0]} 2>{log}
         rm -rf {params.tmpdir}
         """
+
+rule split_samplewise:
+    message: "Split counts for samplewise chimera removal"
+    input:
+        expand("data/{rundir}/samplewise/{sample}.sum.tsv", rundir = config["rundir"], sample=samples)
 
 
 rule chimera_samplewise:
