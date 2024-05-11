@@ -414,13 +414,58 @@ The `abund` parameter sets the minimum fold difference for comparing two OTUs.
 The `pval` parameter sets the minimum p-value for merging ASVs.
 
 
+### NUMTs filtering
+
+The generated clusters are used as input for removal of Nuclear mitochondrial
+DNA segments (NUMTs). In this part of the workflow, the representative sequences
+of clusters are compared based on abundance and sequence similarity to other
+clusters in the same taxonomic order to identify and remove sequences that are
+likely to represent NUMTs. As an additional step, clusters that with no
+taxonomic assignments at the order level (configurable with the
+`filter_unclassified_rank` parameter, see below) are also removed. The original
+output (prior to NUMTs removal) is kept intact however, allowing you to compare
+the output at the different steps. 
+
+The following configuration parameters determine the behaviour of the NUMTs filtering:
+
+The `n_closest` parameter sets the number of other most closely related
+sequences to compare each cluster to. A higher `n_closest` value increase the
+chance of identifying NUMTs, but lead to longer runtimes.
+
+The `non_numt_ASVs` **optional** parameter may point to a file listing so called
+'trusted' ASV ids (one per line) in the dataset that are known beforehand to not
+represent NUMTs. This is only used for evaluation purposes and does not
+influence the actual filtering steps.
+
+The `spikein_file` **optional** parameter may point to a tab-separated file with
+taxonomic information of biological spike in taxa that have been used in the
+project. If given, this file is used to identify clusters corresponding to the
+spike in taxa. Those clusters are then used to calibrate the count data during
+the NUMTs filtering steps. This file must have either a column named `Species`
+representing species names of the spike ins, and/or a column named `BOLD_bin`
+with BOLD bin ids of the spike in taxa. For the BOLD_bin column, multiple
+BOLD_bin ids may be given on a single line and should then be quoted and
+separated by `;`. An example of such a file is shown below:
+
+| Species | BOLD_bin |
+| ------- | -------- |
+| Gryllodes sigillatus | BOLD:ABW5620 |
+| Gryllus bimaculatus  | BOLD:ABX6319 |
+| Shelfordella lateralis | BOLD:AAG9959 |
+| Drosophila serrata | BOLD:AAU1484 |
+| Drosophila bicornuta | BOLD:AAV6760 |
+| Drosophila jambulina | "BOLD:AAV6734; BOLD:AAL1587" |
+
+The `spikein_method` parameter determines whether the `Species` or `BOLD_bin`
+column in the `spikein_file` should be used to identify clusters.
+
 ### Workflow output
 
 The final output of the workflow is placed in subdirectories for each tool used. The path to the results is determined by your configuration settings.
 
 Below are some examples of output obtained using the default [config/config.yml](config/config.yml).
 
-**Chimera filtering output**
+#### Chimera filtering output
 
 The default config file has the following settings for input and chimera filtering:
 
@@ -464,7 +509,7 @@ where
 - `algorithm` is the vsearch algorith used (`uchime_denovo`, `uchime2_denovo` or `uchime3_denovo`)
 
 
-**Clustering output**
+#### Clustering output
 
 The `nonchimeras.fasta` file generated in the chimera filtering is passed on to
 the clustering tools defined in the config file. The default config file has
@@ -541,62 +586,26 @@ unambiguous assignments at `evaluation_rank` are used. The statistics shown are:
 | False negatives | Number of times two compared ASVs from *different* `evaluation_rank` were found in the same cluster |
 | precision | A measure of how often clusters contain only one unique `evaluation_rank` |
 | recall | A measure of how often ASVs from the same `evaluation_rank` are placed in the same cluster |
-| homogeneity/completeness | These values are calculated using the [homogeneity_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.homogeneity_score.html) and [completeness_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.completeness_score.html) in `scikit-learn`. They mean essentially the same thing as precision/recall but are not as fine-grained on the clustering output.
-`results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/`
+| homogeneity/completeness | These values are calculated using the [homogeneity_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.homogeneity_score.html) and [completeness_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.completeness_score.html) in `scikit-learn`. They mean essentially the same thing as precision/recall but are not as fine-grained on the clustering output. |
 
-and
+So if we are evaluating the clusters against species level assignments, then
+`precision` indicates to what degree the generated clusters contain only one
+unique species, while `recall` indicates how well the workflow placed ASVs from
+the same species into the same cluster. It is possible to maximize the precision
+by under-clustering the data, *i.e.* generating a large number of 'pure'
+clusters which means that most ASVs from the same species will be in different
+clusters. And similarly, recall can be maximized by over-clustering, *i.e.*
+generating large 'impure' clusters with ASVs from several unique species. In our
+experience, the supported tools are more prone to under-clustering with regards
+to species (meaning they give high precision values). Typically a precision
+value >0.9 and a recall value >0.8 should be obtained, but this may vary
+depending on your dataset (and taxonomic assignments).
 
-`results/opticlust/project1/sw.strict/samplewise.uchime_denovo/Family/runs/run1/`
+**precision_recall.order.txt** is a text file with the same type of information as `precision_recall.txt` but with results shown for each taxonomic orders
 
+#### Statistics summary output
 
-**cluster_consensus_taxonomy.tsv**
+The clustering statistics described above are also summarized for each clustering tool used under `results/stats/{rundir}/{chimera_run}/{method}.{algorithm}/{rank}/runs/{run_name}.tsv` which allows for quick comparison of the results from several tools.
 
-Assigned consensus taxonomy of clusters.
-
-**cluster_counts.tsv**
-
-Counts of clusters (rows) across samples (columns). The counts of clusters are
-generated by summing counts for all ASVs in the cluster.
-
-**cluster_reps.fasta**
-
-Sequences of cluster representatives in FASTA format.
-
-#### Stats output
-
-The workflow will evaluate the clustering using the taxonomic assignments in
-`data/<rundir>/asv_taxa.tsv` at the `evaluation_rank` set in the configuration
-file as the 'ground truth' and calculate various statistics such as
-precision/recall, completeness/homogeneity of the clusters. 
-
-- Precision is calculated as: `precision = TP/(TP + FP)`
-- Recall is calculated as: `recall = TP/(TP + FN)`
-
-where
-
-- True positives (TP) is calculated by counting the number of times two ASVs belonging 
-  to the same ASV cluster also share the same taxa at `evaluation_rank`.
-- False positives (FP) is calculated as: `FP = totalPositives - TP`.
-- False negatives (FN) is calculated by counting the number of times ASVs that share
-  the same taxa at `evaluation_rank` are placed into different ASV clusters.
-
-The evaluation script used in this workflow begins by calculating the total number
-of positives from a given dataframe. This is formulated as: `totalPositives = N * (N - 1) / 2`
-where `N` is the total number of ASVs.
-
-Statistics are placed under `results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/` so if using the example configuration above there would be: `results/stats/project1/sw.strict/samplewise.uchime_denovo/Family/runs/run1.tsv`
-
-Where the file `run1.tsv` summarizes the evaluation of all tools used. 
-
-Note that when calculating these statistics, sequences unassigned at
-`evaluation_rank` (Species by default) are ignored, so the total number of ASVs,
-clusters and species is likely higher.
-
-### 7. Evaluation
-True and false positives, as well as true and false negatives can be evaluated
-for each clustering results using the taxonomic assignments of ASVs. The `evaluation_rank`
-config parameter (default = "Species") determines what to evaluate the clustering
-against (whatever assignment is given for this rank that is taken as the ground
-truth for an ASV). 
-
+#### NUMTs filtering output
 
