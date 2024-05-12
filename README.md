@@ -459,6 +459,10 @@ separated by `;`. An example of such a file is shown below:
 The `spikein_method` parameter determines whether the `Species` or `BOLD_bin`
 column in the `spikein_file` should be used to identify clusters.
 
+The `large_orders` **optional** parameter is a list of taxonomic orders known to represent a large fraction of the dataset, and to consequently contain a large set of ASV clusters. During NUMTs filtering a distance matrix is generated for all ASV clusters within each order. This step becomes very resource demanding with a lot of input sequences. By specifying such large orders here the workflow will allocate more memory and runtime when analysing these orders. 
+
+The `filter_unclassified_rank` parameter specifies a taxonomic rank at which to filter out unassigned clusters. The default value `Order` means that clusters with no taxonomic assignment at Order level are removed as part of the NUMTs filtering steps. Note that when this parameter is set to `order` (case insensitive), NUMTs filtering will not be performed for unassigned orders (*i.e.* orders starting with `unclassified`).
+
 ### Workflow output
 
 The final output of the workflow is placed in subdirectories for each tool used. The path to the results is determined by your configuration settings.
@@ -609,3 +613,24 @@ The clustering statistics described above are also summarized for each clusterin
 
 #### NUMTs filtering output
 
+The NUMTs filtering part of the workflow generates three files in the same output directory as the clustering, steps:
+
+- **non_numts.tsv** is a tab-separated with the same columns as the **cluster_taxonomy.tsv** file described above under [Clustering output](#clustering-output), but only containing ASVs in non-numts cluster.
+
+- **non_numts_clusters.fasta** contains the representative ASV sequences of clusters remaining after NUMTS filtering.
+
+- **precision_recall.non_numts.txt** gives the same type of statistics on the clustering, but only taking into account the clusters remaining after NUMTs filtering.
+
+In addition, a subfolder called `numts_filtering` contains the intermediate output as well as evaluation files generated during the filtering steps. This folder contains output for each taxonomic order:
+
+```
+numts_filtering/
+├── aa/ # protein translated sequences
+├── abundance_filter/ # output from filtering based on cluster abundance
+├── alignments/ # output from PAL2NAL
+├── cluster_analysis/ # intermediate summary files
+├── combined_filter/ # output from combined filtering using both abundance and sequence similarity
+├── evaluation/ # evaluation statistics output
+├── mafft/ # output from mafft alignment
+└── trimmed/ # trimmed sequences
+```
