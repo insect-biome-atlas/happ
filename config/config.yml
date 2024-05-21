@@ -224,3 +224,37 @@ numts:
   # For example, when this parameter is set to "Order", all ASV clusters that are unclassified at the Order level will be considered NUMTs.
   # These clusters are not evaluated in the main NUMTs filtering algorithm but are likely to be NUMTs due to the lack of taxonomic information.
   filter_unclassified_rank: "Order"
+
+###########################
+##### POSTPROCESSING ######
+###########################
+
+# Parameters below specify whether to remove ASVs that are present in a certain
+# fraction of 'blank' samples. For this to work you must supply a path to a
+# tab-separated metadata file with at least one column specifying the sample ids
+# and one column specifying the sample type. The blanks can be labelled in any way
+# as long as they are distinct from the other sample types. The
+
+# set postprocess to True to remove ASVs that are present in a certain fraction of
+# 'blank' samples
+postprocess: False
+
+# specify path to a tab-separated metadata file (see above)
+metadata_file: ""
+
+# sample_type_col is the name of the column in the metadata file that specifies the
+# sample type
+sample_type_col: "lab_sample_type"
+
+# split_col is the column in the metadata file that specifies what samples
+# belong to the same dataset. This is used to split the samples by dataset for counting
+# occurence in blanks.
+split_col: "dataset"
+
+# blank_val is a list of values in the sample_type_col that correspond to blank samples
+blank_val: ["buffer_blank", "extraction_neg", "pcr_neg"]
+
+# max_blank_occurrence is the maximum percentage of blanks that an ASV can be present
+# in before it is removed from the dataset. Note that if a cluster contains at least one ASV
+# that is present in more than max_blank_occurrence, the entire cluster is removed.
+max_blank_occurrence: 5
