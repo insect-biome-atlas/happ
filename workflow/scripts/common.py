@@ -169,8 +169,26 @@ def collate(sm):
                     fhout.write(f"{asv}\t{newcluster}\t{tax}\t{cluster}\n")
 
 
+def clean_fasta(sm):
+    """
+    Reads a tab-separated file with ASV ids in first column and a fasta file
+    and outputs only the fasta sequences for ASVs in the tab-separated file.
+    """
+    fasta = sm.input.fasta
+    tsv = sm.input.tsv
+    logfile = sm.log[0]
+    outfile = sm.output[0]
+    import logging
+    from Bio.SeqIO import parse
+    import pandas as pd
+    df = pd.read_csv(input.tsv, sep="\t", index_col=0)
+    with open(outfile, 'w') as fhout:
+        for record in parse(fasta, "fasta"):
+            if record.id in df.index:
+                fhout.write(f">{record.description}\n{record.seq}\n")
+
 def main(sm):
-    toolbox = {"filter_seqs": filter_seqs, "collate": collate}
+    toolbox = {"filter_seqs": filter_seqs, "collate": collate, "clean_fasta": clean_fasta}
     toolbox[sm.rule](sm)
 
 
