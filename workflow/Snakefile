@@ -62,6 +62,9 @@ if "lulu" in config["software"]:
 
 include: "rules/numts.smk"
 
+if config["postprocess"] and os.path.exists(config["metadata_file"]):
+    include: "rules/postprocess.smk"
+
 localrules:
     all,
     precision_recall,
@@ -115,37 +118,57 @@ def log_files(wildcards):
         )
     return input
 
+def get_all_input(wildcards):
+    input = []
+    # cluster files
+    input += expand(
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_{suff}",
+        tool=config["software"],
+        rundir=config["rundir"],
+        chimdir=config["chimdir"],
+        chimera_run=config["chimera"]["run_name"],
+        rank=config["split_rank"],
+        run_name=config["run_name"],
+        suff=["taxonomy.tsv", "reps.fasta", "counts.tsv", "consensus_taxonomy.tsv"],
+    )
+    # stats files
+    input += expand(
+        "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.{suff}",
+        rundir=config["rundir"],
+        chimera_run=config["chimera"]["run_name"],
+        chimdir=config["chimdir"],
+        rank=config["split_rank"],
+        run_name=config["run_name"],
+        suff=["tsv", "order.tsv"],
+    )
+    # settings files
+    input += expand(
+        "results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.{suff}",
+        rundir=config["rundir"],
+        chimera_run=config["chimera"]["run_name"],
+        chimdir=config["chimdir"],
+        run_name=config["run_name"],
+        suff=["json", "cmd"],
+    )
+    # numts filtered files
+    input += rules.numts_filtering.input
+    if config["postprocess"] and os.path.exists(config["metadata_file"]):
+        input += expand(
+            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{f}",
+            tool=config["software"],
+            rundir=config["rundir"],
+            chimera_run=config["chimera"]["run_name"],
+            chimdir=config["chimdir"],
+            rank=config["split_rank"],
+            run_name=config["run_name"],
+            f=["non_numts_clusters_counts.cleaned.tsv","non_numts_clusters.cleaned.fasta","non_numts.cleaned.tsv"]
+        )
+    return input
+
 
 rule all:
     input:
-        expand(
-            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_{suff}",
-            tool=config["software"],
-            rundir=config["rundir"],
-            chimdir=config["chimdir"],
-            chimera_run=config["chimera"]["run_name"],
-            rank=config["split_rank"],
-            run_name=config["run_name"],
-            suff=["taxonomy.tsv", "reps.fasta", "counts.tsv", "consensus_taxonomy.tsv"],
-        ),
-        expand(
-            "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.{suff}",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            chimdir=config["chimdir"],
-            rank=config["split_rank"],
-            run_name=config["run_name"],
-            suff=["tsv", "order.tsv"],
-        ),
-        expand(
-            "results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.{suff}",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            chimdir=config["chimdir"],
-            run_name=config["run_name"],
-            suff=["json", "cmd"],
-        ),
-        rules.numts_filtering.input
+        get_all_input
 
 rule evaluate:
     input:
