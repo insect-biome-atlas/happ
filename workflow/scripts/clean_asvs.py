@@ -137,7 +137,7 @@ def main(args):
         format="%(asctime)s - %(message)s",
     )
     # Read metadata
-    metadata = read_metadata(args.metadata, index_name=args.metadata_index_name)
+    metadata = read_metadata(args.metadata, index_name=args.sample_id_col)
     logging.info(f"Read metadata with {metadata.shape[0]} samples")
     # Extract blanks from metadata
     blanks = metadata.loc[metadata[args.sample_type_col].isin(args.blank_val)].index.tolist()
@@ -191,10 +191,9 @@ if __name__ == "__main__":
     io_group.add_argument("--outfile", type=str, help="Filtered counts file")
     io_group.add_argument("--metadata", type=str, help="Metadata file with sample information", required=True)
     io_group.add_argument(
-        "--metadata_index_name",
+        "--sample_id_col",
         type=str,
-        help="Name of column in metadata file that contains sample ids (default: 'sampleID_NGI')",
-        default="sampleID_NGI",
+        help="Name of column in metadata file that contains sample ids",
     )
     io_group.add_argument(
         "--split_col",
@@ -231,7 +230,8 @@ if __name__ == "__main__":
     debug_group.add_argument(
         "--chunksize",
         type=int,
-        help="Size of chunks (in lines) to read from countsfile",
+        help="Size of chunks (in lines) to read from countsfile (default: 10000)",
+        default=10000
     )
     debug_group.add_argument(
         "--nrows",
