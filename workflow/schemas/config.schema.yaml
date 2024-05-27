@@ -48,6 +48,31 @@ properties:
     items:
       type: string
       enum: ["swarm", "opticlust", "dbotu3", "lulu"]
+  postprocess:
+    type: boolean
+    description: "whether to run postprocessing steps"
+    default: False
+  metadata_file:
+    type: string
+    description: "path to metadata file"
+  sample_id_col:
+    type: string
+    description: "name of the column in the metadata file that contains the sample ids"
+  sample_type_col: 
+    type: string
+    description: "column in metadata file that contains the sample type"
+  split_col:
+    type: string
+    description: "split_col is the column in the metadata file that specifies what samples belong to the same dataset. This is used to split the samples by dataset for counting occurence in blanks."
+    default: "dataset"
+  blank_val:
+    type: array
+    description: "blank_val is the value in the split_col that specifies a blank sample"
+    default: ["buffer_blank", "extraction_neg", "pcr_neg"]
+  max_blank_occurrence:
+    type: integer
+    description: "max_blank_occurrence is the maximum number of times an ASV can occur in a blank sample"
+    default: 5
   swarm:
     type: object
     default:
@@ -213,7 +238,7 @@ properties:
       non_numt_ASVs: ""
       spikein_file: ""
       spikein_method: "BOLD_bin"
-      large_orders: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "Diptera"]
+      large_orders: []
       filter_unclassified_rank: "Order"
     properties:
       n_closest:
@@ -236,7 +261,7 @@ properties:
       large_orders:
         type: array
         description: "List of orders known to contain a large number of clusters"
-        default: ["unclassified.Arthropoda", "Hymenoptera", "Coleoptera", "Diptera"]
+        default: []
       filter_unclassified_rank:
         type: string
         description: "Remove ASVs that are unclassified at this rank (begin with unclassified) prior to chimera filtering and clustering"
