@@ -463,6 +463,46 @@ The `large_orders` **optional** parameter is a list of taxonomic orders known to
 
 The `filter_unclassified_rank` parameter specifies a taxonomic rank at which to filter out unassigned clusters. The default value `Order` means that clusters with no taxonomic assignment at Order level are removed as part of the NUMTs filtering steps. Note that when this parameter is set to `order` (case insensitive), NUMTs filtering will not be performed for unassigned orders (*i.e.* orders starting with `unclassified`).
 
+### Postprocessing
+
+NUMTs filtered ASV clusters can be further subjected to a round of
+postprocessing to remove clusters that are likely to represent contaminants
+and/or artifacts. This is done by counting the number of times ASVs are found in
+negative control, or so called 'blank' samples. For this to work, a tab
+separated metadata file must be provided in which a column specifies which
+samples are blanks. The workflow counts the occurrence of ASVs in these samples and if any one ASV is found in more than a certain fraction of blanks, the entire cluster is removed. The following parameters control the postprocessing steps:
+
+The `postprocess` parameter is a boolean that controls whether to run the postprocessing step or not.
+
+The `metadata_file` parameter must point to a tab-separated file with at least two columns: one specifying **all** sample ids and another specifying the type of sample. An example of such a file is shown below:
+
+| sample_ID | type | dataset | 
+| ------ | ---- | ------- |
+| sample1 | buffer_blank | dataset1
+| sample2 | pcr_neg | dataset2 |
+| sample3 | sample | dataset1 |
+| sample4 | sample | dataset2 |
+
+In the example above the `sample` column contains the sample ids. Samples 1 and
+2 represent 'blanks' while samples 3 and 4 are regular samples. The `type`
+column specifies the type of sample. Ignore the `dataset` column for now. 
+
+As you can see, the 'blanks' can have different labels, but you need to specify
+which of these unique labels correspond to blanks (see below).
+
+The `sample_id_col` parameter should be set to the name of the column in the metadata file that contains the sample ids. In the example above this would be `sample_ID`.
+
+The `sample_type_col` parameter should be set to the name of the column in the metadata file that contains the sample type. In the example above this would be `type`.
+
+The `blank_val` parameter is a list of values in the `sample_type_col` column that correspond to blanks. In the example above this would be `["buffer_blank", "pcr_neg"]`.
+
+The `max_blank_occurrence` parameter sets the maximum percentage of blanks an ASV can be found in before it is removed. The default is 5 meaning that an ASV can be found in at most 5% of blanks before it is removed.
+
+If your data contains samples from several datasets you may want to split the
+counts by dataset when counting occurrence of ASVs in blanks. The `split_col`
+parameter should be set to the name of the column in the metadata file that
+contains the dataset information. In the example above this would be `dataset`.
+
 ### Workflow output
 
 The final output of the workflow is placed in subdirectories for each tool used. The path to the results is determined by your configuration settings.
