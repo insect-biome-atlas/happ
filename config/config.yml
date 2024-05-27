@@ -242,19 +242,22 @@ postprocess: False
 # specify path to a tab-separated metadata file (see above)
 metadata_file: ""
 
+# name of column in metadata file that contains sample ids
+sample_id_col: ""
+
 # sample_type_col is the name of the column in the metadata file that specifies the
 # sample type
-sample_type_col: "lab_sample_type"
-
-# split_col is the column in the metadata file that specifies what samples
-# belong to the same dataset. This is used to split the samples by dataset for counting
-# occurence in blanks.
-split_col: "dataset"
+sample_type_col: ""
 
 # blank_val is a list of values in the sample_type_col that correspond to blank samples
-blank_val: ["buffer_blank", "extraction_neg", "pcr_neg"]
+blank_val: []
 
 # max_blank_occurrence is the maximum percentage of blanks that an ASV can be present
 # in before it is removed from the dataset. Note that if a cluster contains at least one ASV
 # that is present in more than max_blank_occurrence, the entire cluster is removed.
 max_blank_occurrence: 5
+
+# split_col is the column in the metadata file that specifies what samples
+# belong to the same dataset. This is used to split the samples by dataset for counting
+# occurence in blanks.
+split_col: ""
