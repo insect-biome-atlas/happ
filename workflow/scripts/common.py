@@ -177,18 +177,46 @@ def clean_fasta(sm):
     fasta = sm.input.fasta
     tsv = sm.input.tsv
     logfile = sm.log[0]
+    logging.basicConfig(
+        level=logging.INFO,
+        filename=logfile,
+        filemode="w",
+        format="%(asctime)s - %(message)s",
+    )
     outfile = sm.output[0]
-    import logging
-    from Bio.SeqIO import parse
-    import pandas as pd
-    df = pd.read_csv(input.tsv, sep="\t", index_col=0)
+    df = pd.read_csv(tsv, sep="\t", index_col=0)
     with open(outfile, 'w') as fhout:
-        for record in parse(fasta, "fasta"):
+        for record in SeqIO.tmuxparse(fasta, "fasta"):
             if record.id in df.index:
                 fhout.write(f">{record.description}\n{record.seq}\n")
 
+def clean_counts(sm):
+    """
+    Reads a tab-separated file with ASV ids in first column and a counts file
+    with samples as columns and ASV clusters as rows, and outputs only clusters found
+    in the TSV file.
+    """
+    tsv = sm.input.tsv
+    counts = sm.input.counts
+    logfile = sm.log[0]
+    logging.basicConfig(
+        level=logging.INFO,
+        filename=logfile,
+        filemode="w",
+        format="%(asctime)s - %(message)s",
+    )
+    df = pd.read_csv(tsv, sep="\t", index_col=0)
+    clusters = df["cluster"].unique()
+    with open(sm.input.counts, 'r') as fhin, open(sm.output[0], 'w') as fhout:
+        for i, line in enumerate(fhin):
+            if i==0:
+                fhout.write(line)
+                continue
+            if line.rsplit()[0] in clusters:
+                fhout.write(line)
+
 def main(sm):
-    toolbox = {"filter_seqs": filter_seqs, "collate": collate, "clean_fasta": clean_fasta}
+    toolbox = {"filter_seqs": filter_seqs, "collate": collate, "clean_counts": clean_counts, "clean_fasta": clean_fasta}
     toolbox[sm.rule](sm)
 
 
