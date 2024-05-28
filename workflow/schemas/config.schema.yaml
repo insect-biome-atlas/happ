@@ -235,6 +235,7 @@ properties:
     type: object
     default:
       n_closest: 5
+      abundance_threshold: 3
       non_numt_ASVs: ""
       spikein_file: ""
       spikein_method: "BOLD_bin"
@@ -245,6 +246,10 @@ properties:
         type: integer
         description: "Maximum number of closest sequences to compare to when filtering numts"
         default: 5
+      abundance_threshold:
+        type: integer
+        description: "Minimum abundance threshold for filtering numts"
+        default: 3
       non_numt_ASVs:
         type: string
         description: "Path to a file containing ASVs that are known to be non-numts"

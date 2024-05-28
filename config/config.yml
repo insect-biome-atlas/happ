@@ -195,6 +195,11 @@ numts:
   # in longer runtimes.
   n_closest: 5
 
+  # as part of NUMTs filtering, abundance_threshold sets the minimum total reads
+  # that a cluster has to have (summed across all samples) to not be flagged
+  # for removal
+  abundance_threshold: 3
+
   # non_numt_ASVs is a list of ASV ids that are known to be non-numts. These are
   # used to evaluate the NUMTs filtering.
   non_numt_ASVs: ""
