@@ -42,6 +42,8 @@ set-resources:
     runtime: 60
   id_spikeins:
     mem_mb: 60000
+  clean_asvs:
+    mem_mb: 60000
 
 # The settings below define the number of threads to use for specific rules.
 set-threads:
@@ -54,6 +56,8 @@ set-threads:
   split_counts: 10
   chimera_samplewise: 10
   id_spikeins: 10
+  clean_asvs: 10
+
 
 # The settings below define command line flags for Snakemake.
 keep-going: True
