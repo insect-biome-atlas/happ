@@ -186,7 +186,7 @@ def clean_fasta(sm):
     outfile = sm.output[0]
     df = pd.read_csv(tsv, sep="\t", index_col=0)
     with open(outfile, 'w') as fhout:
-        for record in SeqIO.tmuxparse(fasta, "fasta"):
+        for record in SeqIO.parse(fasta, "fasta"):
             if record.id in df.index:
                 fhout.write(f">{record.description}\n{record.seq}\n")
 
