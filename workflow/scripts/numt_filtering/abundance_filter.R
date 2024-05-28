@@ -10,6 +10,9 @@ library(data.table)
 functions <- snakemake@params$functions
 source(functions)
 
+## Params
+abundance_threshold <- snakemake@params$abundance_threshold
+
 ## WILDCARDS
 order_name <- snakemake@wildcards$order
 
@@ -28,5 +31,5 @@ counts <- counts[counts$cluster %in% taxonomy$cluster,]
 
 ## OUTPUT
 output <- snakemake@output$tsv
-res <- abundance_filter(order_name, taxonomy, counts, output)
+res <- abundance_filter(order_name=order_name, taxonomy=taxonomy, counts=counts, output=output, save_to_file=TRUE, threshold=abundance_threshold)
 sink()

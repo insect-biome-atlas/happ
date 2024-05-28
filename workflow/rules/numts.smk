@@ -227,6 +227,7 @@ rule abundance_filter:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_abundance_filter.log"
     params:
         functions="workflow/scripts/numt_filtering/functions.R",
+        abundance_threshold=config["numts"]["abundance_threshold"]
     conda: "../envs/r-env.yml"
     script: "../scripts/numt_filtering/abundance_filter.R"
 
