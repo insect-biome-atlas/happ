@@ -1,6 +1,17 @@
 localrules:
     clean_fasta,
-    clean_counts
+    clean_counts,
+    precision_recall_cleaned
+
+rule postprocessing:
+    """
+    Target rule for postprocess cleaning of ASVs
+    """
+    input:
+        expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{f}",
+                tool=config["software"], rundir=config["rundir"], chimera_run=config["chimera"]["run_name"], 
+                chimdir=config["chimdir"], rank=config["split_rank"], run_name=config["run_name"], 
+                f=["non_numts.cleaned.tsv", "non_numts_clusters.cleaned.fasta", "precision_recall.non_numts.cleaned.txt"]),
 
 rule clean_asvs:
     """
@@ -54,3 +65,19 @@ rule clean_counts:
     log:
         "logs/postprocess/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/clean_counts.log"
     script: "../scripts/common.py"
+
+rule precision_recall_cleaned:
+    input:
+        clust_file=rules.clean_asvs.output[0]
+    output:
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.non_numts.cleaned.txt",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.non_numts.cleaned.order.txt",
+    log:
+        "logs/postprocess/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
+    params:
+        src="workflow/scripts/evaluate_clusters.py",
+        eval_rank=config["evaluation_rank"],
+    shell:
+        """
+        python {params.src} {input[0]} {input[0]} --rank {params.eval_rank} --order_level {output[1]} > {output[0]} 2>{log}
+        """
