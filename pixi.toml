@@ -14,6 +14,7 @@ init = "conda config --set channel_priority strict"
 chimera_filtering = {cmd="snakemake chimera_filtering", depends_on = ["init"]}
 clustering = {cmd="snakemake clustering", depends_on = ["init"]}
 numts_filtering = {cmd="snakemake numts_filtering", depends_on = ["init"]}
+post_processing = {cmd="snakemake postprocessing", depends_on = ["init"]}
 all = {cmd="snakemake", depends_on = ["init"]}
 [dependencies]
 python = "3.11"
