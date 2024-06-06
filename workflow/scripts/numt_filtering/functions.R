@@ -398,18 +398,21 @@ evaluate_res <- function(order_name, order_clusters, taxonomy, numt_data, truste
   cat ("False negative rate (duplicated species records remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
 
   dups <- sum(duplicated(order_clusters$BOLD_bin[grepl("BOL", order_clusters$BOLD_bin)]))
-  correct_species <- order_clusters[grepl(" ", order_clusters$Species), ]
-  non_numt_correct_species <- correct_species[!correct_species$cluster %in% numt_clusters, ]
-  remaining_dups <- sum(table(non_numt_correct_species$Species) > 1)
-
+  BOL_bins <- order_clusters[grepl("BOL", order_clusters$BOLD_bin), ]
+  non_numt_BOL_bins <- BOL_bins[!BOL_bins$cluster %in% numt_clusters, ]
+  remaining_dups <- sum(duplicated(non_numt_BOL_bins$BOLD_bin))
   cat ("False negative rate (duplicated BOLD bin records remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
 
   dups <- length(unique(order_clusters$Species[grepl(" ", order_clusters$Species) & duplicated(order_clusters$Species)]))
-  remaining_dups <- length(unique(order_clusters$Species[grepl(" ", order_clusters$Species) & duplicated(order_clusters$Species) & !(order_clusters$cluster %in% numt_clusters)]))
+  correct_species <- order_clusters[grepl(" ", order_clusters$Species), ]
+  non_numt_correct_species <- correct_species[!correct_species$cluster %in% numt_clusters, ]
+  remaining_dups <- sum(table(non_numt_correct_species$Species) > 1)
   cat ("False negative rate (duplicated species remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
   
   dups <- length(unique(order_clusters$BOLD_bin[grepl("BOL", order_clusters$BOLD_bin) & duplicated(order_clusters$BOLD_bin)]))
-  remaining_dups <- length(unique(order_clusters$BOLD_bin[grepl("BOL", order_clusters$BOLD_bin) & duplicated(order_clusters$BOLD_bin) & !(order_clusters$cluster %in% numt_clusters)]))
+  BOL_bins <- order_clusters[grepl("BOL", order_clusters$BOLD_bin), ]
+  non_numt_BOL_bins <- BOL_bins[!BOL_bins$cluster %in% numt_clusters, ]
+  remaining_dups <- length(unique(non_numt_BOL_bins$BOLD_bin[grepl("BOL", non_numt_BOL_bins$BOLD_bin) & duplicated(non_numt_BOL_bins$BOLD_bin)]))
   cat ("False negative rate (duplicated BOLD bins remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
 }
 
@@ -449,7 +452,7 @@ evaluate_res_details <- function(order_name, order_clusters, taxonomy, numt_data
     correct_bins <- order_clusters[grepl("BOL", order_clusters$BOLD_bin_resolved), ]
     non_numt_correct_bins <- correct_bins[!correct_bins$cluster %in% numt_clusters, ]
     remaining_dups <- length(unique(non_numt_correct_bins$BOLD_bin_resolved[duplicated(non_numt_correct_bins$BOLD_bin_resolved)]))
-    cat ("False negative rate (duplicated resolved BOLD bins remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n")
+    cat ("False negative rate (duplicated resolved BOLD bins remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
   }
   
   if ("man_numt" %in% colnames(order_clusters)) {
