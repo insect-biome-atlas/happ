@@ -186,6 +186,8 @@ properties:
       minimum_ratio: 1
       minimum_match: 84
       minimum_relative_cooccurence: 0.95
+      large_orders: []
+      filter_unclassified_rank: "Order"
     properties:
       minimum_ratio_type:
         type: string
@@ -204,6 +206,14 @@ properties:
         type: number
         description: "minimum co-occurrence rate – i.e. the lower rate of occurrence of the potential error explained by co-occurrence with the potential parent for considering error state."
         default: 0.95
+      large_orders:
+        type: array
+        description: "List of orders known to contain a large number of clusters"
+        default: []
+      filter_unclassified_rank:
+        type: string
+        description: "Remove ASVs that are unclassified at this rank (begin with unclassified) prior to chimera filtering and clustering"
+        default: "Order"
   vsearch:
     type: object
     default:
