@@ -29,12 +29,17 @@ set-resources:
     runtime: 120
   run_opticlust:
     mem_mb: 60000
-  split_counts:
-    mem_mb: 60000
+  split_counts_samplewise:
+    runtime: 20
   consensus_taxonomy:
     runtime: 60
   id_spikeins:
+    runtime: 120
     mem_mb: 60000
+  clean_asvs:
+    mem_mb: 60000
+  lulu_matchlist:
+    runtime: 120
 
 set-threads:
   vsearch_align: 40
@@ -46,7 +51,7 @@ set-threads:
   split_counts: 1
   chimera_samplewise: 40
   id_spikeins: 10
-  #combined_filter: 10
+  lulu_matchlist: 40
 
 # The settings below define command line flags for snakemake
 keep-going: True
