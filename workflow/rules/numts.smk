@@ -6,7 +6,11 @@ localrules:
     abundance_filter,
     evaluate_order,
     precision_recall_numts,
-    filtered
+    filtered,
+    order_otutab,
+    lulu_filtering,
+    collate_lulu_output,
+    precision_recall_lulu
 
 def read_orders(config):
     filter_unclassified_rank = config["numts"]["filter_unclassified_rank"]
@@ -30,9 +34,11 @@ def read_orders(config):
         df.rename(columns = lambda x: x.lower(), inplace=True)
         orders = df["order"].unique().tolist()
 
-    orders = {}
+    return orders
 
 orders = read_orders(config)
+
+## Target rules
 
 rule numts_filtering:
     """
@@ -44,6 +50,14 @@ rule numts_filtering:
                     chimdir=config["chimdir"], rank=config["split_rank"], run_name=config["run_name"], 
                     f=["non_numts.tsv", "non_numts_clusters.fasta", "precision_recall.non_numts.txt"]),
 
+rule lulu_filtering:
+    input:
+        expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/{f}",
+                    tool=config["software"], rundir=config["rundir"], chimera_run=config["chimera"]["run_name"], 
+                    chimdir=config["chimdir"], rank=config["split_rank"], run_name=config["run_name"], 
+                    f=["cluster_counts.tsv", "cluster_reps.fasta", "cluster_taxonomy.tsv", "precision_recall.txt"])
+
+## General utility rules
 rule generate_order_seqs:
     """
     Generate subsets of the cluster representative ASV sequences for an order.
@@ -154,41 +168,7 @@ else:
         output:
             temp(touch("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/spikeins.tsv"))
 
-def set_runtime(wildcards):
-    """
-    Set the runtime for the combined filter rule based on the order.
-    """
-    f = f"results/{wildcards.tool}/{wildcards.rundir}/{wildcards.chimera_run}/{wildcards.chimdir}/{wildcards.rank}/runs/{wildcards.run_name}/cluster_taxonomy.tsv"
-    if os.path.exists(f):
-        df = pd.read_csv(f, sep="\t", index_col=0)
-        df.rename(columns = lambda x: x.lower(), inplace=True)
-        reps = df.loc[(df.representative == 1)&(df["order"]==wildcards.order)]
-        clusters = reps.shape[0]
-        if clusters > 20000:
-            return 60*24
-        else:
-            return 60*12
-    else:
-        return 60*24
-
-def set_mem(wildcards):
-    """
-    Set the memory requirement for the combined filter rule based on the order.
-    """
-    f = f"results/{wildcards.tool}/{wildcards.rundir}/{wildcards.chimera_run}/{wildcards.chimdir}/{wildcards.rank}/runs/{wildcards.run_name}/cluster_taxonomy.tsv"
-    if os.path.exists(f):
-        df = pd.read_csv(f, sep="\t", index_col=0)
-        df.rename(columns = lambda x: x.lower(), inplace=True)
-        reps = df.loc[(df.representative == 1)&(df["order"]==wildcards.order)]
-        clusters = reps.shape[0]
-        if clusters < 10000:
-            return 8000
-        elif clusters < 20000:
-            return 20000
-        else: 
-            return 100000
-    else:
-        return 100000
+## Custom NUMTs and noise filtering rules
 
 rule combined_filter:
     """
@@ -308,6 +288,136 @@ rule precision_recall_numts:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.non_numts.order.txt",
     log:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
+    params:
+        src="workflow/scripts/evaluate_clusters.py",
+        eval_rank=config["evaluation_rank"],
+    shell:
+        """
+        python {params.src} {input[0]} {input[0]} --rank {params.eval_rank} --order_level {output[1]} > {output[0]} 2>{log}
+        """
+
+rule lulu_matchlist:
+    """
+    Create a matchlist for sequences in an order using vsearch
+    """
+    output:
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu_filtering/orders/{order}/matchlist.tsv"
+    input:
+        rules.generate_order_seqs.output[0],
+    log:
+        "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_lulu_matchlist.log"
+    conda:
+        "../envs/vsearch.yml"
+    params:
+        tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}/lulu_filtering",
+    threads: 1
+    shell:
+        """
+        mkdir -p {params.tmpdir}
+        cat {input} | sed 's/>.\+ />/g' > {params.tmpdir}/cluster_reps.fasta
+        vsearch --usearch_global {params.tmpdir}/cluster_reps.fasta --db {params.tmpdir}/cluster_reps.fasta --self --id .84 --iddef 1 \
+            --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10 --threads {threads} > {log} 2>&1
+        rm -rf {params.tmpdir}
+        """
+
+rule order_otutab:
+    output:
+        otutab="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/counts/{order}_cluster_counts.tsv"
+    input:
+        counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_counts.tsv",
+        tax="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
+    run:
+        import pandas as pd
+        order = wildcards.order
+        tax = pd.read_csv(input.tax, sep="\t", index_col=0)
+        tax.rename(columns = lambda x: x.lower(), inplace=True)
+        clusters = pd.DataFrame(tax.loc[(tax["order"]==order)&(tax.representative==1), "cluster"])
+        clusters = clusters.reset_index().set_index("cluster")
+        rename_dict = clusters.to_dict()
+        counts = pd.read_csv(input.counts, sep="\t", index_col=0)
+        counts = counts.loc[clusters.index]
+        counts.rename(index=rename_dict["ASV"], inplace=True)
+        counts.to_csv(output.otutab, sep="\t")
+
+rule lulu_filter:
+    output:
+        curated_table="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/curated_table.tsv",
+        otu_map="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/otu_map.tsv",
+        log="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/log.tsv",
+    input:
+        matchlist=rules.lulu_matchlist.output[0],
+        otutab=rules.order_otutab.output.otutab,
+    log:
+        "logs/lulu_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}_lulu_filtering.log"
+    conda:
+        "../envs/lulu.yaml"
+    resources:
+        runtime = lambda wildcards: 60*24 if wildcards.order in config["lulu"]["large_orders"] else 60*2,
+        mem_mb = lambda wildcards: 100000 if wildcards.order in config["lulu"]["large_orders"] else 20000
+    shadow: "minimal"
+    params:
+        minimum_ratio_type = config["lulu"]["minimum_ratio_type"],
+        minimum_ratio = config["lulu"]["minimum_ratio"], 
+        minimum_match = config["lulu"]["minimum_match"], 
+        minimum_relative_cooccurence = config["lulu"]["minimum_relative_cooccurence"],
+    script:
+        "../scripts/lulu.R"
+
+def read_lulu_output(wc):
+    """
+    Generate the input for the filtered rule.
+    """
+    # first check if the cluster taxonomy file exists already
+    taxonomy = f"results/{wc.tool}/{wc.rundir}/{wc.chimera_run}/{wc.chimdir}/{wc.rank}/runs/{wc.run_name}/cluster_taxonomy.tsv"
+    if os.path.exists(taxonomy):
+        taxfile = taxonomy
+    # if not, use the taxonomy file from the input directory
+    else:
+        taxfile = f"data/{config['rundir']}/asv_taxa.tsv"
+    df = pd.read_csv(taxfile, sep="\t", index_col=0)
+    df.rename(columns = lambda x: x.lower(), inplace=True)
+    orders = df["order"].unique().tolist()
+    if config["lulu"]["filter_unclassified_rank"].lower() == "order":
+        orders = [order for order in orders if not order.startswith("unclassified")]
+    return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/curated_table.tsv",
+        tool = wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank, run_name=wc.run_name, order=orders)
+
+
+rule collate_lulu_output:
+    input:
+        curated = read_lulu_output,
+        seqs = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
+        tax = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
+    output:
+        curated_table="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/cluster_counts.tsv",
+        seqs = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/cluster_reps.fasta",
+        tax = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/cluster_taxonomy.tsv"
+    run:
+        import pandas as pd
+        from Bio.SeqIO import parse
+        curated = pd.DataFrame()
+        for f in input.curated:
+            df = pd.read_csv(f, sep="\t", index_col=0)
+            curated = pd.concat([curated, df])
+        curated.to_csv(output.curated_table, sep="\t")
+        asvs = curated.index.tolist()
+        with open(output.seqs, "w") as fh:
+            for rec in parse(input.seqs, "fasta"):
+                if rec.id in asvs:
+                    fh.write(f">{rec.description}\n{rec.seq}\n")
+        tax = pd.read_csv(input.tax, sep="\t", index_col=0)
+        clusters = tax.loc[asvs, "cluster"]
+        tax = tax.loc[tax["cluster"].isin(clusters)]
+        tax.to_csv(output.tax, sep="\t")
+        
+rule precision_recall_lulu:
+    input:
+        clust_file=rules.collate_lulu_output.output.tax
+    output:
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/precision_recall.txt",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/precision_recall.order.txt",
+    log:
+        "logs/lulu_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
     params:
         src="workflow/scripts/evaluate_clusters.py",
         eval_rank=config["evaluation_rank"],
