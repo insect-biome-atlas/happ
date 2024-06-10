@@ -59,6 +59,7 @@ The `tasks` configured in the `pixi.toml` file are:
 - `chimera_filtering`: identifies and removes chimeras in the ASV dataset
 - `clustering`: clusters the ASVs using the tools specified in the configuration file
 - `numts_filtering`: identifies and removes ASV clusters that are likely to derive from Nuclear mitochondrial DNA (NUMTs)
+- `post_processing`: removes clusters that are likely to represent contaminants and/or artifacts
 - `all`: runs all the steps above
 
 The config file should be a file in YAML-format specifying various parameters,
@@ -69,6 +70,10 @@ The additional options are any [command line
 options](https://snakemake.readthedocs.io/en/stable/executing/cli.html#all-options)
 recognized by Snakemake. The most important options are already pre-configured
 in the [Configuration profiles](#configuration-profiles).
+
+> [!TIP] 
+> To run the workflow on a high performance computing system, use the
+> `--profile dardel` or `--profile slurm` flags. See more under [Configuration profiles](#configuration-profiles).
 
 ### Basic usage
 
@@ -101,10 +106,16 @@ And for the `clustering` part:
 pixi run clustering -n
 ```
 
-And finally, for the `numts_filtering` part:
+And for the `numts_filtering` part:
 
 ```bash
 pixi run numts_filtering -n
+```
+
+And finally for the `post_processing` part:
+
+```bash
+pixi run post_processing -n
 ```
 
 The `clustering` part depends on output from the `chimera_filtering`, and
