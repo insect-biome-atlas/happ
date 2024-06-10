@@ -18,6 +18,7 @@ if (nrow(otutab)==1 | matchlist_lines == 0) {
      cat("Insufficient data (either too few clusters or no pairwise matches). Skipping LULU filtering\n")
      curated_table <- otutab
      otu_map <- c()
+     cat("Insufficient data", file=snakemake@output$log)
 } else {
      matchlist <- read.table(snakemake@input$matchlist, header=FALSE,as.is=TRUE, stringsAsFactors=FALSE)
      curated_result <- lulu(otutab, matchlist, minimum_ratio_type = minimum_ratio_type, minimum_ratio = minimum_ratio, minimum_match = minimum_match, minimum_relative_cooccurence = minimum_relative_cooccurence)

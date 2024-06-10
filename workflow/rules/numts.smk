@@ -296,12 +296,14 @@ rule precision_recall_numts:
         python {params.src} {input[0]} {input[0]} --rank {params.eval_rank} --order_level {output[1]} > {output[0]} 2>{log}
         """
 
+## LULU filtering rules
+
 rule lulu_matchlist:
     """
     Create a matchlist for sequences in an order using vsearch
     """
     output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu_filtering/orders/{order}/matchlist.tsv"
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/matchlist.tsv"
     input:
         rules.generate_order_seqs.output[0],
     log:
@@ -309,7 +311,7 @@ rule lulu_matchlist:
     conda:
         "../envs/vsearch.yml"
     params:
-        tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}/lulu_filtering",
+        tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}/lulu",
     threads: 1
     shell:
         """
@@ -343,7 +345,7 @@ rule lulu_filter:
     output:
         curated_table="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/curated_table.tsv",
         otu_map="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/otu_map.tsv",
-        log="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/log.tsv",
+        log="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/log.txt",
     input:
         matchlist=rules.lulu_matchlist.output[0],
         otutab=rules.order_otutab.output.otutab,
