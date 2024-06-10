@@ -230,6 +230,37 @@ numts:
   # These clusters are not evaluated in the main NUMTs filtering algorithm but are likely to be NUMTs due to the lack of taxonomic information.
   filter_unclassified_rank: "Order"
 
+lulu:
+  # minimum_ratio_type sets whether a potential error must have lower abundance
+  # than the parent in all samples
+  minimum_ratio_type: "min"
+  
+  # minimum_ratio sets the minimum abundance ratio between a potential error and
+  # a potential parent to be identified as an error
+  minimum_ratio: 1
+
+  # minimum_match is the minimum threshold of sequence similarity for
+  # considering any OTU as an error of another
+  minimum_match: 84
+
+  # minimum co-occurrence rate – i.e. the lower rate of occurrence of the
+  # potential error explained by co-occurrence with the potential parent for
+  # considering error state.
+  minimum_relative_cooccurence: 0.95
+
+  # specify which orders (if any) are known to contain a large number of
+  # clusters if any order has > 10 k clusters then add them to this list this
+  # will increase the resources (threads) requested when running numt filtering
+  large_orders: ["Diptera"]
+  
+  # filter_unclassified_rank sets a taxonomic rank to used for filtering ASV
+  # clusters without a taxonomic assignments. For example, when this parameter
+  # is set to "Order", all ASV clusters that are unclassified at the Order level
+  # will be considered NUMTs. These clusters are not evaluated in the main NUMTs
+  # filtering algorithm but are likely to be NUMTs due to the lack of taxonomic
+  # information.
+  filter_unclassified_rank: "Order"
+
 ###########################
 ##### POSTPROCESSING ######
 ###########################
