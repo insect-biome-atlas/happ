@@ -28,6 +28,14 @@ ranks:
   - "BOLD_bin"
 
 ###############################
+##### CLUSTER EXECUTION #######
+###############################
+# default_partition sets the name of the SLURM partition to use as a default
+default_partition: "shared"
+# long_partition sets the name of the SLURM partition to use for long-running jobs
+long_partition: "long"
+
+###############################
 ##### TAXONOMY PARAMETERS #####
 ###############################
 # The evaluation rank parameter specifies what taxonomic rank to use for evaluating
@@ -260,6 +268,10 @@ lulu:
   # filtering algorithm but are likely to be NUMTs due to the lack of taxonomic
   # information.
   filter_unclassified_rank: "Order"
+
+  # non_numt_ASVs is a list of ASV ids that are known to be non-numts. These are
+  # used to evaluate the filtering.
+  non_numt_ASVs: ""
 
 ###########################
 ##### POSTPROCESSING ######
