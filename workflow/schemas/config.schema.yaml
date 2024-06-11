@@ -5,6 +5,14 @@ description: snakemake configuration file
 type: object
 
 properties:
+  default_partition:
+    type: string
+    description: "default partition to use for slurm jobs"
+    default: "shared"
+  long_partition:
+    type: string
+    description: "long partition to use for slurm jobs"
+    default: "long"
   run_name:
     type: string
     description: "Specify a name of the run. Using different run_name you can run clustering with different parameters using the same vsearch output"
@@ -47,7 +55,7 @@ properties:
     default: ["swarm"]
     items:
       type: string
-      enum: ["swarm", "opticlust", "dbotu3", "lulu"]
+      enum: ["swarm", "opticlust", "dbotu3"]
   postprocess:
     type: boolean
     description: "whether to run postprocessing steps"
@@ -187,8 +195,13 @@ properties:
       minimum_match: 84
       minimum_relative_cooccurence: 0.95
       large_orders: []
+      non_numt_ASVs: ""
       filter_unclassified_rank: "Order"
     properties:
+      non_numt_ASVs:
+        type: string
+        description: "Path to a file containing ASVs that are known to be non-numts"
+        default: ""
       minimum_ratio_type:
         type: string
         description: "sets whether a potential error must have lower abundance than the parent in all samples"
