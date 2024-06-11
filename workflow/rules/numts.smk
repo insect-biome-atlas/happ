@@ -9,34 +9,9 @@ localrules:
     filtered,
     order_otutab,
     lulu_filtering,
-    collate_lulu_output,
-    precision_recall_lulu
-
-def read_orders(config):
-    filter_unclassified_rank = config["numts"]["filter_unclassified_rank"]
-    f=expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/orders.txt",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            method=config["chimera"]["method"],
-            algo=config["chimera"]["algorithm"],
-        )
-    if os.path.exists(f[0]):
-        file = f[0]
-        with open(f[0], "r") as fh:
-            orders = fh.read().splitlines()
-            if filter_unclassified_rank.lower() == "order":
-                orders = [order for order in orders if not order.startswith("unclassified")]
-    else:
-        file = f"data/{config['rundir']}/asv_taxa.tsv"
-        df = pd.read_csv(file, sep="\t", index_col=0)
-        if filter_unclassified_rank in df.columns:
-            df = df.loc[~df[filter_unclassified_rank].str.startswith("unclassified")]
-        df.rename(columns = lambda x: x.lower(), inplace=True)
-        orders = df["order"].unique().tolist()
-
-    return orders
-
-orders = read_orders(config)
+    precision_recall_lulu,
+    evaluate_order_lulu,
+    filtered_lulu
 
 ## Target rules
 
@@ -52,10 +27,10 @@ rule numts_filtering:
 
 rule lulu_filtering:
     input:
-        expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/{f}",
+        expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{f}",
                     tool=config["software"], rundir=config["rundir"], chimera_run=config["chimera"]["run_name"], 
                     chimdir=config["chimdir"], rank=config["split_rank"], run_name=config["run_name"], 
-                    f=["cluster_counts.tsv", "cluster_reps.fasta", "cluster_taxonomy.tsv", "precision_recall.txt"])
+                    f=["non_numts.lulu.tsv", "non_numts_clusters.lulu.fasta", "precision_recall.lulu.txt"])        
 
 ## General utility rules
 rule generate_order_seqs:
@@ -71,6 +46,8 @@ rule generate_order_seqs:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_generate_order_seqs.log",
     conda: "../envs/r-env.yml"
     script: "../scripts/numt_filtering/generate_order_seqs.R"
+
+## Echo-algorithm based filtering rules
 
 rule generate_trimmed_seq:
     """
@@ -168,8 +145,6 @@ else:
         output:
             temp(touch("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/spikeins.tsv"))
 
-## Custom NUMTs and noise filtering rules
-
 rule combined_filter:
     """
     Filter the data for each order using with default settings.
@@ -185,8 +160,9 @@ rule combined_filter:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_combined_filter.log"
     threads: 1
     resources:
-        runtime = lambda wildcards: 60*24 if wildcards.order in config["numts"]["large_orders"] else 60*12,
-        mem_mb = lambda wildcards: 100000 if wildcards.order in config["numts"]["large_orders"] else 20000
+        runtime = lambda wildcards: 60*24*7 if wildcards.order in config["numts"]["large_orders"] else 60*12,
+        mem_mb = lambda wildcards: 100000 if wildcards.order in config["numts"]["large_orders"] else 20000,
+        slurm_partition = lambda wildcards: config["long_partition"] if wildcards.order in config["numts"]["large_orders"] else config["default_partition"]
     params:
         functions="workflow/scripts/numt_filtering/functions.R",
         codon_model="workflow/scripts/numt_filtering/codon_model.R",
@@ -237,15 +213,13 @@ rule evaluate_order:
     params:
         trusted=config["numts"]["non_numt_ASVs"],
         functions="workflow/scripts/numt_filtering/functions.R",
+        lulu=False
     log:
         "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_evaluate_order.log"
     conda: "../envs/r-env.yml"
     script: "../scripts/numt_filtering/evaluate_order.R"
 
-def filtered_input(wc):
-    """
-    Generate the input for the filtered rule.
-    """
+def get_orders(wc):
     # first check if the cluster taxonomy file exists already
     taxonomy = f"results/{wc.tool}/{wc.rundir}/{wc.chimera_run}/{wc.chimdir}/{wc.rank}/runs/{wc.run_name}/cluster_taxonomy.tsv"
     if os.path.exists(taxonomy):
@@ -256,6 +230,13 @@ def filtered_input(wc):
     df = pd.read_csv(taxfile, sep="\t", index_col=0)
     df.rename(columns = lambda x: x.lower(), inplace=True)
     orders = df["order"].unique().tolist()
+    return orders
+
+def filtered_input(wc):
+    """
+    Generate the input for the filtered rule.
+    """
+    orders = get_orders(wc)
     if config["numts"]["filter_unclassified_rank"].lower() == "order":
         orders = [order for order in orders if not order.startswith("unclassified")]
     return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/evaluation/{order}_numt_analysis.tsv",
@@ -323,6 +304,9 @@ rule lulu_matchlist:
         """
 
 rule order_otutab:
+    """
+    Generate cluster counts table for an order
+    """
     output:
         otutab="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/counts/{order}_cluster_counts.tsv"
     input:
@@ -341,7 +325,7 @@ rule order_otutab:
         counts.rename(index=rename_dict["ASV"], inplace=True)
         counts.to_csv(output.otutab, sep="\t")
 
-rule lulu_filter:
+rule lulu:
     output:
         curated_table="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/curated_table.tsv",
         otu_map="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/otu_map.tsv",
@@ -354,8 +338,9 @@ rule lulu_filter:
     conda:
         "../envs/lulu.yaml"
     resources:
-        runtime = lambda wildcards: 60*24 if wildcards.order in config["lulu"]["large_orders"] else 60*2,
-        mem_mb = lambda wildcards: 100000 if wildcards.order in config["lulu"]["large_orders"] else 20000
+        runtime = lambda wildcards: 60*24*3 if wildcards.order in config["lulu"]["large_orders"] else 60*2,
+        mem_mb = lambda wildcards: 100000 if wildcards.order in config["lulu"]["large_orders"] else 20000,
+        slurm_partition = lambda wildcards: config["long_partition"] if wildcards.order in config["lulu"]["large_orders"] else config["default_partition"]
     shadow: "minimal"
     params:
         minimum_ratio_type = config["lulu"]["minimum_ratio_type"],
@@ -365,59 +350,58 @@ rule lulu_filter:
     script:
         "../scripts/lulu.R"
 
-def read_lulu_output(wc):
+rule evaluate_order_lulu:
+    output:
+        numt_res="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/evaluation/{order}_analysis.tsv",
+        numt_eval="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/evaluation/{order}_evaluation.tsv"        
+    input:
+        otu_map=rules.lulu.output.otu_map,
+        clust_file=rules.generate_cluster_analysis.output.tsv,
+        taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
+    params:
+        trusted=config["lulu"]["non_numt_ASVs"],
+        functions="workflow/scripts/numt_filtering/functions.R",
+        lulu=True
+    log:
+        "logs/lulu_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_evaluate_order.log"
+    conda: "../envs/r-env.yml"
+    script: "../scripts/numt_filtering/evaluate_order.R"
+
+def filtered_input_lulu(wc):
     """
-    Generate the input for the filtered rule.
+    Generate the input for the LULU filtered rule.
     """
-    # first check if the cluster taxonomy file exists already
-    taxonomy = f"results/{wc.tool}/{wc.rundir}/{wc.chimera_run}/{wc.chimdir}/{wc.rank}/runs/{wc.run_name}/cluster_taxonomy.tsv"
-    if os.path.exists(taxonomy):
-        taxfile = taxonomy
-    # if not, use the taxonomy file from the input directory
-    else:
-        taxfile = f"data/{config['rundir']}/asv_taxa.tsv"
-    df = pd.read_csv(taxfile, sep="\t", index_col=0)
-    df.rename(columns = lambda x: x.lower(), inplace=True)
-    orders = df["order"].unique().tolist()
+    orders = get_orders(wc)
     if config["lulu"]["filter_unclassified_rank"].lower() == "order":
         orders = [order for order in orders if not order.startswith("unclassified")]
-    return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/orders/{order}/curated_table.tsv",
+    return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/evaluation/{order}_analysis.tsv",
         tool = wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank, run_name=wc.run_name, order=orders)
 
-
-rule collate_lulu_output:
-    input:
-        curated = read_lulu_output,
-        seqs = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
-        tax = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
+rule filtered_lulu:
+    """
+    Combines the LULU results for each order and outputs a taxonomy table of all non-numt ASVs 
+    as well as a fasta file of the non-numt clusters.
+    """
     output:
-        curated_table="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/cluster_counts.tsv",
-        seqs = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/cluster_reps.fasta",
-        tax = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/cluster_taxonomy.tsv"
-    run:
-        import pandas as pd
-        from Bio.SeqIO import parse
-        curated = pd.DataFrame()
-        for f in input.curated:
-            df = pd.read_csv(f, sep="\t", index_col=0)
-            curated = pd.concat([curated, df])
-        curated.to_csv(output.curated_table, sep="\t")
-        asvs = curated.index.tolist()
-        with open(output.seqs, "w") as fh:
-            for rec in parse(input.seqs, "fasta"):
-                if rec.id in asvs:
-                    fh.write(f">{rec.description}\n{rec.seq}\n")
-        tax = pd.read_csv(input.tax, sep="\t", index_col=0)
-        clusters = tax.loc[asvs, "cluster"]
-        tax = tax.loc[tax["cluster"].isin(clusters)]
-        tax.to_csv(output.tax, sep="\t")
-        
+        tsv="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/non_numts.lulu.tsv",
+        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/non_numts_clusters.lulu.fasta",
+    input:
+        numt_files=filtered_input_lulu,
+        fasta = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
+        taxonomy = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
+    log: 
+        "logs/lulu_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/filtered.log",
+    params:
+        filter_unclassified_rank = config["lulu"]["filter_unclassified_rank"],
+    conda: "../envs/r-env.yml"
+    script: "../scripts/numt_filtering/filter.R"
+
 rule precision_recall_lulu:
     input:
-        clust_file=rules.collate_lulu_output.output.tax
+        rules.filtered_lulu.output.tsv
     output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/precision_recall.txt",
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/numts_filtering/lulu/precision_recall.order.txt",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.lulu.txt",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.lulu.order.txt",
     log:
         "logs/lulu_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
     params:
