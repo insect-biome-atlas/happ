@@ -55,11 +55,6 @@ if "opticlust" in config["software"]:
 
     include: "rules/opticlust.smk"
 
-
-if "lulu" in config["software"]:
-
-    include: "rules/lulu.smk"
-
 include: "rules/numts.smk"
 
 if config["postprocess"] and os.path.exists(config["metadata_file"]):
