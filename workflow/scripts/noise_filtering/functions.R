@@ -326,7 +326,7 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
         else
           singleton_reads <- NA
 
-        if (ratio_max < max_read_ratio && dist_value > threshold && (singletons==0 || (singletons==1 && singleton_reads<max_singleton_reads))) {
+        if (ratio_max < max_read_ratio && dist_value > threshold && (singletons==0 || (singletons<=max_singletons && singleton_reads<=max_singleton_reads))) {
           isNumt <- TRUE
           reason <- "small_sample"
         }
