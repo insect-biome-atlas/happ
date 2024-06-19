@@ -1,5 +1,3 @@
-# Outlier algorithm for finding numts and other spurious clusters
-
 sink(file = snakemake@log[[1]], append = FALSE, type = c("output", "message"),
      split = FALSE)
 
