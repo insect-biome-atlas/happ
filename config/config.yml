@@ -251,6 +251,11 @@ noise_filtering:
   filter_unclassified_rank: "Order"
 
 lulu:
+  run_name: lulu1
+
+  # choose between vsearch and blast for alignments
+  alignment_tool: "vsearch"
+
   # minimum_ratio_type sets whether a potential error must have lower abundance
   # than the parent in all samples
   minimum_ratio_type: "min"
