@@ -21,6 +21,9 @@ order_name <- snakemake@wildcards$order
 ## PARAMS
 spikeins <- readLines(snakemake@input$spikeins)
 n_closest <- snakemake@params$n_closest
+threshold <- snakemake@params$threshold
+max_singleton_reads <- snakemake@params$max_singleton_reads
+max_singletons <- snakemake@params$max_singletons
 
 ## OUTPUT
 output <- snakemake@output$tsv
@@ -62,5 +65,6 @@ if (length(spikeins) > 0) {
 counts <- counts[counts$cluster %in% taxonomy$cluster,]
 
 res <- combined_filter_neighbors(fasta=fasta, taxonomy=taxonomy, counts=counts, output=output, 
-                        spikeins=spikeins, n_closest=n_closest)
+                        spikeins=spikeins, n_closest=n_closest, threshold=threshold, max_singleton_reads=max_singleton_reads,
+                        max_singletons=max_singletons)
 sink()
