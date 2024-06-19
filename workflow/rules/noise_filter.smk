@@ -41,10 +41,11 @@ rule cleaning:
 
 rule lulu_filtering:
     input:
-        expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{f}",
+        expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/{f}",
                     tool=config["software"], rundir=config["rundir"], chimera_run=config["chimera"]["run_name"], 
-                    chimdir=config["chimdir"], rank=config["split_rank"], run_name=config["run_name"], 
-                    f=["non_numts.lulu.tsv", "non_numts_clusters.lulu.fasta", "precision_recall.lulu.txt"])        
+                    chimdir=config["chimdir"], rank=config["split_rank"], run_name=config["run_name"],
+                    lulu_run=config["lulu"]["run_name"],
+                    f=["lulu_clusters.tsv", "lulu_clusters.fasta", "precision_recall.lulu.txt"])        
 
 
 rule generate_cluster_analysis:
@@ -187,9 +188,8 @@ rule combined_filter:
         "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/runs/{noise_run}/{order}_combined_filter.log"
     threads: 1
     resources:
-        runtime = lambda wildcards: 60*8 if wildcards.order in config["noise_filtering"]["large_orders"] else 60,
+        runtime = lambda wildcards: 60*7 if wildcards.order in config["noise_filtering"]["large_orders"] else 60,
         mem_mb = lambda wildcards: 100000 if wildcards.order in config["noise_filtering"]["large_orders"] else 20000,
-        #slurm_partition = lambda wildcards: config["long_partition"] if wildcards.order in config["noise_filtering"]["large_orders"] else config["default_partition"]
     params:
         functions="workflow/scripts/noise_filtering/functions.R",
         codon_model="workflow/scripts/noise_filtering/codon_model.R",
@@ -366,30 +366,56 @@ if os.path.exists(config["cleaning"]["metadata_file"]):
             """
 
 ## LULU filtering rules
-
-rule lulu_matchlist:
-    """
-    Create a matchlist for sequences in an order using vsearch
-    """
-    output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/orders/{order}/matchlist.tsv"
-    input:
-        rules.generate_order_seqs.output[0],
-    log:
-        "logs/numts/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_lulu_matchlist.log"
-    conda:
-        "../envs/vsearch.yml"
-    params:
-        tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}/lulu",
-    threads: 1
-    shell:
+if config["lulu"]["alignment_tool"] == "vsearch":
+    rule lulu_matchlist_vsearch:
         """
-        mkdir -p {params.tmpdir}
-        cat {input} | sed 's/>.\+ />/g' > {params.tmpdir}/cluster_reps.fasta
-        vsearch --usearch_global {params.tmpdir}/cluster_reps.fasta --db {params.tmpdir}/cluster_reps.fasta --self --id .84 --iddef 1 \
-            --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10 --threads {threads} > {log} 2>&1
-        rm -rf {params.tmpdir}
+        Create a matchlist for sequences in an order using vsearch
         """
+        output:
+            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/orders/{order}/matchlist.tsv"
+        input:
+            rules.generate_order_seqs.output[0],
+        log:
+            "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/{order}_lulu_matchlist.log"
+        conda:
+            "../envs/vsearch.yml"
+        params:
+            tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}/lulu",
+        threads: 1
+        shell:
+            """
+            mkdir -p {params.tmpdir}
+            cat {input} | sed 's/>.\+ />/g' > {params.tmpdir}/cluster_reps.fasta
+            vsearch --usearch_global {params.tmpdir}/cluster_reps.fasta --db {params.tmpdir}/cluster_reps.fasta --self --id .84 --iddef 1 \
+                --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10 --threads {threads} > {log} 2>&1
+            rm -rf {params.tmpdir}
+            """
+else:
+    rule lulu_matchlist_blastn:
+        """
+        Create a matchlist for sequences in an order using blastn
+        """
+        output:
+            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/orders/{order}/matchlist.tsv"
+        input:
+            rules.generate_order_seqs.output[0],
+        log:
+            "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/{order}_lulu_matchlist.log"
+        conda:
+            "../envs/blastn.yml"
+        params:
+            tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}/lulu",
+        threads: 1
+        resources:
+            runtime = lambda wildcards: 60*5 if wildcards.order in config["lulu"]["large_orders"] else 60,
+        shell:
+            """
+            mkdir -p {params.tmpdir}
+            cat {input} | sed 's/>.\+ />/g' > {params.tmpdir}/cluster_reps.fasta
+            makeblastdb -in {params.tmpdir}/cluster_reps.fasta -parse_seqids -dbtype nucl
+            blastn -db {params.tmpdir}/cluster_reps.fasta -outfmt '6 qseqid sseqid pident' -out {output[0]} -qcov_hsp_perc 80 -perc_identity 84 -query {params.tmpdir}/cluster_reps.fasta -num_threads {threads}
+            rm -rf {params.tmpdir}
+            """
 
 rule order_otutab:
     """
@@ -415,14 +441,14 @@ rule order_otutab:
 
 rule lulu:
     output:
-        curated_table="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/orders/{order}/curated_table.tsv",
-        otu_map="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/orders/{order}/otu_map.tsv",
-        log="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/orders/{order}/log.txt",
+        curated_table="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/orders/{order}/curated_table.tsv",
+        otu_map="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/orders/{order}/otu_map.tsv",
+        log="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/orders/{order}/log.txt",
     input:
-        matchlist=rules.lulu_matchlist.output[0],
+        matchlist="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/orders/{order}/matchlist.tsv",
         otutab=rules.order_otutab.output.otutab,
     log:
-        "logs/lulu_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}_lulu_filtering.log"
+        "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/{order}_lulu_filtering.log"
     conda:
         "../envs/lulu.yaml"
     resources:
@@ -440,8 +466,8 @@ rule lulu:
 
 rule evaluate_order_lulu:
     output:
-        numt_res="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/evaluation/{order}_analysis.tsv",
-        numt_eval="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/evaluation/{order}_evaluation.tsv"        
+        numt_res="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/evaluation/{order}_analysis.tsv",
+        numt_eval="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/evaluation/{order}_evaluation.tsv"        
     input:
         otu_map=rules.lulu.output.otu_map,
         clust_file=rules.generate_cluster_analysis.output.tsv,
@@ -451,7 +477,7 @@ rule evaluate_order_lulu:
         functions="workflow/scripts/numt_filtering/functions.R",
         lulu=True
     log:
-        "logs/lulu_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_evaluate_order.log"
+        "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/{order}_evaluate_order.log"
     conda: "../envs/r-env.yml"
     script: "../scripts/numt_filtering/evaluate_order.R"
 
@@ -462,23 +488,23 @@ def filtered_input_lulu(wc):
     orders = get_orders(wc)
     if config["lulu"]["filter_unclassified_rank"].lower() == "order":
         orders = [order for order in orders if not order.startswith("unclassified")]
-    return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/evaluation/{order}_analysis.tsv",
+    return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/evaluation/{order}_analysis.tsv",
         tool = wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank, run_name=wc.run_name, order=orders)
 
 rule filtered_lulu:
     """
-    Combines the LULU results for each order and outputs a taxonomy table of all non-numt ASVs 
-    as well as a fasta file of the non-numt clusters.
+    Combines the LULU results for each order and outputs a taxonomy table of all filtered ASVs 
+    as well as a fasta file of the filtered clusters.
     """
     output:
-        tsv="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/non_numts.lulu.tsv",
-        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/non_numts_clusters.lulu.fasta",
+        tsv="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/lulu_clusters.tsv",
+        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/lulu_clusters.fasta",
     input:
         numt_files=filtered_input_lulu,
         fasta = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
         taxonomy = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     log: 
-        "logs/lulu_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/filtered.log",
+        "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/filtered.log"
     params:
         filter_unclassified_rank = config["lulu"]["filter_unclassified_rank"],
     conda: "../envs/r-env.yml"
@@ -488,10 +514,10 @@ rule precision_recall_lulu:
     input:
         rules.filtered_lulu.output.tsv
     output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.lulu.txt",
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.lulu.order.txt",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/precision_recall.lulu.txt",
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/precision_recall.lulu.order.txt",
     log:
-        "logs/lulu_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
+        "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/precision_recall.log"
     params:
         src="workflow/scripts/evaluate_clusters.py",
         eval_rank=config["evaluation_rank"],
