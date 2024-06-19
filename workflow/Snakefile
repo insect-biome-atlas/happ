@@ -29,13 +29,14 @@ taxa = read_taxa(config)
 
 
 wildcard_constraints:
-    tool="(swarm|opticlust|dbotu3|lulu)",
+    tool="(swarm|opticlust|dbotu3)",
     tax=f"({'|'.join(taxa)})",
     rundir=config["rundir"],
     run_name=config["run_name"],
     chimdir=config["chimdir"],
     chimera_run=config["chimera"]["run_name"],
     algo=config["chimera"]["algorithm"],
+    noise_run=config["noise_filtering"]["run_name"],
 
 
 include: "rules/common.smk"
@@ -55,10 +56,7 @@ if "opticlust" in config["software"]:
 
     include: "rules/opticlust.smk"
 
-include: "rules/numts.smk"
-
-if config["postprocess"] and os.path.exists(config["metadata_file"]):
-    include: "rules/postprocess.smk"
+include: "rules/noise_filter.smk"
 
 localrules:
     all,
@@ -145,11 +143,11 @@ def get_all_input(wildcards):
         run_name=config["run_name"],
         suff=["json", "cmd"],
     )
-    # numts filtered files
-    input += rules.numts_filtering.input
-    # postprocessed files
-    if config["postprocess"] and os.path.exists(config["metadata_file"]):
-        input += rules.postprocessing.input
+    # noise filtered files
+    input += rules.noise_filtering.input
+    # cleaning files
+    if os.path.exists(config["cleaning"]["metadata_file"]):
+        input += rules.cleaning.input
     return input
 
 
