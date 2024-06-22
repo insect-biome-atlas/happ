@@ -38,7 +38,7 @@ set-resources:
     mem_mb: 60000
   clean_asvs:
     mem_mb: 60000
-  lulu_matchlist:
+  lulu_matchlist_vsearch:
     runtime: 120
 
 set-threads:
@@ -51,7 +51,8 @@ set-threads:
   split_counts: 1
   chimera_samplewise: 40
   id_spikeins: 10
-  lulu_matchlist: 40
+  lulu_matchlist_vsearch: 40
+  lulu_matchlist_blastn: 40
 
 # The settings below define command line flags for snakemake
 keep-going: True
