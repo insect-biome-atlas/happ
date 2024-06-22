@@ -408,6 +408,7 @@ else:
         threads: 1
         resources:
             runtime = lambda wildcards: 60*5 if wildcards.order in config["lulu"]["large_orders"] else 60,
+            mem_mb = lambda wildcards: 100000 if wildcards.order in config["lulu"]["large_orders"] else 20000,
         shell:
             """
             mkdir -p {params.tmpdir}
@@ -489,7 +490,7 @@ def filtered_input_lulu(wc):
     if config["lulu"]["filter_unclassified_rank"].lower() == "order":
         orders = [order for order in orders if not order.startswith("unclassified")]
     return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/evaluation/{order}_analysis.tsv",
-        tool = wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank, run_name=wc.run_name, order=orders)
+        tool = wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank, run_name=wc.run_name, lulu_run=wc.lulu_run, order=orders)
 
 rule filtered_lulu:
     """
