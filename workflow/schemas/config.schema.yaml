@@ -190,6 +190,8 @@ properties:
   lulu:
     type: object
     default:
+      run_name: "lulu1"
+      alignment_tool: "vsearch"
       minimum_ratio_type: "min"
       minimum_ratio: 1
       minimum_match: 84
@@ -198,6 +200,15 @@ properties:
       non_numt_ASVs: ""
       filter_unclassified_rank: "Order"
     properties:
+      run_name:
+        type: string
+        description: "Name of lulu run settings"
+        default: "lulu1"
+      alignment_tool:
+        type: string
+        description: "Tool to use for alignment"
+        default: "vsearch"
+        enum: ["vsearch", "blastn"]
       non_numt_ASVs:
         type: string
         description: "Path to a file containing ASVs that are known to be non-numts"
