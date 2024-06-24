@@ -475,12 +475,12 @@ rule evaluate_order_lulu:
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     params:
         trusted=config["lulu"]["non_numt_ASVs"],
-        functions="workflow/scripts/numt_filtering/functions.R",
+        functions="workflow/scripts/noise_filtering/functions.R",
         lulu=True
     log:
         "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/{order}_evaluate_order.log"
     conda: "../envs/r-env.yml"
-    script: "../scripts/numt_filtering/evaluate_order.R"
+    script: "../scripts/noise_filtering/evaluate_order.R"
 
 def filtered_input_lulu(wc):
     """
@@ -509,7 +509,7 @@ rule filtered_lulu:
     params:
         filter_unclassified_rank = config["lulu"]["filter_unclassified_rank"],
     conda: "../envs/r-env.yml"
-    script: "../scripts/numt_filtering/filter.R"
+    script: "../scripts/noise_filtering/filter.R"
 
 rule precision_recall_lulu:
     input:
