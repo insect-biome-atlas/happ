@@ -256,6 +256,9 @@ lulu:
   # choose between vsearch and blastn for alignments
   alignment_tool: "vsearch"
 
+  # maximum number of target sequences to return for aligner
+  max_target_seqs: 10
+  
   # minimum_ratio_type sets whether a potential error must have lower abundance
   # than the parent in all samples
   minimum_ratio_type: "min"
