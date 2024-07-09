@@ -188,7 +188,7 @@ rule combined_filter:
         "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/runs/{noise_run}/{order}_combined_filter.log"
     threads: 1
     resources:
-        runtime = lambda wildcards: 60*7 if wildcards.order in config["noise_filtering"]["large_orders"] else 60,
+        runtime = lambda wildcards: 60*24*3 if wildcards.order in config["noise_filtering"]["large_orders"] else 60,
         mem_mb = lambda wildcards: 100000 if wildcards.order in config["noise_filtering"]["large_orders"] else 20000,
     params:
         functions="workflow/scripts/noise_filtering/functions.R",
@@ -381,13 +381,14 @@ if config["lulu"]["alignment_tool"] == "vsearch":
             "../envs/vsearch.yml"
         params:
             tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}/lulu",
+            maxhits = config["lulu"]["max_target_seqs"]
         threads: 1
         shell:
             """
             mkdir -p {params.tmpdir}
             cat {input} | sed 's/>.\+ />/g' > {params.tmpdir}/cluster_reps.fasta
             vsearch --usearch_global {params.tmpdir}/cluster_reps.fasta --db {params.tmpdir}/cluster_reps.fasta --self --id .84 --iddef 1 \
-                --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10 --threads {threads} > {log} 2>&1
+                --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits {params.maxhits} --threads {threads} > {log} 2>&1
             rm -rf {params.tmpdir}
             """
 else:
@@ -405,6 +406,7 @@ else:
             "../envs/blastn.yml"
         params:
             tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{order}/lulu",
+            max_target_seqs = config["lulu"]["max_target_seqs"]
         threads: 1
         resources:
             runtime = lambda wildcards: 60*5 if wildcards.order in config["lulu"]["large_orders"] else 60,
@@ -414,7 +416,9 @@ else:
             mkdir -p {params.tmpdir}
             cat {input} | sed 's/>.\+ />/g' > {params.tmpdir}/cluster_reps.fasta
             makeblastdb -in {params.tmpdir}/cluster_reps.fasta -parse_seqids -dbtype nucl
-            blastn -db {params.tmpdir}/cluster_reps.fasta -outfmt '6 qseqid sseqid pident' -out {output[0]} -qcov_hsp_perc 80 -perc_identity 84 -query {params.tmpdir}/cluster_reps.fasta -num_threads {threads}
+            blastn -db {params.tmpdir}/cluster_reps.fasta -outfmt '6 qseqid sseqid pident' -out {output[0]} \
+                -qcov_hsp_perc 80 -perc_identity 84 -query {params.tmpdir}/cluster_reps.fasta \
+                -num_threads {threads} -max_target_seqs {params.max_target_seqs} 2>{log}
             rm -rf {params.tmpdir}
             """
 
