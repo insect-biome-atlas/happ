@@ -145,19 +145,29 @@ def calc_order_level(clustdf, rank):
 
 
 def main(args):
+    rank = args.rank
+    clustcol = args.clustcol
+    taxfile = args.taxfile
     # Read taxonomies
-    asv_taxa = pd.read_csv(args.taxfile, sep="\t", index_col=0)
+    asv_taxa = pd.read_csv(taxfile, sep="\t", index_col=0)
+    asv_taxa.fillna("unclassified", inplace=True)
+    asv_taxa.rename(columns={clustcol: "cluster"}, inplace=True)
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASV taxonomies loaded\n")
     # Remove ASVs without assignments for args.rank
     sys.stderr.write(f"#Removing ASVs without assignments for {args.rank}\n")
     asv_taxa = asv_taxa.loc[
-        (~asv_taxa[args.rank].str.contains("_X+$"))
-        & (~asv_taxa[args.rank].str.startswith("unclassified"))
+        (~asv_taxa[rank].str.contains("_X+$"))
+        & (~asv_taxa[rank].str.startswith("unclassified"))
+    ]
+    asv_taxa = asv_taxa.loc[
+        (~asv_taxa["cluster"].str.contains("_X+$"))
+        & (~asv_taxa["cluster"].str.startswith("unclassified"))
     ]
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASVs remaining\n")
     # Read cluster files
     sys.stderr.write(f"#Loading cluster results from {len(args.clustfiles)} files\n")
     clustdf = read_asv_clusters(args.clustfiles)
+    clustdf.rename(columns={clustcol: "cluster"}, inplace=True)
     # Merge with taxonomies
     # If taxfile and clustfile are the same, extract only cluster column from the clust table
     if args.taxfile == args.clustfiles[0]:
@@ -165,6 +175,8 @@ def main(args):
         asv_taxa.drop("cluster", axis=1, inplace=True)
     sys.stderr.write("#Merging with taxonomic assignments\n")
     clustdf = merge_cluster_df(clustdf, asv_taxa)
+    if args.skip_family_prefix:
+        clustdf["cluster_Family"] = clustdf["cluster"]
     sys.stderr.write(f"#{clustdf.shape[0]} ASVs remaining after merging\n")
     if clustdf.shape[0] == 0:
         sys.exit("Not enough data to evaluate\n")
@@ -175,7 +187,7 @@ def main(args):
         order_leveldf = calc_order_level(clustdf, args.rank)
         sys.stderr.write(f"Writing order-level results to {args.order_level}\n")
         order_leveldf.to_csv(args.order_level, sep="\t")
-    precision, recall = precision_recall(clustdf, "cluster_Family", args.rank)
+    precision, recall = precision_recall(clustdf, "cluster_Family", rank)
     homogeneity, completeness = homcom(clustdf, "cluster_Family", args.rank)
     sys.stdout.write(f"precision\t{precision}\nrecall\t{recall}\n")
     sys.stdout.write(f"homogeneity\t{homogeneity}\ncompleteness\t{completeness}\n")
@@ -195,6 +207,12 @@ if __name__ == "__main__":
         "cluster name in second column",
     )
     parser.add_argument(
+        "--clustcol",
+        type=str,
+        default="cluster",
+        help="Column name in cluster file with cluster names",
+    )
+    parser.add_argument(
         "--rank",
         type=str,
         default="Species",
@@ -205,5 +223,6 @@ if __name__ == "__main__":
         type=str,
         help="Calculate order-level stats and write to this file",
     )
+    parser.add_argument("--skip_family_prefix", action="store_true", help="Skip family prefix in cluster names")
     args = parser.parse_args()
     main(args)
