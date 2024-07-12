@@ -26,6 +26,10 @@ def merge_cluster_df(clustdf, taxdf):
     """
     Merge cluster dataframe with taxonomy
     """
+    try:
+        clustdf = clustdf.drop(list(set(clustdf.columns).intersection(taxdf.columns)),axis=1)
+    except AttributeError:
+        pass
     dataf = pd.merge(clustdf, taxdf, left_index=True, right_index=True, how="inner")
     dataf["cluster_Family"] = dataf["cluster"] + dataf["Family"]
     return dataf
@@ -159,10 +163,6 @@ def main(args):
         (~asv_taxa[rank].str.contains("_X+$"))
         & (~asv_taxa[rank].str.startswith("unclassified"))
     ]
-    asv_taxa = asv_taxa.loc[
-        (~asv_taxa["cluster"].str.contains("_X+$"))
-        & (~asv_taxa["cluster"].str.startswith("unclassified"))
-    ]
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASVs remaining\n")
     # Read cluster files
     sys.stderr.write(f"#Loading cluster results from {len(args.clustfiles)} files\n")
@@ -177,6 +177,10 @@ def main(args):
     clustdf = merge_cluster_df(clustdf, asv_taxa)
     if args.skip_family_prefix:
         clustdf["cluster_Family"] = clustdf["cluster"]
+    clustdf = clustdf.loc[
+        (~clustdf["cluster"].str.contains("_X+$"))
+        & (~clustdf["cluster"].str.startswith("unclassified"))
+    ]
     sys.stderr.write(f"#{clustdf.shape[0]} ASVs remaining after merging\n")
     if clustdf.shape[0] == 0:
         sys.exit("Not enough data to evaluate\n")
