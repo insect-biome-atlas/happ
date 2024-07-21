@@ -1,4 +1,4 @@
-# Combined algorithm for finding numts and other spurious clusters
+# Combined algorithm for finding noise and other spurious clusters
 
 sink(file = snakemake@log[[1]], append = FALSE, type = c("output", "message"),
      split = FALSE)
@@ -21,6 +21,9 @@ order_name <- snakemake@wildcards$order
 ## PARAMS
 spikeins <- readLines(snakemake@input$spikeins)
 n_closest <- snakemake@params$n_closest
+threshold <- snakemake@params$threshold
+max_singleton_reads <- snakemake@params$max_singleton_reads
+max_singletons <- snakemake@params$max_singletons
 
 ## OUTPUT
 output <- snakemake@output$tsv
@@ -43,11 +46,11 @@ if (length(unique(taxonomy$cluster)) == 1) {
      counts <- counts[counts$cluster %in% taxonomy$cluster,]
      cat("Only one cluster in order\n")
      res <- data.table(matrix(NA, nrow = 1, ncol = 5))
-     colnames(res) <- c("cluster", "n_samples", "n_reads", "numt", "reason")
+     colnames(res) <- c("cluster", "n_samples", "n_reads", "noise", "reason")
      res$cluster <- unique(taxonomy$cluster)
      res$n_samples <- apply(counts[,2:ncol(counts)] > 0, 1, sum)
      res$n_reads <- sum(counts[2:ncol(counts)])
-     res$numt <- "FALSE"
+     res$noise <- "FALSE"
      res$reason <- "single_cluster"
      write.table(res, snakemake@output$tsv, sep="\t", quote=FALSE, row.names=FALSE)
      sink()
@@ -62,5 +65,6 @@ if (length(spikeins) > 0) {
 counts <- counts[counts$cluster %in% taxonomy$cluster,]
 
 res <- combined_filter_neighbors(fasta=fasta, taxonomy=taxonomy, counts=counts, output=output, 
-                        spikeins=spikeins, n_closest=n_closest)
+                        spikeins=spikeins, n_closest=n_closest, threshold=threshold, max_singleton_reads=max_singleton_reads,
+                        max_singletons=max_singletons)
 sink()

@@ -52,7 +52,7 @@ properties:
   software:
     type: array
     description: "clustering software to run"
-    default: ["swarm"]
+    default: ["swarm", "opticlust", "dbotu3"]
     items:
       type: string
       enum: ["swarm", "opticlust", "dbotu3"]
@@ -190,17 +190,33 @@ properties:
   lulu:
     type: object
     default:
+      run_name: "lulu1"
+      alignment_tool: "vsearch"
+      max_target_seqs: 10
       minimum_ratio_type: "min"
       minimum_ratio: 1
       minimum_match: 84
       minimum_relative_cooccurence: 0.95
       large_orders: []
-      non_numt_ASVs: ""
+      non_noise_ASVs: ""
       filter_unclassified_rank: "Order"
     properties:
-      non_numt_ASVs:
+      run_name:
         type: string
-        description: "Path to a file containing ASVs that are known to be non-numts"
+        description: "Name of lulu run settings"
+        default: "lulu1"
+      alignment_tool:
+        type: string
+        description: "Tool to use for alignment"
+        default: "vsearch"
+        enum: ["vsearch", "blastn"]
+      max_target_seqs:
+        type: integer
+        description: "Maximum number of target sequences to return from aligner"
+        default: 10
+      non_noise_ASVs:
+        type: string
+        description: "Path to a file containing ASVs that are known to be non-noise"
         default: ""
       minimum_ratio_type:
         type: string
@@ -227,6 +243,37 @@ properties:
         type: string
         description: "Remove ASVs that are unclassified at this rank (begin with unclassified) prior to chimera filtering and clustering"
         default: "Order"
+  cleaning:
+    type: object
+    default:
+      metadata_file: ""
+      sample_id_col: ""
+      sample_type_col: ""
+      split_col: ""
+      blank_val: []
+      max_blank_occurrence: 5
+    properties:
+      metadata_file:
+        type: string
+        description: "path to metadata file"
+      sample_id_col:
+        type: string
+        description: "name of the column in the metadata file that contains the sample ids"
+      sample_type_col:
+        type: string
+        description: "column in metadata file that contains the sample type"
+      split_col:
+        type: string
+        description: "split_col is the column in the metadata file that specifies what samples belong to the same dataset. This is used to split the samples by dataset for counting occurence in blanks."
+        default: ""
+      blank_val:
+        type: array
+        description: "blank_val is the value in the split_col that specifies a blank sample"
+        default: []
+      max_blank_occurrence:
+        type: integer
+        description: "max_blank_occurrence is the maximum number of times an ASV can occur in a blank sample"
+        default: 5
   vsearch:
     type: object
     default:
@@ -254,12 +301,16 @@ properties:
         type: number
         description: "reject if fraction of query seq. aligned lower"
         default: 0.9
-  numts:
+  noise_filtering:
     type: object
     default:
+      run_name: "noise1"
+      threshold: 1.2
+      max_singleton_reads: 20
+      max_singletons: 1
       n_closest: 5
       abundance_threshold: 3
-      non_numt_ASVs: ""
+      non_noise_ASVs: ""
       spikein_file: ""
       spikein_method: "BOLD_bin"
       large_orders: []
@@ -267,15 +318,15 @@ properties:
     properties:
       n_closest:
         type: integer
-        description: "Maximum number of closest sequences to compare to when filtering numts"
+        description: "Maximum number of closest sequences to compare to when filtering noise"
         default: 5
       abundance_threshold:
         type: integer
-        description: "Minimum abundance threshold for filtering numts"
+        description: "Minimum abundance threshold for filtering noise"
         default: 3
-      non_numt_ASVs:
+      non_noise_ASVs:
         type: string
-        description: "Path to a file containing ASVs that are known to be non-numts"
+        description: "Path to a file containing ASVs that are known to be non-noise"
         default: ""
       spikein_file: 
         type: string

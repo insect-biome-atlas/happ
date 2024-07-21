@@ -13,8 +13,9 @@ linux="3.10.0"
 init = "conda config --set channel_priority strict"
 chimera_filtering = {cmd="snakemake chimera_filtering", depends_on = ["init"]}
 clustering = {cmd="snakemake clustering", depends_on = ["init"]}
-numts_filtering = {cmd="snakemake numts_filtering", depends_on = ["init"]}
-post_processing = {cmd="snakemake postprocessing", depends_on = ["init"]}
+noise_filtering = {cmd="snakemake noise_filtering", depends_on = ["init"]}
+lulu_filtering = {cmd="snakemake lulu_filtering", depends_on = ["init"]}
+cleaning = {cmd="snakemake cleaning", depends_on = ["init"]}
 all = {cmd="snakemake", depends_on = ["init"]}
 [dependencies]
 python = "3.11"
@@ -29,3 +30,9 @@ pip = "*"
 
 [pypi-dependencies]
 snakemake-executor-plugin-slurm = "*"
+
+[feature.jupyter]
+dependencies = {jupyter = "*", jupyterlab = "*", pandas = "*"}
+
+[environments]
+jupyter = ["jupyter"]

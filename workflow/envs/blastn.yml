@@ -1,0 +1,7 @@
+name: blastn
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - blast=2.15.0

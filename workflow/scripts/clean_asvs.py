@@ -129,11 +129,14 @@ def read_counts(
                 )
             data[val] = pd.concat([data[val], _dataframe])
     logging.info(f"Read counts for {n_asvs} ASVs in {n_samples} samples and {len(set(n_datasets))} datasets")
+    if len(warnings) > 0:
+        for w in warnings:
+            logging.warning(w)
     return data
 
 def main(args):
     logging.basicConfig(
-        level=logging.INFO,
+        #level=logging.INFO,
         format="%(asctime)s - %(message)s",
     )
     # Read metadata
@@ -177,6 +180,14 @@ def main(args):
     else:
         logging.info("Writing filtered output to stdout")
         clustdf.drop(asvs_in_blank_clusters).to_csv(sys.stdout, sep="\t")
+    if args.occurrence_out:
+        logging.info(f"Writing occurrence in blanks to {args.occurrence_out}")
+        occurrence_df = pd.DataFrame()
+        for dataset, dataframe in counts.items():
+            dataframe["dataset"] = dataset
+            occurrence_df = pd.concat([occurrence_df, dataframe])
+        occurrence_df = pd.merge(occurrence_df, clustdf, left_index=True, right_index=True)
+        occurrence_df.to_csv(args.occurrence_out, sep="\t")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -205,6 +216,11 @@ if __name__ == "__main__":
         type=str,
         help="Column in clustfile with cluster assignments (default: 'cluster')",
         default="cluster",
+    )
+    io_group.add_argument(
+        "--occurrence_out",
+        type=str,
+        help="Output file with ASVs and their occurrence in blanks",
     )
     params_group = parser.add_argument_group("params")
     params_group.add_argument(
