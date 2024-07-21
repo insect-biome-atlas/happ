@@ -247,7 +247,7 @@ noise_filtering:
   
   # filter_unclassified_rank sets a taxonomic rank to used for filtering ASV clusters without a taxonomic assignments.
   # For example, when this parameter is set to "Order", all ASV clusters that are unclassified at the Order level will be considered noise.
-  # These clusters are not evaluated in the main NUMTs filtering algorithm but are likely to be NUMTs due to the lack of taxonomic information.
+  # These clusters are not evaluated in the main noise filtering algorithm but are likely to be noise due to the lack of taxonomic information.
   filter_unclassified_rank: "Order"
 
 lulu:
@@ -278,20 +278,20 @@ lulu:
 
   # specify which orders (if any) are known to contain a large number of
   # clusters if any order has > 10 k clusters then add them to this list this
-  # will increase the resources (threads) requested when running numt filtering
+  # will increase the resources (threads) requested when running noise filtering
   large_orders: ["Diptera"]
   
   # filter_unclassified_rank sets a taxonomic rank to used for filtering ASV
   # clusters without a taxonomic assignments. For example, when this parameter
   # is set to "Order", all ASV clusters that are unclassified at the Order level
-  # will be considered NUMTs. These clusters are not evaluated in the main NUMTs
-  # filtering algorithm but are likely to be NUMTs due to the lack of taxonomic
+  # will be considered noise. These clusters are not evaluated in the main noise
+  # filtering algorithm but are likely to be noise due to the lack of taxonomic
   # information.
   filter_unclassified_rank: "Order"
 
-  # non_numt_ASVs is a list of ASV ids that are known to be non-numts. These are
+  # non_noise_ASVs is a list of ASV ids that are known to be non-noise. These are
   # used to evaluate the filtering.
-  non_numt_ASVs: ""
+  non_noise_ASVs: ""
 
 #####################
 ##### CLEANING ######

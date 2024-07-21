@@ -198,7 +198,7 @@ properties:
       minimum_match: 84
       minimum_relative_cooccurence: 0.95
       large_orders: []
-      non_numt_ASVs: ""
+      non_noise_ASVs: ""
       filter_unclassified_rank: "Order"
     properties:
       run_name:
@@ -214,9 +214,9 @@ properties:
         type: integer
         description: "Maximum number of target sequences to return from aligner"
         default: 10
-      non_numt_ASVs:
+      non_noise_ASVs:
         type: string
-        description: "Path to a file containing ASVs that are known to be non-numts"
+        description: "Path to a file containing ASVs that are known to be non-noise"
         default: ""
       minimum_ratio_type:
         type: string
@@ -318,15 +318,15 @@ properties:
     properties:
       n_closest:
         type: integer
-        description: "Maximum number of closest sequences to compare to when filtering numts"
+        description: "Maximum number of closest sequences to compare to when filtering noise"
         default: 5
       abundance_threshold:
         type: integer
-        description: "Minimum abundance threshold for filtering numts"
+        description: "Minimum abundance threshold for filtering noise"
         default: 3
-      non_numt_ASVs:
+      non_noise_ASVs:
         type: string
-        description: "Path to a file containing ASVs that are known to be non-numts"
+        description: "Path to a file containing ASVs that are known to be non-noise"
         default: ""
       spikein_file: 
         type: string
