@@ -1,4 +1,4 @@
-# Combined algorithm for finding numts and other spurious clusters
+# Combined algorithm for finding noise and other spurious clusters
 
 sink(file = snakemake@log[[1]], append = FALSE, type = c("output", "message"),
      split = FALSE)
@@ -46,11 +46,11 @@ if (length(unique(taxonomy$cluster)) == 1) {
      counts <- counts[counts$cluster %in% taxonomy$cluster,]
      cat("Only one cluster in order\n")
      res <- data.table(matrix(NA, nrow = 1, ncol = 5))
-     colnames(res) <- c("cluster", "n_samples", "n_reads", "numt", "reason")
+     colnames(res) <- c("cluster", "n_samples", "n_reads", "noise", "reason")
      res$cluster <- unique(taxonomy$cluster)
      res$n_samples <- apply(counts[,2:ncol(counts)] > 0, 1, sum)
      res$n_reads <- sum(counts[2:ncol(counts)])
-     res$numt <- "FALSE"
+     res$noise <- "FALSE"
      res$reason <- "single_cluster"
      write.table(res, snakemake@output$tsv, sep="\t", quote=FALSE, row.names=FALSE)
      sink()
