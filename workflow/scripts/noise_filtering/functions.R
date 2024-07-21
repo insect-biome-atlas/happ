@@ -91,7 +91,7 @@ abundance_filter <- function(order_name, taxonomy, counts, output, save_to_file=
   clust_sum <- rowsums[ix,]
 
   # Get results
-  res <- data.frame(list(cluster=clust_sum$cluster, numt=clust_sum$n_reads < threshold))
+  res <- data.frame(list(cluster=clust_sum$cluster, noise=clust_sum$n_reads < threshold))
   
   if (save_to_file) {
     write.table(res,output, sep="\t", row.names=FALSE, quote=FALSE)
@@ -157,7 +157,7 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
                   "cluster",
                   "n_samples",
                   "n_reads",
-                  "numt",
+                  "noise",
                   "reason")
 
     first_cluster <- list(counts$cluster[1],
@@ -169,10 +169,10 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
   res <- rbindlist(list(res, first_cluster))
   row_index <- 1
 
-  # Cycle over clusters (the most abundant cluster is not a numt)
+  # Cycle over clusters (the most abundant cluster is not noise)
   cat ("Analyzing clusters\n")
   co1_clusters <- counts$cluster[1]
-  numt_clusters <- character()
+  noise_clusters <- character()
   n_iter <- length(2:nrow(counts))
   pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
                      max = n_iter, # Maximum value of the progress bar
@@ -185,8 +185,8 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
     # Find sequence
     s1 <- seqs$seq[[which(sequence_names==cluster)]]
 
-    # Test whether it is a numt
-    isNumt <- FALSE
+    # Test whether it is noise
+    isNoise <- FALSE
     reason <- ""
     
     # Find sample reads
@@ -241,14 +241,14 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
           if (relative)
             dist_value <- dist_value / p_dist
 
-          if (dist_value > threshold) { # ID as numt if strange sequence at aa-level
-            isNumt <- TRUE
+          if (dist_value > threshold) { # ID as noise if strange sequence at aa-level
+            isNoise <- TRUE
             reason <- "p_deviation"
           }
         }
       }
 
-      if (!isNumt) {
+      if (!isNoise) {
       ## Branch 1.2 "p_correlation"
         if ((length(pot_parent_clusters)) > 0) {
           for (p_clust in pot_parent_clusters) {
@@ -260,7 +260,7 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
               corr_coeff <- as.numeric(fit$coefficients[2])
               p_val <- as.numeric(summary(fit)$coefficients[2,4])
               if (corr_coeff < max_corr_coeff && corr_coeff > 0.0 && p_val < max_p_val) {
-                isNumt <- TRUE
+                isNoise <- TRUE
                 reason <- "p_correlation"
               }
             }
@@ -327,7 +327,7 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
           singleton_reads <- NA
 
         if (ratio_max < max_read_ratio && dist_value > threshold && (singletons==0 || (singletons<=max_singletons && singleton_reads<=max_singleton_reads))) {
-          isNumt <- TRUE
+          isNoise <- TRUE
           reason <- "small_sample"
         }
       }
@@ -336,13 +336,13 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
 
   ###################################
   ## Results
-  if (!isNumt) 
+  if (!isNoise) 
     co1_clusters <- c(co1_clusters, cluster)
   else        
-    numt_clusters <- c(numt_clusters, cluster)
+    noise_clusters <- c(noise_clusters, cluster)
 
   new_row <- data.table(cluster, sum(reads!=0), sum(reads),
-                        isNumt, reason)
+                        isNoise, reason)
 
   res[row_index, colnames(res) := new_row]
   row_index <- row_index + 1
@@ -364,17 +364,17 @@ combined_filter_neighbors <- function(fasta, taxonomy, counts, output, spikeins=
 
 }
 
-evaluate_res <- function(order_name, order_clusters, taxonomy, numt_data, trusted_file="", outfile) {
+evaluate_res <- function(order_name, order_clusters, taxonomy, noise_data, trusted_file="", outfile) {
   T <- taxonomy
   cat ("Reading taxonomy and cluster data\n")
-  numt_clusters <- numt_data$cluster[numt_data$numt]
+  noise_clusters <- noise_data$cluster[noise_data$noise]
   if (trusted_file != "") {
     cat ("Reading trusted data\n")
     trusted_asvs <- read.table(trusted_file, header=FALSE)
     colnames(trusted_asvs) <- c("ASV")
     trusted_clusters <- unique(T$cluster[match(trusted_asvs$ASV,T$ASV)])
     trusted <- sum(order_clusters$cluster %in% trusted_clusters)
-    removed_trusted <- sum(numt_clusters %in% trusted_clusters)
+    removed_trusted <- sum(noise_clusters %in% trusted_clusters)
     cat ("False positive rate (trusted clusters removed): ", removed_trusted, "of", trusted, "=", removed_trusted/trusted, "\n", file=outfile, append=TRUE)
   }
 
@@ -383,126 +383,126 @@ evaluate_res <- function(order_name, order_clusters, taxonomy, numt_data, truste
   cat ("There are", length(unique(order_clusters$Species[grepl(" ",order_clusters$Species)])), "unique species annotations\n", file=outfile, append=TRUE)
   cat (sum(grepl("BOL",order_clusters$BOLD_bin)), "clusters have rep asv annotated to BOLD bin\n", file=outfile, append=TRUE)
   cat ("There are", length(unique(order_clusters$BOLD_bin[grepl("BOL",order_clusters$BOLD_bin)])), "unique BOLD bin annotations\n", file=outfile, append=TRUE)
-  cat (length(numt_clusters), "numts removed\n", file=outfile, append=TRUE)
+  cat (length(noise_clusters), "noise clusters removed\n", file=outfile, append=TRUE)
 
   unique_species <- length(unique(order_clusters$Species[grepl(" ", order_clusters$Species)]))
-  remaining_unique_species <- length(unique(order_clusters$Species[grepl(" ", order_clusters$Species) & !(order_clusters$cluster %in% numt_clusters)]))
+  remaining_unique_species <- length(unique(order_clusters$Species[grepl(" ", order_clusters$Species) & !(order_clusters$cluster %in% noise_clusters)]))
   cat ("False positive rate (unique species removed): ", unique_species-remaining_unique_species, "of", unique_species, "=", (unique_species-remaining_unique_species)/unique_species, "\n", file=outfile, append=TRUE)
   
   unique_bins <- length(unique(order_clusters$BOLD_bin[grepl("BOL", order_clusters$BOLD_bin)]))
-  remaining_unique_bins <- length(unique(order_clusters$BOLD_bin[grepl("BOL", order_clusters$BOLD_bin) & !(order_clusters$cluster %in% numt_clusters)]))
+  remaining_unique_bins <- length(unique(order_clusters$BOLD_bin[grepl("BOL", order_clusters$BOLD_bin) & !(order_clusters$cluster %in% noise_clusters)]))
   cat ("False positive rate (unique BOLD bins removed): ", unique_bins-remaining_unique_bins, "of", unique_bins, "=", (unique_bins-remaining_unique_bins)/unique_bins, "\n", file=outfile, append=TRUE)
   
   dups <- sum(duplicated(order_clusters$Species[grepl(" ", order_clusters$Species)]))
-  remaining_dups <- sum(duplicated(order_clusters$Species[grepl(" ", order_clusters$Species) & !(order_clusters$cluster %in% numt_clusters)]))
+  remaining_dups <- sum(duplicated(order_clusters$Species[grepl(" ", order_clusters$Species) & !(order_clusters$cluster %in% noise_clusters)]))
   cat ("False negative rate (duplicated species records remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
 
   dups <- sum(duplicated(order_clusters$BOLD_bin[grepl("BOL", order_clusters$BOLD_bin)]))
   BOL_bins <- order_clusters[grepl("BOL", order_clusters$BOLD_bin), ]
-  non_numt_BOL_bins <- BOL_bins[!BOL_bins$cluster %in% numt_clusters, ]
-  remaining_dups <- sum(duplicated(non_numt_BOL_bins$BOLD_bin))
+  non_noise_BOL_bins <- BOL_bins[!BOL_bins$cluster %in% noise_clusters, ]
+  remaining_dups <- sum(duplicated(non_noise_BOL_bins$BOLD_bin))
   cat ("False negative rate (duplicated BOLD bin records remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
 
   dups <- length(unique(order_clusters$Species[grepl(" ", order_clusters$Species) & duplicated(order_clusters$Species)]))
   correct_species <- order_clusters[grepl(" ", order_clusters$Species), ]
-  non_numt_correct_species <- correct_species[!correct_species$cluster %in% numt_clusters, ]
-  remaining_dups <- sum(table(non_numt_correct_species$Species) > 1)
+  non_noise_correct_species <- correct_species[!correct_species$cluster %in% noise_clusters, ]
+  remaining_dups <- sum(table(non_noise_correct_species$Species) > 1)
   cat ("False negative rate (duplicated species remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
   
   dups <- length(unique(order_clusters$BOLD_bin[grepl("BOL", order_clusters$BOLD_bin) & duplicated(order_clusters$BOLD_bin)]))
   BOL_bins <- order_clusters[grepl("BOL", order_clusters$BOLD_bin), ]
-  non_numt_BOL_bins <- BOL_bins[!BOL_bins$cluster %in% numt_clusters, ]
-  remaining_dups <- length(unique(non_numt_BOL_bins$BOLD_bin[grepl("BOL", non_numt_BOL_bins$BOLD_bin) & duplicated(non_numt_BOL_bins$BOLD_bin)]))
+  non_noise_BOL_bins <- BOL_bins[!BOL_bins$cluster %in% noise_clusters, ]
+  remaining_dups <- length(unique(non_noise_BOL_bins$BOLD_bin[grepl("BOL", non_noise_BOL_bins$BOLD_bin) & duplicated(non_noise_BOL_bins$BOLD_bin)]))
   cat ("False negative rate (duplicated BOLD bins remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
 }
 
-evaluate_res_details <- function(order_name, order_clusters, taxonomy, numt_data, trusted_file, outfile) {
+evaluate_res_details <- function(order_name, order_clusters, taxonomy, noise_data, trusted_file, outfile) {
   
-  evaluate_res(order_name, order_clusters, taxonomy, numt_data, trusted_file, outfile)
+  evaluate_res(order_name, order_clusters, taxonomy, noise_data, trusted_file, outfile)
   
-  numt_clusters <- numt_data$cluster[numt_data$numt]
+  noise_clusters <- noise_data$cluster[noise_data$noise]
 
   if ("Species_resolved" %in% colnames(order_clusters)) {
     unique_species <- length(unique(order_clusters$Species_resolved[grepl(" ", order_clusters$Species_resolved)]))
-    remaining_unique_species <- length(unique(order_clusters$Species_resolved[grepl(" ", order_clusters$Species_resolved) & !(order_clusters$cluster %in% numt_clusters)]))
+    remaining_unique_species <- length(unique(order_clusters$Species_resolved[grepl(" ", order_clusters$Species_resolved) & !(order_clusters$cluster %in% noise_clusters)]))
     cat ("False positive rate (unique resolved species removed): ", unique_species-remaining_unique_species, "of", unique_species, "=", (unique_species-remaining_unique_species)/unique_species, "\n", file=outfile, append=TRUE)
 
     dups <- sum(duplicated(order_clusters$Species_resolved[grepl(" ", order_clusters$Species_resolved)]))
-    remaining_dups <- sum(duplicated(order_clusters$Species_resolved[grepl(" ", order_clusters$Species_resolved) & !(order_clusters$cluster %in% numt_clusters)]))
+    remaining_dups <- sum(duplicated(order_clusters$Species_resolved[grepl(" ", order_clusters$Species_resolved) & !(order_clusters$cluster %in% noise_clusters)]))
     cat ("False negative rate (duplicated resolved species records remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
 
     dups <- length(unique(order_clusters$Species_resolved[grepl(" ", order_clusters$Species_resolved) & duplicated(order_clusters$Species_resolved)]))
     correct_species <- order_clusters[grepl(" ", order_clusters$Species_resolved), ]
-    non_numt_correct_species <- correct_species[!correct_species$cluster %in% numt_clusters, ]
-    remaining_dups <- sum(table(non_numt_correct_species$Species) > 1)
+    non_noise_correct_species <- correct_species[!correct_species$cluster %in% noise_clusters, ]
+    remaining_dups <- sum(table(non_noise_correct_species$Species) > 1)
     
     cat ("False negative rate (duplicated resolved species remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
   }
 
   if ("BOLD_bin_resolved" %in% colnames(order_clusters)) {
     unique_bins           <- length(unique(order_clusters$BOLD_bin_resolved[grepl("BOL", order_clusters$BOLD_bin_resolved)]))
-    remaining_unique_bins <- length(unique(order_clusters$BOLD_bin_resolved[grepl("BOL", order_clusters$BOLD_bin_resolved) & !(order_clusters$cluster %in% numt_clusters)]))
+    remaining_unique_bins <- length(unique(order_clusters$BOLD_bin_resolved[grepl("BOL", order_clusters$BOLD_bin_resolved) & !(order_clusters$cluster %in% noise_clusters)]))
     cat ("False positive rate (unique resolved BOLD bins removed): ", unique_species-remaining_unique_species, "of", unique_species, "=", (unique_species-remaining_unique_species)/unique_species, "\n", file=outfile, append=TRUE)
     
     dups <- sum(duplicated(order_clusters$BOLD_bin_resolved[grepl("BOL", order_clusters$BOLD_bin_resolved)]))
-    remaining_dups <- sum(duplicated(order_clusters$BOLD_bin_resolved[grepl("BOL", order_clusters$BOLD_bin_resolved) & !(order_clusters$cluster %in% numt_clusters)]))
+    remaining_dups <- sum(duplicated(order_clusters$BOLD_bin_resolved[grepl("BOL", order_clusters$BOLD_bin_resolved) & !(order_clusters$cluster %in% noise_clusters)]))
     cat ("False negative rate (duplicated resolved BOLD bin records remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
     
     dups <- length(unique(order_clusters$BOLD_bin_resolved[grepl("BOL", order_clusters$BOLD_bin_resolved) & duplicated(order_clusters$BOLD_bin_resolved)]))
     correct_bins <- order_clusters[grepl("BOL", order_clusters$BOLD_bin_resolved), ]
-    non_numt_correct_bins <- correct_bins[!correct_bins$cluster %in% numt_clusters, ]
-    remaining_dups <- length(unique(non_numt_correct_bins$BOLD_bin_resolved[duplicated(non_numt_correct_bins$BOLD_bin_resolved)]))
+    non_noise_correct_bins <- correct_bins[!correct_bins$cluster %in% noise_clusters, ]
+    remaining_dups <- length(unique(non_noise_correct_bins$BOLD_bin_resolved[duplicated(non_noise_correct_bins$BOLD_bin_resolved)]))
     cat ("False negative rate (duplicated resolved BOLD bins remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
   }
   
-  if ("man_numt" %in% colnames(order_clusters)) {
-    man_numt_clusters <- order_clusters$cluster[order_clusters$man_numt]
-    n_numts <- length(man_numt_clusters)
-    remaining_numts <- n_numts - sum(man_numt_clusters %in% numt_clusters)
-    cat ("False negative rate (manually identified numt clusters remaining): ", remaining_numts, "of", n_numts, "=", remaining_numts/n_numts, "\n", file=outfile, append=TRUE)
+  if ("man_noise" %in% colnames(order_clusters)) {
+    man_noise_clusters <- order_clusters$cluster[order_clusters$man_noise]
+    n_noise <- length(man_noise_clusters)
+    remaining_noise <- n_noise - sum(man_noise_clusters %in% noise_clusters)
+    cat ("False negative rate (manually identified noise clusters remaining): ", remaining_noise, "of", n_noise, "=", remaining_noise/n_noise, "\n", file=outfile, append=TRUE)
   }
 
   if ("Species_updated" %in% colnames(order_clusters)) {
     unique_species <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated)]))
-    remaining_unique_species <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% numt_clusters)]))
+    remaining_unique_species <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% noise_clusters)]))
     cat ("False positive rate (unique updated species removed): ", unique_species-remaining_unique_species, "of", unique_species, "=", (unique_species-remaining_unique_species)/unique_species, "\n", file=outfile, append=TRUE)
     
     dups <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & duplicated(order_clusters$Species_updated)]))
     species_with_space <- order_clusters[grepl(" ", order_clusters$Species_updated), ]
-    non_numt_species_with_space <- species_with_space[!species_with_space$cluster %in% numt_clusters, ]
-    remaining_dups <- length(unique(non_numt_species_with_space$Species_updated[duplicated(non_numt_species_with_space$Species_updated)]))
+    non_noise_species_with_space <- species_with_space[!species_with_space$cluster %in% noise_clusters, ]
+    remaining_dups <- length(unique(non_noise_species_with_space$Species_updated[duplicated(non_noise_species_with_space$Species_updated)]))
 
     cat ("False negative rate (duplicated updated species remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
 
-    if ("man_numt" %in% colnames(order_clusters)) {
-      man_numt_clusters <- order_clusters$cluster[order_clusters$man_numt]
+    if ("man_noise" %in% colnames(order_clusters)) {
+      man_noise_clusters <- order_clusters$cluster[order_clusters$man_noise]
 
-      unique_species <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_numt_clusters)]))
-      remaining_unique_species <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_numt_clusters) & !(order_clusters$cluster %in% numt_clusters)]))
-      cat ("False positive rate (unique updated species, cleaned from man numts, removed): ", unique_species-remaining_unique_species, "of", unique_species, "=", (unique_species-remaining_unique_species)/unique_species, "\n", file=outfile, append=TRUE)
+      unique_species <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_noise_clusters)]))
+      remaining_unique_species <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_noise_clusters) & !(order_clusters$cluster %in% noise_clusters)]))
+      cat ("False positive rate (unique updated species, cleaned from man noise, removed): ", unique_species-remaining_unique_species, "of", unique_species, "=", (unique_species-remaining_unique_species)/unique_species, "\n", file=outfile, append=TRUE)
       
-      dups           <- sum(duplicated(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_numt_clusters)]))
-      remaining_dups <- sum(duplicated(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_numt_clusters) & !(order_clusters$cluster %in% numt_clusters)]))
-      cat ("False negative rate (duplicated updated species records, cleaned from man numts, remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
+      dups           <- sum(duplicated(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_noise_clusters)]))
+      remaining_dups <- sum(duplicated(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_noise_clusters) & !(order_clusters$cluster %in% noise_clusters)]))
+      cat ("False negative rate (duplicated updated species records, cleaned from man noise, remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
       
-      dups           <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & duplicated(order_clusters$Species_updated) & !(order_clusters$cluster %in% man_numt_clusters)]))
-      remaining_dups <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & duplicated(order_clusters$Species_updated) & !(order_clusters$cluster %in% man_numt_clusters) & !(order_clusters$cluster %in% numt_clusters)]))
-      cat ("False negative rate (duplicated updated species, cleaned from man numts, remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
+      dups           <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & duplicated(order_clusters$Species_updated) & !(order_clusters$cluster %in% man_noise_clusters)]))
+      remaining_dups <- length(unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & duplicated(order_clusters$Species_updated) & !(order_clusters$cluster %in% man_noise_clusters) & !(order_clusters$cluster %in% noise_clusters)]))
+      cat ("False negative rate (duplicated updated species, cleaned from man noise, remaining): ", remaining_dups, "of", dups, "=", remaining_dups/dups, "\n", file=outfile, append=TRUE)
     }
   }
 }
 
-list_removed_species <- function(order_clusters, numt_data) {
+list_removed_species <- function(order_clusters, noise_data) {
 
-  numt_clusters <- numt_data$cluster[numt_data$numt]
-  man_numt_clusters <- order_clusters$cluster[order_clusters$man_numt]
+  noise_clusters <- noise_data$cluster[noise_data$noise]
+  man_noise_clusters <- order_clusters$cluster[order_clusters$man_noise]
   
-  unique_species <- unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_numt_clusters)])
-  remaining_unique_species <- unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_numt_clusters) & !(order_clusters$cluster %in% numt_clusters)])
+  unique_species <- unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_noise_clusters)])
+  remaining_unique_species <- unique(order_clusters$Species_updated[grepl(" ", order_clusters$Species_updated) & !(order_clusters$cluster %in% man_noise_clusters) & !(order_clusters$cluster %in% noise_clusters)])
 
   removed_species <- unique_species[!(unique_species %in% remaining_unique_species)]
   
-  cat ("Removed unique species, cleaned from man numts:\n")
+  cat ("Removed unique species, cleaned from man noise:\n")
   print(removed_species)
 
   removed_species
