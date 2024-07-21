@@ -219,8 +219,8 @@ rule abundance_filter:
 
 rule evaluate_order:
     output:
-        numt_res="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/runs/{noise_run}/evaluation/{order}_noise_analysis.tsv",
-        numt_eval="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/runs/{noise_run}/evaluation/{order}_noise_evaluation.tsv"        
+        noise_res="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/runs/{noise_run}/evaluation/{order}_noise_analysis.tsv",
+        noise_eval="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/runs/{noise_run}/evaluation/{order}_noise_evaluation.tsv"        
     input:
         filter1=rules.combined_filter.output.tsv,
         filter2=rules.abundance_filter.output.tsv,
@@ -471,14 +471,14 @@ rule lulu:
 
 rule evaluate_order_lulu:
     output:
-        numt_res="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/evaluation/{order}_analysis.tsv",
-        numt_eval="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/evaluation/{order}_evaluation.tsv"        
+        noise_res="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/evaluation/{order}_analysis.tsv",
+        noise_eval="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/evaluation/{order}_evaluation.tsv"        
     input:
         otu_map=rules.lulu.output.otu_map,
         clust_file=rules.generate_cluster_analysis.output.tsv,
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     params:
-        trusted=config["lulu"]["non_numt_ASVs"],
+        trusted=config["lulu"]["non_noise_ASVs"],
         functions="workflow/scripts/noise_filtering/functions.R",
         lulu=True
     log:
@@ -505,7 +505,7 @@ rule filtered_lulu:
         tsv="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/lulu_clusters.tsv",
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/lulu_clusters.fasta",
     input:
-        numt_files=filtered_input_lulu,
+        noise_files=filtered_input_lulu,
         fasta = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
         taxonomy = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     log: 
