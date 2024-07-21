@@ -40,12 +40,14 @@ set-resources:
     mem_mb: 60000
   lulu_matchlist_vsearch:
     runtime: 120
+  evaluate_order_lulu:
+    runtime: 4320
 
 set-threads:
-  vsearch_align: 40
+  vsearch_align: 1
   mafft_align: 40
   mothur_align: 40
-  run_opticlust: 40
+  run_opticlust: 1
   run_swarm: 40
   sum_asvs: 1
   split_counts: 1
