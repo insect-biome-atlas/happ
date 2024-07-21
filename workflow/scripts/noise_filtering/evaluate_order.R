@@ -30,35 +30,35 @@ if (lulu) {
     filter1 <- read.table(otu_map, sep="\t", header=TRUE, check.names=FALSE)
   }
   clustmap <- order_clusters[, c("cluster","ASV")]
-  clustmap$numt_combined <- FALSE
-  clustmap$numt_abundance <- FALSE
+  clustmap$noise_combined <- FALSE
+  clustmap$noise_abundance <- FALSE
   rownames(clustmap) <- clustmap$ASV
-  clustmap[rownames(filter1[filter1$curated=="merged",]),"numt_combined"] <- TRUE
-  clustmap[rownames(filter1[filter1$curated=="merged",]),"numt_abundance"] <- TRUE
-  numt_data <- clustmap[, c("cluster","numt_combined", "numt_abundance")]
-  rownames(numt_data) <- seq(1, nrow(numt_data))
+  clustmap[rownames(filter1[filter1$curated=="merged",]),"noise_combined"] <- TRUE
+  clustmap[rownames(filter1[filter1$curated=="merged",]),"noise_abundance"] <- TRUE
+  noise_data <- clustmap[, c("cluster","noise_combined", "noise_abundance")]
+  rownames(noise_data) <- seq(1, nrow(noise_data))
 } else {
   filter1_file <- snakemake@input$filter1
   filter2_file <- snakemake@input$filter2
   filter1 <- read.table(filter1_file, sep="\t", header=TRUE, check.names=FALSE)
   filter2 <- read.table(filter2_file, sep="\t", header=TRUE, check.names=FALSE)
-  cat("Combining numt filtering\n")
+  cat("Combining noise filtering\n")
   # Filter and combine results
-  numt_data <- merge(filter1, filter2, by="cluster")
-  numt_data <- numt_data[, c("cluster","numt.x", "numt.y")]
-  colnames(numt_data) <- c("cluster", "numt_combined", "numt_abundance")
+  noise_data <- merge(filter1, filter2, by="cluster")
+  noise_data <- noise_data[, c("cluster","noise.x", "noise.y")]
+  colnames(noise_data) <- c("cluster", "noise_combined", "noise_abundance")
 }
 
-numt_data$numt <- ifelse((numt_data$numt_combined == TRUE) | (numt_data$numt_abundance == TRUE), TRUE, FALSE)
+noise_data$noise <- ifelse((noise_data$noise_combined == TRUE) | (noise_data$noise_abundance == TRUE), TRUE, FALSE)
 
 ## OUTPUT
-numt_res_file <- snakemake@output$numt_res
-numt_eval_file <- snakemake@output$numt_eval
+noise_res_file <- snakemake@output$noise_res
+noise_eval_file <- snakemake@output$noise_eval
 
-# Output numt analysis
-write.table(x=numt_data, file=numt_res_file, sep="\t", row.names=FALSE, quote=FALSE)
+# Output noise analysis
+write.table(x=noise_data, file=noise_res_file, sep="\t", row.names=FALSE, quote=FALSE)
 
 # Execute and output evaluation 
-evaluate_res_details(order_name, order_clusters, taxonomy, numt_data, trusted_file, numt_eval_file) 
+evaluate_res_details(order_name, order_clusters, taxonomy, noise_data, trusted_file, noise_eval_file) 
 
 sink()
