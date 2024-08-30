@@ -38,9 +38,8 @@ wildcard_constraints:
     algo=config["chimera"]["algorithm"],
     noise_run=config["noise_filtering"]["run_name"],
 
-
+include: "rules/preprocess.smk"
 include: "rules/common.smk"
-
 
 if "swarm" in config["software"]:
 
