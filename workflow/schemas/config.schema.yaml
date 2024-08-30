@@ -5,6 +5,45 @@ description: snakemake configuration file
 type: object
 
 properties:
+  preprocessing:
+    type: object
+    default:
+      filter_length: True
+      min_length: 403
+      max_length: 418
+      filter_codons: True
+      stop_codons: "TAA,TAG"
+      start_position: 2
+      end_position: 0
+    properties:
+      filter_length:
+        type: boolean
+        default: True
+        description: Whether to filter sequences based on length
+      min_length:
+        type: integer
+        default: 403
+        description: Minimum length of sequences to keep
+      max_length:
+        type: integer
+        default: 418
+        description: Maximum length of sequences to keep
+      filter_codons:
+        type: boolean
+        default: True
+        description: Whether to filter sequences based on in-frame stop codons
+      stop_codons:
+        type: string
+        default: "TAA,TAG"
+        description: Comma-separated list of stop codons
+      start_position:
+        type: integer
+        default: 2
+        description: Reading frame start (1 based)
+      end_position:
+        type: integer
+        default: 0
+        description: Reading frame end (1 based), set to 0 to ignore
   default_partition:
     type: string
     description: "default partition to use for slurm jobs"
