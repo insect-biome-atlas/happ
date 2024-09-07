@@ -32,7 +32,7 @@ rule sintax:
     output:
         temp("results/sintax/{rundir}/splits/{split}.tab")
     input:
-        db=config["sintax"]["ref"]["fasta"],
+        db=config["sintax"]["ref"],
         qry="results/sintax/{rundir}/splits/stdin.part_{split}.fasta"
     log:
         "logs/sintax/{rundir}/{split}.log"
@@ -79,7 +79,7 @@ rule parse_sintax:
         "logs/sintax/{rundir}/parse_sintax.log"
     params:
         src=workflow.source_path("../scripts/sintax_tsv.py"),
-        ranks=lambda wildcards: config["sintax"]["ranks"]
+        ranks=config["sintax"]["ranks"]
     shell:
         """
         python {params.src} -i {input} -o {output} -r {params.ranks} > {log} 2>&1
