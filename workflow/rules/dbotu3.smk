@@ -10,8 +10,8 @@ rule run_dbotu3:
     sequences are > 0
     """
     input:
-        fasta=rules.filter_seqs.output.fasta,
-        counts=rules.filter_seqs.output.counts,
+        fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
+        counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_counts.tsv.gz",
     output:
         tsv="results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/dbotu3.tsv",
         memb="results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/dbotu3.clusters.tsv",
@@ -55,14 +55,23 @@ rule dbotu32tab:
         "../scripts/dbotu3_utils.py"
 
 
+def get_dbotu3_files(wildcards):
+    checkpoint_dir = checkpoints.filter_seqs.get(
+        rundir=config["rundir"], 
+        chimera_run=config["chimera"]["run_name"], 
+        chimdir=config["chimdir"], 
+        rank=config["split_rank"]
+        ).output[0]
+    files = expand("results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
+        rundir=config["rundir"],
+        chimera_run=config["chimera"]["run_name"],
+        chimdir=config["chimdir"],
+        rank=config["split_rank"],
+        tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}", "asv_seqs.fasta.gz")).tax,
+        run_name=config["run_name"]
+        )
+    return files
+
 rule dbotu3:
     input:
-        expand(
-            "results/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            chimdir=config["chimdir"],
-            rank=config["split_rank"],
-            tax=taxa,
-            run_name=config["run_name"],
-        ),
+        get_dbotu3_files,
