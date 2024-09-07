@@ -6,7 +6,7 @@ localrules:
 
 rule mothur_align:
     input:
-        fasta=rules.filter_seqs.output.fasta,
+        fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     output:
         dist="results/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
     log:
@@ -57,7 +57,7 @@ rule run_opticlust:
     """
     input:
         dist=opticlust_input,
-        total_counts=rules.filter_seqs.output.total_counts,
+        total_counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/total_counts.tsv",
     output:
         list="results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_seqs.opti_mcc.list",
         sens="results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_seqs.opti_mcc.sensspec",
@@ -109,15 +109,23 @@ rule opticlust2tab:
     script:
         "../scripts/opticlust_utils.py"
 
+def get_opticlust_files(wildcards):
+    checkpoint_dir = checkpoints.filter_seqs.get(
+        rundir=config["rundir"], 
+        chimera_run=config["chimera"]["run_name"], 
+        chimdir=config["chimdir"], 
+        rank=config["split_rank"]
+        ).output[0]
+    files = expand("results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
+        rundir=config["rundir"],
+        chimera_run=config["chimera"]["run_name"],
+        chimdir=config["chimdir"],
+        rank=config["split_rank"],
+        tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}", "asv_seqs.fasta.gz")).tax,
+        run_name=config["run_name"]
+        )
+    return files
 
 rule opticlust:
     input:
-        expand(
-            "results/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
-            rundir=config["rundir"],
-            chimdir=config["chimdir"],
-            chimera_run=config["chimera"]["run_name"],
-            rank=config["split_rank"],
-            tax=taxa,
-            run_name=config["run_name"],
-        ),
+        get_opticlust_files,
