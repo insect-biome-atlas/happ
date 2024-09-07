@@ -5,6 +5,51 @@ description: snakemake configuration file
 type: object
 
 properties:
+  tax_source:
+    type: string
+    description: "source of taxonomic information"
+    default: "sintax"
+    enum: ["sintax", "vsearch"]
+  taxtools:
+    type: array
+    description: "list of taxonomic tools to run"
+    default: ["sintax"]
+    items:
+      type: string
+      enum: ["sintax", "epa-ng", "vsearch"]
+  sintax:
+    type: object
+    default:
+      ref: ""
+      randseed: 15
+      cutoff: 0.8
+      ranks:
+        - "Kingdom"
+        - "Phylum"
+        - "Class"
+        - "Order"
+        - "Family"
+        - "Genus"
+        - "Species"
+        - "BOLD_bin"
+    properties:
+      ref:
+        type: string
+        description: "path to reference database"
+      randseed:
+        type: integer
+        description: "random seed for sintax"
+        default: 15
+      cutoff:
+        type: number
+        description: "cutoff for sintax"
+        default: 0.8
+      ranks:
+        type: array
+        description: "ranks to use for sintax"
+        default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+        items:
+          type: string
   default_partition:
     type: string
     description: "default partition to use for slurm jobs"
