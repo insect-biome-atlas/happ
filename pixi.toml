@@ -27,6 +27,7 @@ tqdm = "*"
 polars = "*"
 pandas = "*"
 pip = "*"
+seqkit = "*"
 
 [pypi-dependencies]
 snakemake-executor-plugin-slurm = "*"
