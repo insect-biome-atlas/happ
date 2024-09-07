@@ -1,75 +1,60 @@
-import os.path
-
-
 localrules:
     filter_seqs,
 
-
-def get_filter_input(wildcards):
+def get_input_fasta(wildcards):
+    """
+    Determine the input fasta file for the dataset
+    """
     if wildcards.chimdir == "raw":
         f = expand(
             "data/{rundir}/asv_seqs.fasta",
-            rundir=config["rundir"],
+            rundir=wildcards.rundir,
         )
     else:
         f = expand(
             "results/chimera/{rundir}/filtered/{chimera_run}/{chimdir}/nonchimeras.fasta",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            chimdir=config["chimdir"],
+            rundir=wildcards.rundir,
+            chimera_run=wildcards.chimera_run,
+            chimdir=wildcards.chimdir,
         )
     return f[0]
 
+def get_input_taxa(wildcards):
+    """
+    Return the taxonomy file for the dataset
+    """
+    # check if the taxonomy source is a file
+    if os.path.isfile(config["taxonomy_source"]):
+        return taxonomy_source
+    return expand(
+        "results/{taxonomy_source}/{rundir}/{taxonomy_source}.tsv",
+        taxonomy_source=config["taxonomy_source"],
+        rundir=config["rundir"],
+    )[0]
 
-rule filter_seqs:
+checkpoint filter_seqs:
+    """
+    Checkpoint for first round of filtering. Takes as input the chimera-filtered fasta
+    if chimera filtering is activated. Ensures that all ASVs are present in both the counts file
+    and the sequence file.
+    """
     input:
-        counts=expand("data/{rundir}/asv_counts.tsv", rundir=config["rundir"]),
-        fasta=get_filter_input,
-        tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
+        counts="data/{rundir}/asv_counts.tsv",
+        fasta=get_input_fasta,
+        tax=get_input_taxa,
     output:
-        total_counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/total_counts.tsv",
-        counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_counts.tsv.gz",
-        fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
+        directory("results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa")
     log:
-        "logs/filter_seqs/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}.filter.log",
+        "logs/filter_seqs/{rundir}/{chimera_run}/{chimdir}/{rank}.filter.log",
     params:
         split_rank=config["split_rank"],
-        tmpdir=os.path.expandvars(
-            "$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs"
-        ),
-        total_counts=os.path.expandvars(
-            "$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs/total_counts.tsv"
-        ),
-        counts=os.path.expandvars(
-            "$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs/asv_counts.tsv.gz"
-        ),
-        fasta=os.path.expandvars(
-            "$TMPDIR/{rundir}_{chimera_run}_{chimdir}_{rank}_{tax}_filter_seqs/asv_seqs.fasta.gz"
-        ),
     script:
         "../scripts/common.py"
-
-
-rule filter:
-    """
-    Pseudo-target for the filtering part of the workflow
-    """
-    input:
-        expand(
-            "results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{f}",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            chimdir=config["chimdir"],
-            rank=config["split_rank"],
-            tax=taxa,
-            f=["total_counts.tsv", "asv_counts.tsv.gz", "asv_seqs.fasta.gz"],
-        ),
-
 
 ## VSEARCH ALIGNMENTS ##
 rule vsearch_align:
     input:
-        fasta=rules.filter_seqs.output.fasta,
+        fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     output:
         dist="results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
     log:
@@ -97,17 +82,26 @@ rule vsearch_align:
         mv {params.dist}.gz {output.dist} 
         """
 
+def get_vsearch_files(wildcards):
+    checkpoint_dir = checkpoints.filter_seqs.get(
+        rundir=config["rundir"], 
+        chimera_run=config["chimera"]["run_name"], 
+        chimdir=config["chimdir"], 
+        rank=config["split_rank"]
+        ).output[0]
+    files = expand("results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
+        rundir=config["rundir"],
+        chimera_run=config["chimera"]["run_name"],
+        chimdir=config["chimdir"],
+        rank=config["split_rank"],
+        tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}", "asv_seqs.fasta.gz")).tax
+        )
+    return files
 
 rule vsearch:
     """
     vsearch pseudo-target
     """
     input:
-        expand(
-            "results/vsearch/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.dist.gz",
-            rundir=config["rundir"],
-            chimdir=config["chimdir"],
-            chimera_run=config["chimera"]["run_name"],
-            rank=config["split_rank"],
-            tax=taxa,
-        ),
+        get_vsearch_files,
+        
