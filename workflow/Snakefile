@@ -325,7 +325,7 @@ rule sum_cluster_counts:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_counts.tsv",
     input:
         taxinfo=rules.write_asv_reps.output.taxinfo,
-        counts=get_taxcounts,
+        counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_counts.tsv.gz"
     run:
         import pandas as pd
         taxdf = pd.read_csv(input.taxinfo, sep="\t", index_col=0)
@@ -384,7 +384,7 @@ rule consensus_taxonomy:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_consensus_taxonomy.tsv",
     input:
         clustfile=rules.write_asv_reps.output.taxinfo,
-        countsfile=get_taxtotalcounts,
+        countsfile="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/total_counts.tsv"
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/consensus_taxonomy.log",
     params:
