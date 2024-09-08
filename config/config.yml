@@ -27,6 +27,24 @@ ranks:
   - "Species"
   - "BOLD_bin"
 
+####################################
+##### PREPROCESSING PARAMETERS #####
+####################################
+preprocessing:
+  # Whether to perform length filtering of input seqs
+  filter_length: True
+  # Minimum and maximum length of input seqs
+  min_length: 403
+  max_length: 418
+  # Whether to perform codon filtering of input seqs
+  filter_codons: True
+  # Specific stop codons to look for. Specify multiple codons with in a comma separated list like: "TAA,TAG". By default TAA and TAG are being looked for.
+  stop_codons: "TAA,TAG"
+  # Specific position of the ASV where to start checking for codons.
+  start_position: 2
+  # Specific position of the ASV where to stop checking for codons. By default it checks until the end of the sequence
+  end_position: False
+
 ###############################
 ##### CLUSTER EXECUTION #######
 ###############################

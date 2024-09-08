@@ -33,7 +33,7 @@ wildcard_constraints:
     noise_run=config["noise_filtering"]["run_name"],
 
 include: "rules/sintax.smk"
-include: "rules/chimeras.smk"
+include: "rules/chimeras.smk"include: "rules/preprocess.smk"
 include: "rules/common.smk"
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
