@@ -76,7 +76,7 @@ rule run_opticlust:
         cutoff=config["opticlust"]["cutoff"],
         initialize=config["opticlust"]["initialize"],
         precision=config["opticlust"]["precision"],
-        src="workflow/scripts/run_opticlust.py",
+        src=workflow.source_path("../scripts/run_opticlust.py"),
     conda:
         "../envs/opticlust.yml"
     threads: config["opticlust"]["threads"]

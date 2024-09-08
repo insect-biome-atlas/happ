@@ -291,7 +291,7 @@ rule precision_recall_noise_filtered:
     log:
         "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_run}/precision_recall.log",
     params:
-        src="workflow/scripts/evaluate_clusters.py",
+        src=workflow.source_path("../scripts/evaluate_clusters.py"),
         eval_rank=config["evaluation_rank"],
     shell:
         """
@@ -362,7 +362,7 @@ if os.path.exists(config["cleaning"]["metadata_file"]):
         log:
             "logs/cleaning/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/{noise_run}/precision_recall.log",
         params:
-            src="workflow/scripts/evaluate_clusters.py",
+            src=workflow.source_path("../scripts/evaluate_clusters.py"),
             eval_rank=config["evaluation_rank"],
         shell:
             """
@@ -528,7 +528,7 @@ rule precision_recall_lulu:
     log:
         "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/precision_recall.log"
     params:
-        src="workflow/scripts/evaluate_clusters.py",
+        src=workflow.source_path("../scripts/evaluate_clusters.py"),
         eval_rank=config["evaluation_rank"],
     shell:
         """
