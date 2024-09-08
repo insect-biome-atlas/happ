@@ -11,11 +11,12 @@ taxfile <- snakemake@input$taxonomy
 countsfile <- snakemake@input$counts
 consensus_taxfile <- snakemake@input$consensus_taxonomy
 fastafile <- snakemake@input$fasta
+
 ## OUTPUT
 outdir <- snakemake@output[[1]]
 
-## WILDCARDS
-order_name <- snakemake@wildcards$order
+## PARAMS
+filter_unclassified_rank <- snakemake@params$filter_unclassified_rank
 
 threads <- snakemake@threads
 
@@ -41,6 +42,10 @@ cat("Reading fasta\n")
 seqs <- read.fasta(fastafile, whole.header = FALSE)
 
 for (order_name in unique(cluster_taxonomy$order)) {
+     # Do not perform noise filtering on unclassified orders
+     if (tolower(filter_unclassified_rank)=="order" & startsWith(order_name, "unclassified.")) {
+          next
+     }
      outfile <- paste0(outdir, "/", order_name, "_cluster_analysis.tsv")
      complementing_data(order_name, cluster_taxonomy, consensus_taxonomy, cluster_counts, outfile)
      rep_asvs <- cluster_taxonomy$asv[cluster_taxonomy$order==order_name & cluster_taxonomy$representative==1]
