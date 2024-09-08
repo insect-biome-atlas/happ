@@ -48,34 +48,24 @@ rule lulu_filtering:
                     f=["lulu_clusters.tsv", "lulu_clusters.fasta", "precision_recall.lulu.txt"])        
 
 
-rule generate_cluster_analysis:
+checkpoint split_clusters_by_taxa:
+    """
+    Checkpoint rule to split clusters by taxonomy prior to noise filtering.
+    """
     output:
-        tsv="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/cluster_analysis/{order}_cluster_analysis.tsv"
+        directory("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/cluster_analysis/")
     input:
         taxonomy = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
         counts = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_counts.tsv",
-        consensus_taxonomy = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv"
+        consensus_taxonomy = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv",
+        fasta = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta"
     log:
-        "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_generate_cluster_analysis.log"
+        "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/split_clusters_by_taxa.log"
     params:
         functions = "workflow/scripts/noise_filtering/functions.R",
     conda: "../envs/r-env.yml"
-    script: "../scripts/noise_filtering/generate_cluster_analysis.R"
+    script: "../scripts/noise_filtering/split_clusters_by_taxa.R"
 
-
-rule generate_order_seqs:
-    """
-    Generate subsets of the cluster representative ASV sequences for an order.
-    """
-    output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/alignments/{order}_seqs.fasta"
-    input:
-        taxonomy = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
-        fasta = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta"
-    log:
-        "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_generate_order_seqs.log",
-    conda: "../envs/r-env.yml"
-    script: "../scripts/noise_filtering/generate_order_seqs.R"
 
 rule generate_trimmed_seq:
     """
@@ -84,7 +74,7 @@ rule generate_trimmed_seq:
     output:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/trimmed/{order}_seqs_trimmed.fasta"
     input:
-        fasta=rules.generate_order_seqs.output[0],
+        fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/cluster_analysis/{order}_seqs.fasta"
     log:
         "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{order}_generate_trimmed_seq.log",
     params:
