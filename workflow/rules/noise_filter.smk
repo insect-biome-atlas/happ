@@ -1,6 +1,5 @@
 localrules: 
-    generate_cluster_analysis,
-    generate_order_seqs,
+    split_clusters_by_taxa,
     generate_trimmed_seq,
     generate_aa_seqs,
     abundance_filter,
@@ -63,6 +62,7 @@ checkpoint split_clusters_by_taxa:
         "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/split_clusters_by_taxa.log"
     params:
         functions = "workflow/scripts/noise_filtering/functions.R",
+        filter_unclassified_rank = config["noise_filtering"]["filter_unclassified_rank"],
     conda: "../envs/r-env.yml"
     script: "../scripts/noise_filtering/split_clusters_by_taxa.R"
 
@@ -214,7 +214,7 @@ rule evaluate_order:
     input:
         filter1=rules.combined_filter.output.tsv,
         filter2=rules.abundance_filter.output.tsv,
-        clust_file=rules.generate_cluster_analysis.output.tsv,
+        clust_file="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/cluster_analysis/{order}_cluster_analysis.tsv",
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     params:
         trusted=config["noise_filtering"]["non_noise_ASVs"],
@@ -249,6 +249,20 @@ def filtered_input(wc):
     return expand("results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/runs/{{run_name}}/noise_filtering/runs/{{noise_run}}/evaluation/{order}_noise_analysis.tsv",
         order=orders)
 
+def get_noise_filter_files(wildcards):
+    checkpoint_dir = checkpoints.split_clusters_by_taxa.get(**wildcards).output[0]
+    files = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/runs/{noise_run}/evaluation/{order}_noise_analysis.tsv",
+        tool=wildcards.tool, 
+        rundir=wildcards.rundir, 
+        chimera_run=wildcards.chimera_run, 
+        chimdir=wildcards.chimdir, 
+        rank=wildcards.rank, 
+        run_name=wildcards.run_name, 
+        noise_run=wildcards.noise_run, 
+        order=glob_wildcards(os.path.join(checkpoint_dir, "{order}_seqs.fasta")).order
+    )
+    return files
+
 rule filtered:
     """
     Combines the noise filtering results for each order and outputs a taxonomy table of all non-noisy ASVs 
@@ -258,7 +272,7 @@ rule filtered:
         tsv="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/runs/{noise_run}/noise_filtered_cluster_taxonomy.tsv",
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/runs/{noise_run}/noise_filtered_clusters.fasta",
     input:
-        noise_files=filtered_input,
+        noise_files=get_noise_filter_files,
         fasta = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
         taxonomy = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     log: 
@@ -364,7 +378,7 @@ if config["lulu"]["alignment_tool"] == "vsearch":
         output:
             "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/orders/{order}/matchlist.tsv"
         input:
-            rules.generate_order_seqs.output[0],
+            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/cluster_analysis/{order}_seqs.fasta"
         log:
             "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/{order}_lulu_matchlist.log"
         conda:
@@ -389,7 +403,7 @@ else:
         output:
             "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/orders/{order}/matchlist.tsv"
         input:
-            rules.generate_order_seqs.output[0],
+            "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/cluster_analysis/{order}_seqs.fasta"
         log:
             "logs/lulu/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{lulu_run}/{order}_lulu_matchlist.log"
         conda:
@@ -465,7 +479,7 @@ rule evaluate_order_lulu:
         noise_eval="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/lulu/runs/{lulu_run}/evaluation/{order}_evaluation.tsv"        
     input:
         otu_map=rules.lulu.output.otu_map,
-        clust_file=rules.generate_cluster_analysis.output.tsv,
+        clust_file="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/noise_filtering/cluster_analysis/{order}_cluster_analysis.tsv",
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     params:
         trusted=config["lulu"]["non_noise_ASVs"],
