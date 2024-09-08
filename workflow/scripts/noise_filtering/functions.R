@@ -508,33 +508,25 @@ list_removed_species <- function(order_clusters, noise_data) {
   removed_species
 }
 
-complementing_data <- function(order_name, taxfile, consensus_taxfile, countsfile, outfile, threads=1) {
-    # Read in nochimera cluster information and create core of the data
-    # on the order clusters
-    F <- read.table(taxfile,header=TRUE,sep="\t") # taxonomy
-    order_clusters <- F[F$Order==order_name & F$representative==1,]
-    # Add data on resolved cluster taxonomy
-    G <- read.table(consensus_taxfile,header=TRUE,sep="\t")
-    order_clusters <- merge(order_clusters, G[, c("cluster","Family","Genus","Species","BOLD_bin")], by="cluster", suffixes = c("","_resolved"), all.x=TRUE)
+complementing_data <- function(order_name, cluster_taxonomy, consensus_taxonomy, cluster_counts, outfile) {
+    order_clusters <- cluster_taxonomy[cluster_taxonomy$order==order_name & cluster_taxonomy$representative==1,]
+    order_clusters <- merge(order_clusters, consensus_taxonomy[, c("cluster","family","genus","species","bold_bin")], by="cluster", suffixes = c("","_resolved"), all.x=TRUE)
 
     # Assume that the original species identification is correct for the representative ASV in the cases where the
     # cluster was filtered out before the name resolution in version 1 of the pipeline. And that the resolved species
     # identification is correct for the remaining ones
-    order_clusters$Species_updated <- order_clusters$Species_resolved
+    order_clusters$species_updated <- order_clusters$species_resolved
     for (i in 1:nrow(order_clusters)) {
-      if (is.na(order_clusters$Species_updated[i]))
-        order_clusters$Species_updated[i] <- order_clusters$Species[i]
+      if (is.na(order_clusters$species_updated[i]))
+        order_clusters$species_updated[i] <- order_clusters$species[i]
     }
 
-  # Get total number of reads for the clusters
-  cat("Reading cluster counts\n")
-  D <- fread(countsfile, check.names=FALSE, nThread=threads, 
-              sep="\t", header=TRUE, data.table=FALSE, )
-  cat(paste0("Subsetting to clusters in", order_name, "\n"))
-  rownames(D) <- D$cluster
-  D <- D[order_clusters$cluster,2:ncol(D)]
+    # Get total number of reads for the clusters
+    cat(paste0("Subsetting to clusters in ", order_name, "\n"))
+    rownames(cluster_counts) <- cluster_counts$cluster
+    cluster_counts <- cluster_counts[order_clusters$cluster,2:ncol(cluster_counts)]
 
-  order_clusters$n_reads <- rowSums(D)
-  order_clusters$n_samples <- apply(D[,2:ncol(D)] > 0, 1, sum)
-  write.table(order_clusters, outfile, sep="\t", row.names=FALSE, quote=FALSE)
+    order_clusters$n_reads <- rowSums(cluster_counts)
+    order_clusters$n_samples <- apply(cluster_counts[,2:ncol(cluster_counts)] > 0, 1, sum)
+    write.table(order_clusters, outfile, sep="\t", row.names=FALSE, quote=FALSE)
 }
