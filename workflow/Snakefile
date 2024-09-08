@@ -32,8 +32,9 @@ wildcard_constraints:
     algo=config["chimera"]["algorithm"],
     noise_run=config["noise_filtering"]["run_name"],
 
+include: "rules/preprocess.smk"
 include: "rules/sintax.smk"
-include: "rules/chimeras.smk"include: "rules/preprocess.smk"
+include: "rules/chimeras.smk"
 include: "rules/common.smk"
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
@@ -261,7 +262,7 @@ rule precision_recall:
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
     params:
-        src="workflow/scripts/evaluate_clusters.py",
+        src=workflow.source_path("scripts/evaluate_clusters.py"),
         eval_rank=config["evaluation_rank"],
     shell:
         """
@@ -304,7 +305,7 @@ rule write_asv_reps:
         colsums=rules.calc_colsums.output[0],
         seqs="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     params:
-        src="workflow/scripts/get_asv_reps.py",
+        src=workflow.source_path("scripts/get_asv_reps.py"),
         tmpdir="$TMPDIR/{tool}.{rundir}.{chimera_run}.{chimdir}.{rank}.{tax}.{run_name}.write_asv_reps",
     shell:
         """
