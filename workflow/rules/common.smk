@@ -32,6 +32,27 @@ def get_input_taxa(wildcards):
         rundir=config["rundir"],
     )[0]
 
+checkpoint split_input:
+    """
+    Splits the input fasta file into chunks with at most 500 sequences
+    """
+    output:
+        directory("results/common/{rundir}/splits")
+    input:
+        unpack(get_preprocessed_files)
+    log:
+        "logs/split_sintax_input/{rundir}.split.log"
+    params:
+        outdir=lambda wildcards, output: output[0],
+        size=500,
+    resources:
+        runtime = 60,
+    threads: 1
+    shell:
+        """
+        cat {input.fasta} | seqkit split2 -O {params.outdir} -j {threads} -s {params.size} >{log} 2>&1
+        """
+
 checkpoint filter_seqs:
     """
     Checkpoint for first round of filtering. Takes as input the chimera-filtered fasta
