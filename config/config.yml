@@ -43,7 +43,7 @@ preprocessing:
   # Specific position of the ASV where to start checking for codons.
   start_position: 2
   # Specific position of the ASV where to stop checking for codons. By default it checks until the end of the sequence
-  end_position: False
+  end_position: 0
 
 ###############################
 ##### CLUSTER EXECUTION #######
@@ -64,11 +64,27 @@ long_partition: "long"
 taxonomy_source: "sintax"
 taxtools:
   - "sintax"
+  - "vsearch"
 sintax:
   ref: "resources/sintax/coidb.sintax.fasta"
   randseed: 15
   cutoff: 0.8
   ranks: 
+    - "Kingdom"
+    - "Phylum"
+    - "Class"
+    - "Order"
+    - "Family"
+    - "Genus"
+    - "Species"
+    - "BOLD_bin"
+# Below are the parameters for qiime2 (vsearch and sklearn) taxonomy assignment
+qiime2:
+  # ref is the path to the reference database to use for taxonomy assignment
+  ref: ""
+  # taxfile is the path to the taxonomy file that corresponds to the reference database
+  taxfile: ""
+  ranks:
     - "Kingdom"
     - "Phylum"
     - "Class"
