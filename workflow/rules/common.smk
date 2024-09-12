@@ -23,12 +23,13 @@ def get_input_taxa(wildcards):
     """
     Return the taxonomy file for the dataset
     """
+    taxonomy_source=config["taxonomy_source"]
     # check if the taxonomy source is a file
-    if os.path.isfile(config["taxonomy_source"]):
+    if os.path.isfile(taxonomy_source):
         return taxonomy_source
     return expand(
-        "results/{taxonomy_source}/{rundir}/{taxonomy_source}.tsv",
-        taxonomy_source=config["taxonomy_source"],
+        "results/taxonomy/{taxonomy_source}/{rundir}/taxonomy.tsv",
+        taxonomy_source=taxonomy_source,
         rundir=config["rundir"],
     )[0]
 
@@ -41,7 +42,7 @@ checkpoint split_input:
     input:
         unpack(get_preprocessed_files)
     log:
-        "logs/split_sintax_input/{rundir}.split.log"
+        "logs/split_input/{rundir}.log"
     params:
         outdir=lambda wildcards, output: output[0],
         size=500,
