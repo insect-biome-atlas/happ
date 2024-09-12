@@ -9,7 +9,6 @@ properties:
     type: string
     description: "source of taxonomic information"
     default: "sintax"
-    enum: ["sintax", "vsearch"]
   taxtools:
     type: array
     description: "list of taxonomic tools to run"
