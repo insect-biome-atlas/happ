@@ -19,18 +19,12 @@ if config["chimera"]["remove_chimeras"]:
     # under the chimera settings in the config allows different chimera detection
     # settings using the same vsearch output
     config["chimdir"] = f"{method}.{algorithm}"
-    include: "rules/chimeras.smk"
 else:
     config["chimdir"] = "raw"
     config["chimera"]["run_name"] = "raw"
 
-
-taxa = read_taxa(config)
-
-
 wildcard_constraints:
     tool="(swarm|opticlust|dbotu3)",
-    tax=f"({'|'.join(taxa)})",
     rundir=config["rundir"],
     run_name=config["run_name"],
     chimdir=config["chimdir"],
@@ -38,24 +32,14 @@ wildcard_constraints:
     algo=config["chimera"]["algorithm"],
     noise_run=config["noise_filtering"]["run_name"],
 
-
+include: "rules/preprocess.smk"
+include: "rules/chimeras.smk"
 include: "rules/common.smk"
-
-
-if "swarm" in config["software"]:
-
-    include: "rules/swarm.smk"
-
-
-if "dbotu3" in config["software"]:
-
-    include: "rules/dbotu3.smk"
-
-
-if "opticlust" in config["software"]:
-
-    include: "rules/opticlust.smk"
-
+include: "rules/qiime2.smk"
+include: "rules/sintax.smk"
+include: "rules/swarm.smk"
+include: "rules/dbotu3.smk"
+include: "rules/opticlust.smk"
 include: "rules/noise_filter.smk"
 
 localrules:
@@ -63,11 +47,11 @@ localrules:
     precision_recall,
     calc_colsums,
     evaluate,
-    merge_rep_files,
+    aggregate_clusters,
     write_asv_reps,
     sum_cluster_counts,
     write_settings,
-    collate_consensus_taxonomy,
+    aggregate_consensus_taxonomy,
 
 
 def cluster_files(wildcards):
@@ -242,7 +226,7 @@ rule write_settings:
         json="results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.json",
         cmd="results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.cmd",
     input:
-        get_filter_input,
+        get_input_fasta,
     run:
         import json, sys
 
@@ -252,28 +236,44 @@ rule write_settings:
             fhout.write(" ".join(sys.argv))
 
 
+def get_asv_clusters(wildcards):
+    checkpoint_dir = checkpoints.filter_seqs.get(**wildcards).output[0]
+    files = expand(
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
+        tool=wildcards.tool,
+        rundir=wildcards.rundir,
+        chimera_run=wildcards.chimera_run,
+        chimdir=wildcards.chimdir,
+        rank=wildcards.rank,
+        tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}", "asv_seqs.fasta.gz")).tax,
+        run_name=wildcards.run_name,
+    )
+    return files
+
 rule precision_recall:
+    """
+    Calculate precision and recall for the clusters
+    """
     input:
-        clust_files=expand(
-            "results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/asv_clusters.tsv",
-            tax=taxa,
-        ),
-        tax=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
+        clust_files=get_asv_clusters,
+        tax=get_input_taxa
     output:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.txt",
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.order.txt",
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log",
     params:
-        src="workflow/scripts/evaluate_clusters.py",
+        src=workflow.source_path("scripts/evaluate_clusters.py"),
         eval_rank=config["evaluation_rank"],
     shell:
         """
         python {params.src} {input.tax} {input.clust_files} --rank {params.eval_rank} --order_level {output[1]} > {output[0]} 2>{log}
         """
 
-
 rule calc_colsums:
+    """
+    Calculate the column sums of the ASVs
+    """
     output:
         "results/common/{rundir}/colsums.tsv",
     log:
@@ -291,6 +291,9 @@ rule calc_colsums:
 
 
 rule write_asv_reps:
+    """
+    Writes the representative sequences for each cluster
+    """
     output:
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_reps.fasta",
         taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_taxonomy.tsv",
@@ -298,12 +301,12 @@ rule write_asv_reps:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/write_asv_reps.log",
     input:
         taxa="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/asv_clusters.tsv",
-        extra_taxa=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
+        extra_taxa=get_input_taxa,
         counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_counts.tsv.gz",
         colsums=rules.calc_colsums.output[0],
         seqs="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     params:
-        src="workflow/scripts/get_asv_reps.py",
+        src=workflow.source_path("scripts/get_asv_reps.py"),
         tmpdir="$TMPDIR/{tool}.{rundir}.{chimera_run}.{chimdir}.{rank}.{tax}.{run_name}.write_asv_reps",
     shell:
         """
@@ -316,7 +319,6 @@ rule write_asv_reps:
         rm -rf {params.tmpdir}
         """
 
-
 rule sum_cluster_counts:
     """
     Sums counts for each cluster
@@ -325,7 +327,7 @@ rule sum_cluster_counts:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_counts.tsv",
     input:
         taxinfo=rules.write_asv_reps.output.taxinfo,
-        counts=rules.filter_seqs.output.counts,
+        counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_counts.tsv.gz"
     run:
         import pandas as pd
         taxdf = pd.read_csv(input.taxinfo, sep="\t", index_col=0)
@@ -347,25 +349,28 @@ def merge_dataframes(input):
         df = pd.concat([df, _df])
     return df
 
+def get_clustfiles(wildcards):
+    checkpoint_dir = checkpoints.filter_seqs.get(**wildcards).output[0]
+    taxa = glob_wildcards(os.path.join(checkpoint_dir, "{tax}", "asv_seqs.fasta.gz")).tax
+    base = f"results/{wildcards.tool}/{wildcards.rundir}/{wildcards.chimera_run}/{wildcards.chimdir}/{wildcards.rank}/taxa"
+    fasta = expand(os.path.join(base, "{tax}", "{run_name}", "cluster_reps.fasta"),
+        tax=taxa, run_name=wildcards.run_name)
+    taxinfo = expand(os.path.join(base, "{tax}", "{run_name}", "cluster_taxonomy.tsv"),
+        tax=taxa, run_name=wildcards.run_name)
+    counts = expand(os.path.join(base, "{tax}", "{run_name}", "cluster_counts.tsv"),
+        tax=taxa, run_name=wildcards.run_name)
+    return {"taxinfo": taxinfo, "fasta": fasta, "counts": counts}
 
-rule merge_rep_files:
+rule aggregate_clusters:
+    """
+    Aggregates the cluster files from each taxa
+    """
     output:
         taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv", # file with cluster membership and taxonomy
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
         counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_counts.tsv",
     input:
-        fasta=lambda wildcards: expand(rules.write_asv_reps.output.fasta,
-            tax=taxa, tool=wildcards.tool, rundir=wildcards.rundir, chimera_run=wildcards.chimera_run, chimdir=wildcards.chimdir,
-            rank=wildcards.rank, run_name=wildcards.run_name,
-        ),
-        taxinfo=lambda wildcards: expand(rules.write_asv_reps.output.taxinfo,
-            tax=taxa, tool=wildcards.tool, rundir=wildcards.rundir, chimera_run=wildcards.chimera_run, chimdir=wildcards.chimdir,
-            rank=wildcards.rank, run_name=wildcards.run_name,
-        ),
-        counts=lambda wildcards: expand(rules.sum_cluster_counts.output,
-            tax=taxa, tool=wildcards.tool, rundir=wildcards.rundir, chimera_run=wildcards.chimera_run, chimdir=wildcards.chimdir,
-            rank=wildcards.rank, run_name=wildcards.run_name,
-        ),
+        unpack(get_clustfiles),
     run:
         taxinfo = merge_dataframes(input.taxinfo)
         taxinfo.to_csv(output.taxinfo, sep="\t")
@@ -381,7 +386,7 @@ rule consensus_taxonomy:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_consensus_taxonomy.tsv",
     input:
         clustfile=rules.write_asv_reps.output.taxinfo,
-        countsfile=rules.filter_seqs.output.total_counts,
+        countsfile="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/total_counts.tsv"
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/consensus_taxonomy.log",
     params:
@@ -396,12 +401,23 @@ rule consensus_taxonomy:
             --consensus_threshold {params.thresh} > {output} 2>{log}
         """
 
-rule collate_consensus_taxonomy:
+def get_consensus_taxonomy_files(wildcards):
+    checkpoint_dir = checkpoints.filter_seqs.get(**wildcards).output[0]
+    files = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_consensus_taxonomy.tsv",
+        tool=wildcards.tool,
+        rundir=wildcards.rundir,
+        chimera_run=wildcards.chimera_run,
+        chimdir=wildcards.chimdir,
+        rank=wildcards.rank,
+        tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}", "asv_seqs.fasta.gz")).tax,
+        run_name=wildcards.run_name
+        )
+
+rule aggregate_consensus_taxonomy:
     output:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv",
     input:
-        expand("results/{{tool}}/{{rundir}}/{{chimera_run}}/{{chimdir}}/{{rank}}/taxa/{tax}/{{run_name}}/cluster_consensus_taxonomy.tsv",
-            tax = taxa)
+        get_consensus_taxonomy_files,
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/consensus_taxonomy.log",
     run:

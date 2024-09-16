@@ -27,6 +27,24 @@ ranks:
   - "Species"
   - "BOLD_bin"
 
+####################################
+##### PREPROCESSING PARAMETERS #####
+####################################
+preprocessing:
+  # Whether to perform length filtering of input seqs
+  filter_length: True
+  # Minimum and maximum length of input seqs
+  min_length: 403
+  max_length: 418
+  # Whether to perform codon filtering of input seqs
+  filter_codons: True
+  # Specific stop codons to look for. Specify multiple codons with in a comma separated list like: "TAA,TAG". By default TAA and TAG are being looked for.
+  stop_codons: "TAA,TAG"
+  # Specific position of the ASV where to start checking for codons.
+  start_position: 2
+  # Specific position of the ASV where to stop checking for codons. By default it checks until the end of the sequence
+  end_position: 0
+
 ###############################
 ##### CLUSTER EXECUTION #######
 ###############################
@@ -38,6 +56,49 @@ long_partition: "long"
 ###############################
 ##### TAXONOMY PARAMETERS #####
 ###############################
+# The taxonomy_source parameter specifies what taxonomy source to use for the
+# clustering. This is the primary source of taxonomy information and is used to
+# to partition the ASVs into smaller fasta files based on the split_rank parameter.
+# If you already have a tab-separated file with taxonomic assignments, place this under
+# data/<rundir>/asv_taxa.tsv.
+taxonomy_source: "sintax"
+taxtools:
+  - "sintax"
+  - "vsearch"
+  - "epa-ng"
+sintax:
+  ref: "resources/sintax/coidb.sintax.fasta"
+  randseed: 15
+  cutoff: 0.8
+  ranks: 
+    - "Kingdom"
+    - "Phylum"
+    - "Class"
+    - "Order"
+    - "Family"
+    - "Genus"
+    - "Species"
+    - "BOLD_bin"
+# Below are the parameters for qiime2 (vsearch and sklearn) taxonomy assignment
+qiime2:
+  # ref is the path to the reference database to use for taxonomy assignment
+  ref: ""
+  # taxfile is the path to the taxonomy file that corresponds to the reference database
+  taxfile: ""
+  ranks:
+    - "Kingdom"
+    - "Phylum"
+    - "Class"
+    - "Order"
+    - "Family"
+    - "Genus"
+    - "Species"
+    - "BOLD_bin"
+epa-ng:
+  tree: "resources/epa-ng/epa-ng.tree"
+  tree_format: "newick"
+  heuristic: "dyn-heur"
+
 # The evaluation rank parameter specifies what taxonomic rank to use for evaluating
 # the clustering results. This rank should correspond to the taxonomic rank that
 # you expect the clustering to represent, e.g. if you expect the clustering to

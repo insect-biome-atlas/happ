@@ -4,9 +4,6 @@ import os
 
 localrules:
     add_sums,
-    split_samplewise,
-    nonchimeric_taxa,
-    nonchimeric_orders,
     append_size,
     filter_samplewise_chimeras,
     filter_batchwise_chimeras,
@@ -30,7 +27,19 @@ def get_abskew(wildcards):
             abskew = 16.0
     return f"--abskew {abskew}"
 
+def get_preprocessed_files(wildcards):
+    if config["preprocessing"]["filter_codons"]:
+        fastafile = rules.filter_codons.output.fasta
+        countsfile = rules.filter_codons.output.counts
+    elif config["preprocessing"]["filter_length"]:
+        fastafile = rules.filter_length.output.fasta
+        countsfile = rules.filter_length.output.counts
+    else:
+        fastafile = f"data/{wildcards.rundir}/asv_seqs.fasta"
+        countsfile = f"data/{wildcards.rundir}/asv_counts.tsv"
+    return {"fasta": fastafile, "counts": countsfile}
 
+# TODO: Add checks for samples with zero sum counts after preprocessing?
 samples = fetch_samples(f=f"data/{config['rundir']}/asv_counts.tsv")
 wildcard_constraints:
     sample=f"({'|'.join(samples)})",
@@ -48,7 +57,7 @@ rule chimera_filtering:
             chimera_run=config["chimera"]["run_name"],
             method=config["chimera"]["method"],
             algo=config["chimera"]["algorithm"],
-            f=["nonchimeras.fasta", "chimeras.fasta", "orders.txt", f"{config['split_rank']}.txt"],
+            f=["nonchimeras.fasta", "chimeras.fasta"]
         ),
         expand(
             "results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.{suff}",
@@ -59,91 +68,21 @@ rule chimera_filtering:
             suff=["json", "cmd"],
         ),
 
-def filter_nonchimeric_taxa(taxfile, nonchimeras, rank, output):
-    """
-    Filter the taxonomy file to remove taxa in which all sequences have been marked as chimeric
-    """
-    df = pd.read_csv(taxfile, sep="\t", index_col=0)
-    nonchim = []
-    with open(nonchimeras, 'r') as fhin:
-        for line in fhin:
-            line = line.rstrip()
-            if line.startswith(">"):
-                asv = line.lstrip(">")
-                nonchim.append(asv)
-    df = df.loc[nonchim]
-    taxa = list(df[rank].unique())
-    with open(output, 'w') as fhout:
-        for t in taxa:
-            fhout.write(f"{t}\n")
-
-rule nonchimeric_taxa:
-    """
-    Filter the taxonomy file to remove taxa in which all sequences have been marked as chimeric
-    """
-    output:
-        expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{split_rank}.txt",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            method=config["chimera"]["method"],
-            algo=config["chimera"]["algorithm"],
-            split_rank=config["split_rank"],
-        ),
-    input:
-        taxfile=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
-        nonchimeras=expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/nonchimeras.fasta",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            method=config["chimera"]["method"],
-            algo=config["chimera"]["algorithm"],
-        )
-    params:
-        split_rank=config["split_rank"]
-    run:
-        filter_nonchimeric_taxa(taxfile=input.taxfile[0], nonchimeras=input.nonchimeras[0], rank=params.split_rank, output=output[0])
-
-rule nonchimeric_orders:
-    """
-    Filter the taxonomy file to remove orders in which all sequences have been marked as chimeric
-    """
-    output:
-        expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/orders.txt",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            method=config["chimera"]["method"],
-            algo=config["chimera"]["algorithm"],
-        ),
-    input:
-        taxfile=expand("data/{rundir}/asv_taxa.tsv", rundir=config["rundir"]),
-        nonchimeras=expand("results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/nonchimeras.fasta",
-            rundir=config["rundir"],
-            chimera_run=config["chimera"]["run_name"],
-            method=config["chimera"]["method"],
-            algo=config["chimera"]["algorithm"],
-        )
-    params:
-        ranks = config["ranks"]
-    run:
-        ranks = params.ranks
-        # case-insensitive search for 'order' in ranks
-        rank = ranks[[x.lower() for x in ranks].index("order")]
-        filter_nonchimeric_taxa(taxfile=input.taxfile[0], nonchimeras=input.nonchimeras[0], rank=rank, output=output[0])
-
 rule sum_asvs:
     """
     Sums up counts for batchwise mode
     """
     input:
-        counts="data/{rundir}/asv_counts.tsv",
+        unpack(get_preprocessed_files)
     output:
-        sums="data/{rundir}/asv_sum.tsv",
+        sums="results/common/{rundir}/asv_sum.tsv",
     log:
         "logs/sum_asvs/{rundir}.log",
     resources:
         runtime=60,
     threads: 10
     params:
-        src="workflow/scripts/sum_counts.py",
+        src=workflow.source_path("../scripts/sum_counts.py"),
         tmpdir="$TMPDIR/{rundir}.sum_counts",
     shell:
         """
@@ -154,20 +93,19 @@ rule sum_asvs:
         rm -rf {params.tmpdir}
         """
 
-
 rule append_size:
     """
     Adds size annotation for batchwise mode
     """
     input:
+        unpack(get_preprocessed_files),
         sums=rules.sum_asvs.output.sums,
-        fasta="data/{rundir}/asv_seqs.fasta",
     output:
-        fasta="data/{rundir}/asv_seqs_size.fasta",
+        fasta="results/common/{rundir}/asv_seqs_size.fasta",
     log:
         "logs/append_size/{rundir}.log",
     params:
-        src="workflow/scripts/add_size_to_fastaheader.py",
+        src=workflow.source_path("../scripts/add_size_to_fastaheader.py"),
         tmpdir="$TMPDIR/{rundir}.addsums",
     shell:
         """
@@ -177,31 +115,6 @@ rule append_size:
         mv {params.tmpdir}/asv_seqs_size.fasta {output.fasta}
         rm -rf {params.tmpdir}
         """
-
-
-rule add_sums:
-    """
-    Adds size annotation to fasta headers for samplewise mode
-    """
-    output:
-        fasta=temp("data/{rundir}/samplewise/{sample}.fasta"),
-    input:
-        sums="data/{rundir}/samplewise/{sample}.sum.tsv",
-        fasta="data/{rundir}/asv_seqs.fasta",
-    log:
-        "logs/chimeras/{rundir}/{sample}.add-sums.log",
-    params:
-        src="workflow/scripts/add_size_to_fastaheader.py",
-        tmpdir="$TMPDIR/{rundir}.{sample}.addsums",
-    shell:
-        """
-        mkdir -p {params.tmpdir}
-        cp {input.fasta} {params.tmpdir}/asv_seqs.fasta
-        python {params.src} {params.tmpdir}/asv_seqs.fasta {input.sums} > {params.tmpdir}/{wildcards.sample}.fasta 2>{log}
-        mv {params.tmpdir}/{wildcards.sample}.fasta {output.fasta}
-        rm -rf {params.tmpdir}
-        """
-
 
 ### BATCHWISE ###
 
@@ -247,13 +160,13 @@ rule chimera_batchwise:
 
 rule split_counts_samplewise:
     output:
-        temp("data/{rundir}/samplewise/{sample}.sum.tsv"),
+        temp("results/common/{rundir}/samplewise/{sample}.sum.tsv"),
     input:
-        counts="data/{rundir}/asv_counts.tsv"
+        unpack(get_preprocessed_files),
     log:
         "logs/chimeras/{rundir}/{sample}.split_counts.log"
     params:
-        src="workflow/scripts/split_counts_samplewise.py",
+        src=workflow.source_path("../scripts/split_counts_samplewise.py"),
         tmpdir="$TMPDIR/split.{rundir}.{sample}"
     group: "split_counts"
     resources:
@@ -266,10 +179,28 @@ rule split_counts_samplewise:
         rm -rf {params.tmpdir}
         """
 
-rule split_samplewise:
-    message: "Split counts for samplewise chimera removal"
+rule add_sums:
+    """
+    Adds size annotation to fasta headers for samplewise mode
+    """
+    output:
+        fasta=temp("results/common/{rundir}/samplewise/{sample}.fasta"),
     input:
-        expand("data/{rundir}/samplewise/{sample}.sum.tsv", rundir = config["rundir"], sample=samples)
+        unpack(get_preprocessed_files),
+        sums=rules.split_counts_samplewise.output[0],
+    log:
+        "logs/chimeras/{rundir}/{sample}.add-sums.log",
+    params:
+        src=workflow.source_path("../scripts/add_size_to_fastaheader.py"),
+        tmpdir="$TMPDIR/{rundir}.{sample}.addsums",
+    shell:
+        """
+        mkdir -p {params.tmpdir}
+        cp {input.fasta} {params.tmpdir}/asv_seqs.fasta
+        python {params.src} {params.tmpdir}/asv_seqs.fasta {input.sums} > {params.tmpdir}/{wildcards.sample}.fasta 2>{log}
+        mv {params.tmpdir}/{wildcards.sample}.fasta {output.fasta}
+        rm -rf {params.tmpdir}
+        """
 
 
 rule chimera_samplewise:
@@ -334,7 +265,7 @@ rule filter_samplewise_chimeras:
         nonchims="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/nonchimeras.fasta",
         chimeras="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/chimeras.fasta",
     input:
-        fasta="data/{rundir}/asv_seqs.fasta",
+        unpack(get_preprocessed_files),
         uchimeout=expand(
             "results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/uchimeout.txt.gz",
             rundir=config["rundir"],
@@ -345,7 +276,7 @@ rule filter_samplewise_chimeras:
         "logs/chimeras/{rundir}/filtered/{chimera_run}/samplewise.{algo}/filter_samplewise_chimeras.log",
     params:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_samplewise",
-        src="workflow/scripts/filter_chimeras.py",
+        src=workflow.source_path("../scripts/filter_chimeras.py"),
         min_chimeric_samples=config["chimera"]["min_chimeric_samples"],
         min_frac_chimeric_samples=get_min_frac_chimeric_samples(config),
         minh=config["chimera"]["minh"],
@@ -378,14 +309,13 @@ rule filter_batchwise_chimeras:
         chims="results/chimera/{rundir}/filtered/{chimera_run}/batchwise.{algo}/chimeras.fasta",
         uchimeout="results/chimera/{rundir}/filtered/{chimera_run}/batchwise.{algo}/uchimeout.tsv",
     input:
-        fasta="data/{rundir}/asv_seqs.fasta",
+        unpack(get_preprocessed_files),
         uchimeout=rules.chimera_batchwise.output.uchimeout,
-        counts="data/{rundir}/asv_counts.tsv",
     log:
         "logs/chimeras/{rundir}/filtered/{chimera_run}/batchwise.{algo}/filter_batchwise_chimeras.log",
     params:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_batchwise",
-        src="workflow/scripts/filter_chimeras.py",
+        src=workflow.source_path("../scripts/filter_chimeras.py"),
         min_samples_shared=config["chimera"]["min_samples_shared"],
         min_frac_samples_shared=config["chimera"]["min_frac_samples_shared"],
         minh=config["chimera"]["minh"],

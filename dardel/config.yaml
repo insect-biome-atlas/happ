@@ -6,10 +6,13 @@
 default-resources: 
   slurm_account: <your-slurm-account>
   slurm_partition: shared
-  runtime: 1440
+  runtime: 240
 
 # The settings below override the default-resources for specific rules
 set-resources:
+  sintax:
+    runtime: 30
+    mem_mb: 10000
   sum_asvs:
     runtime: 60
     mem_mb: 60000
@@ -65,4 +68,5 @@ local-cores: 1
 jobs: 100
 latency-wait: 5
 executor: slurm
-software-deployment-method: "conda"
+use-conda: True
+use-apptainer: True

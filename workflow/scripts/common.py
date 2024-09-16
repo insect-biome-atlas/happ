@@ -6,6 +6,7 @@ import gzip
 import os
 import shutil
 import logging
+from tqdm import tqdm
 
 
 def mem_allowed(wildcards, threads):
@@ -85,17 +86,17 @@ def write_fasta(record_dict, outfile, filtered_ids):
     :param filtered_ids: list of ids to write
     :return: new filtered list
     """
-    _filtered_ids = []
+    records = []
     # Read fasta file and write a new zipped fasta file with filtered seqs
-    with gzip.open(outfile, "wt") as fhout:
-        for seqid in filtered_ids:
-            try:
-                record = record_dict[seqid]
-                fhout.write(f">{seqid}\n{record.seq}\n")
-                _filtered_ids.append(seqid)
-            except KeyError:
-                continue
-    return _filtered_ids
+    for seqid in filtered_ids:
+        try:
+            records.append(record_dict[seqid])
+        except KeyError:
+            continue
+    if len(records) > 0:
+        with gzip.open(outfile, "wt") as fhout:
+            SeqIO.write(records, fhout, "fasta")
+    return [x.id for x in records]
 
 
 def filter_seqs(sm):
@@ -114,37 +115,40 @@ def filter_seqs(sm):
         level=logging.INFO,
         format="%(asctime)s - %(message)s",
     )
-    os.makedirs(sm.params.tmpdir, exist_ok=True)
     logging.info(f"Reading taxonomic info from {sm.input.tax[0]}")
-    taxdf = pd.read_csv(sm.input.tax[0], sep="\t", index_col=0, header=0)
-    tax = sm.wildcards.tax
+    taxdf = pd.read_csv(sm.input.tax, sep="\t", index_col=0, header=0)
+    outdir=sm.output[0]
+    os.makedirs(outdir, exist_ok=True)
     split_rank = sm.params.split_rank
-    dataf = taxdf.loc[taxdf[split_rank] == tax]
+    taxa = taxdf[split_rank].unique()
+    logging.info(f"Found {len(taxa)} unique taxa")
     logging.info(f"Indexing {sm.input.fasta}")
     record_dict = SeqIO.index(sm.input.fasta, "fasta")
     if ";size=" in list(record_dict.keys())[0]:
         record_dict = {
             k.split(";")[0] if ";" in k else k: v for k, v in record_dict.items()
         }
-    logging.info(f"Writing sequences to {sm.params.fasta}")
-    filtered_ids = write_fasta(record_dict, sm.params.fasta, list(dataf.index))
-    logging.info(
-        f"Extracting counts from {sm.input.counts[0]} and writing to {sm.params.total_counts} and {sm.params.counts}"
-    )
-    write_counts(
-        countsfile=sm.input.counts[0],
-        totalcounts=sm.params.total_counts,
-        countsout=sm.params.counts,
-        ids=filtered_ids,
-    )
-    logging.info(f"Moving {sm.params.total_counts} to {sm.output.total_counts}")
-    shutil.move(sm.params.total_counts, sm.output.total_counts)
-    logging.info(f"Moving {sm.params.fasta} to {sm.output.fasta}")
-    shutil.move(sm.params.fasta, sm.output.fasta)
-    logging.info(f"Moving {sm.params.counts} to {sm.output.counts}")
-    shutil.move(sm.params.counts, sm.output.counts)
-    shutil.rmtree(sm.params.tmpdir)
-
+    taxa_w_seqs = []
+    for tax in tqdm(taxa, desc="Extracting sequences for taxa"):
+        os.makedirs(f"{outdir}/{tax}", exist_ok=True)
+        dataf = taxdf.loc[taxdf[split_rank] == tax]
+        fasta = f"{outdir}/{tax}/asv_seqs.fasta.gz"
+        logging.info(f"Writing sequences to {fasta}")
+        filtered_ids = write_fasta(record_dict, fasta, list(dataf.index))
+        if len(filtered_ids) == 0:
+            continue
+        taxa_w_seqs.append(tax)
+        countsout = f"{outdir}/{tax}/asv_counts.tsv.gz"
+        totalcounts = f"{outdir}/{tax}/total_counts.tsv"
+        logging.info(
+            f"Extracting counts from {sm.input.counts[0]} and writing to {totalcounts} and {countsout}"
+        )
+        write_counts(
+            countsfile=sm.input.counts,
+            totalcounts=totalcounts,
+            countsout=countsout,
+            ids=filtered_ids,
+        )
 
 def collate(sm):
     cluster_num = 0
