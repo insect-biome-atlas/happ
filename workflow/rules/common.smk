@@ -70,8 +70,67 @@ checkpoint filter_seqs:
         "logs/filter_seqs/{rundir}/{chimera_run}/{chimdir}/{rank}.filter.log",
     params:
         split_rank=config["split_rank"],
-    script:
-        "../scripts/common.py"
+    shadow: "minimal"
+    run:
+        import pandas as pd
+        from Bio import SeqIO
+        import polars as pl
+        import logging
+        import subprocess
+        logging.basicConfig(
+            filename=log[0],
+            filemode="w",
+            level=logging.INFO,
+            format="%(asctime)s - %(message)s",
+        )
+        outdir=output[0]
+        tmpdir=os.environ.get("TMPDIR", "/tmp")
+        split_rank = params.split_rank
+        # open counts file lazily
+        counts = pl.scan_csv(input.counts, separator="\t")
+        # get name of first column
+        first_col = counts.columns[0]
+        # read taxonomy file
+        taxdf = pd.read_csv(input.tax, sep="\t", index_col=0)
+        # index the fasta file
+        records = SeqIO.index(input.fasta, "fasta")
+        # slice the taxonomy dataframe to only include the ASVs present in the fasta file
+        taxdf = taxdf.loc[records.keys()]
+        # get unique taxa to split by
+        taxa = list(taxdf[split_rank].unique())
+        n_taxa = len(taxa)
+        for i, tax in enumerate(taxa, start=1):
+            logging.info(f"Processing {tax} ({i}/{n_taxa})")
+            os.makedirs(f"{outdir}/{tax}", exist_ok=True)
+            taxtmpdir = f"{tmpdir}/filter_seqs/{wildcards.rundir}/{wildcards.chimera_run}/{wildcards.chimdir}/{wildcards.rank}/{tax}"
+            os.makedirs(taxtmpdir, exist_ok=True)
+            seqs_out = f"{taxtmpdir}/asv_seqs.fasta"
+            counts_out = f"{taxtmpdir}/asv_counts.tsv"
+            total_counts_out = f"{taxtmpdir}/total_counts.tsv"
+            # get asvs for this taxon
+            asvs = list(taxdf[taxdf[split_rank] == tax].index)
+            # write asvs to file
+            with open(f"{tax}.ids", "w") as f:
+                f.write("\n".join(asvs))
+            logging.info(f"Found {len(asvs)} ASVs for {tax}")
+            # get sequences matching asvs using seqkit
+            cmd = ["seqkit", "grep", "-f",f"{tax}.ids","-n", "--quiet", input.fasta]
+            seqkit_process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+            with open(seqs_out, "wb") as fhout:
+                pigz_process = subprocess.Popen(["pigz", "-c"], stdin=seqkit_process.stdout, stdout=fhout)
+                output, error = pigz_process.communicate()
+            os.rename(seqs_out, f"{outdir}/{tax}/asv_seqs.fasta.gz")
+            # filter the counts file and write
+            tax_counts = counts.filter(pl.col(first_col).is_in(asvs)).collect()
+            tax_counts.write_csv(counts_out, separator="\t")
+            subprocess.run(["pigz", counts_out])
+            os.rename(f"{counts_out}.gz", f"{outdir}/{tax}/asv_counts.tsv.gz")
+            # Write the total counts file
+            total_counts = tax_counts.with_columns(total=pl.sum_horizontal(pl.col("*").exclude(first_col))).select(first_col, "total")
+            total_counts.columns = ["Representative_Sequence", "total"]
+            total_counts.write_csv(total_counts_out, separator="\t")
+            os.rename(total_counts_out, f"{outdir}/{tax}/total_counts.tsv")
+
 
 ## VSEARCH ALIGNMENTS ##
 rule vsearch_align:
