@@ -65,6 +65,7 @@ taxonomy_source: "sintax"
 taxtools:
   - "sintax"
   - "vsearch"
+  - "epa-ng"
 sintax:
   ref: "resources/sintax/coidb.sintax.fasta"
   randseed: 15
@@ -93,6 +94,10 @@ qiime2:
     - "Genus"
     - "Species"
     - "BOLD_bin"
+epa-ng:
+  tree: "resources/epa-ng/epa-ng.tree"
+  tree_format: "newick"
+  heuristic: "dyn-heur"
 
 # The evaluation rank parameter specifies what taxonomic rank to use for evaluating
 # the clustering results. This rank should correspond to the taxonomic rank that
