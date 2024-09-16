@@ -4,7 +4,6 @@ localrules:
     qiime2_import_ref_seqs,
     qiime2_import_taxonomy,
     qiime2_export,
-    split_qiime_input,
     parse_qiime
 
 wildcard_constraints:
