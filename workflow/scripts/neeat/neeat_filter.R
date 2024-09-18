@@ -1,7 +1,5 @@
-source("../code/echo_filter.R")
-source("../code/evo_filter.R")
-source("../code/abundance_filter.R")
-
+sink(file = snakemake@log[[1]], append = FALSE, type = c("output", "message"),
+     split = FALSE)
 # NEEAT filter algorithm
 # Note that taxonomy needs to be a data frame
 # and not a data table for Step 5 code to work
@@ -32,6 +30,7 @@ neeat_filter <- function(counts,
     retained_clusters <- all_clusters
 
     # Step 1. The echo filter
+    cat("Running echo filter\n")
     if (grepl("echo",steps) && nrow(counts)>=2 && nrow(distlist)!=0) {
         res <- echo_filter(counts,
                            distlist,
@@ -52,7 +51,8 @@ neeat_filter <- function(counts,
         cat("Writing to file",file,"\n")
         cat(discarded_clusters,sep="\n",file=file,append=TRUE)
     }
-
+    
+    cat("Running evo_local filter\n")
     # Step 2. The evo_local filter
     if (grepl("evo_local",steps) && nrow(counts)>=2 && nrow(distlist)!=0) {
         res <- evo_filter(counts,
@@ -133,3 +133,47 @@ neeat_filter <- function(counts,
     list(retained_clusters=retained_clusters, discarded_clusters=discarded_clusters, filtered_counts=counts)
 }
 
+## SOURCE FUNCTIONS
+source(snakemake@params$echo_filter)
+source(snakemake@params$evo_filter)
+source(snakemake@params$abundance_filter)
+
+## WILDCARDS
+assignment_rank <- snakemake@wildcards$noise_rank
+
+## PARAMS
+min_match <- snakemake@params$min_match
+n_closest <- snakemake@params$n_closest
+echo_min_overlap <- snakemake@params$echo_min_overlap
+echo_read_ratio_type <- snakemake@params$echo_read_ratio_type
+echo_max_read_ratio <- snakemake@params$echo_max_read_ratio
+steps="echo|evo_local|evo_global|abundance|taxonomy",
+                         min_match=84,
+                         n_closest=10,
+                         echo_min_overlap=0.90,
+                         echo_read_ratio_type="mean",
+                         echo_max_read_ratio=0.1,
+                         echo_require_corr=FALSE,
+                         evo_local_min_overlap=0.95,
+                         dist_type_local="dadn",
+                         dist_threshold_local=1.8,
+                         dist_threshold_global=4.0,
+                         abundance_cutoff_type="sum",
+                         abundance_cutoff=4,
+                         assignment_taxonomy=taxonomy,
+                         assignment_rank="Order",
+                         debug=FALSE,
+                         dump_prefix=""
+
+## INPUT
+counts_file <- snakemake@input$counts
+dist_file <- snakemake@input$distlist
+taxonomy_file <- snakemake@input$taxonomy
+
+counts <- read.delim(counts_file, sep="\t")
+distlist <- read.delim(dist_file, sep="\t")
+taxonomy <- read.delim(taxonomy_file, sep="\t")
+results <- neeat_filter(counts=counts,
+                        distlist=distlist,
+                        taxonomy=taxonomy,)
+sink()
