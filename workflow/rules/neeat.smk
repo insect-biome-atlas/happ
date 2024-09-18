@@ -122,6 +122,7 @@ rule generate_datasets:
         split_rank = config["noise_filtering"]["split_rank"]
     conda:
         "../envs/r-env.yml"
+    threads: 1
     script:
         "../scripts/neeat/generate_datasets.R"
 
