@@ -40,7 +40,7 @@ include: "rules/sintax.smk"
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
 include: "rules/opticlust.smk"
-include: "rules/noise_filter.smk"
+include: "rules/neeat.smk"
 
 localrules:
     all,
