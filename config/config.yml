@@ -26,6 +26,37 @@ ranks:
   - "Genus"
   - "Species"
   - "BOLD_bin"
+# codon_table specifies the genetic code to use for codon filtering. The default is 5
+codon_table: 5
+# codon_start specifies the position in the ASV sequence where to start checking for stop codons. The default is 1.
+codon_start: 1
+
+# The metadata section below specifies properties of the metadata file that can
+# be used for to extract samples for calibrating counts and for removing
+# ASVs that are present in a certain fraction of 'blank' samples.
+# If your dataset contains spike-ins, the metadata file should contain a column
+# named 'spikein_sample' with values True or False (alternatively 1 or 0).
+metadata:
+  # specify path to a tab-separated metadata file
+  metadata_file: ""
+
+  # name of column in metadata file that contains sample ids
+  sample_id_col: ""
+
+  # sample_type_col is the name of the column in the metadata file that specifies the
+  # sample type.
+  sample_type_col: ""
+
+  # sample_val is a list of values in the sample_type_col that correspond to samples
+  sample_val: []
+
+  # blank_val is a list of values in the sample_type_col that correspond to blank samples
+  blank_val: []
+
+  # split_col is the column in the metadata file that specifies what samples
+  # belong to the same dataset. This is used to split the samples by dataset for counting
+  # occurence in blanks.
+  split_col: ""
 
 ####################################
 ##### PREPROCESSING PARAMETERS #####
@@ -41,26 +72,18 @@ preprocessing:
   # Specific stop codons to look for. Specify multiple codons with in a comma separated list like: "TAA,TAG". By default TAA and TAG are being looked for.
   stop_codons: "TAA,TAG"
   # Specific position of the ASV where to start checking for codons.
-  start_position: 2
+  start_position: 1
   # Specific position of the ASV where to stop checking for codons. By default it checks until the end of the sequence
   end_position: 0
-
-###############################
-##### CLUSTER EXECUTION #######
-###############################
-# default_partition sets the name of the SLURM partition to use as a default
-default_partition: "shared"
-# long_partition sets the name of the SLURM partition to use for long-running jobs
-long_partition: "long"
 
 ###############################
 ##### TAXONOMY PARAMETERS #####
 ###############################
 # The taxonomy_source parameter specifies what taxonomy source to use for the
 # clustering. This is the primary source of taxonomy information and is used to
-# to partition the ASVs into smaller fasta files based on the split_rank parameter.
-# If you already have a tab-separated file with taxonomic assignments, place this under
-# data/<rundir>/asv_taxa.tsv.
+# to partition the ASVs into smaller fasta files based on the split_rank
+# parameter. If you already have a tab-separated file with taxonomic
+ # assignments, set taxonomy_source to the path of that file.
 taxonomy_source: "sintax"
 taxtools:
   - "sintax"
@@ -98,7 +121,6 @@ epa-ng:
   tree: "resources/epa-ng/epa-ng.tree"
   tree_format: "newick"
   heuristic: "dyn-heur"
-
 # The evaluation rank parameter specifies what taxonomic rank to use for evaluating
 # the clustering results. This rank should correspond to the taxonomic rank that
 # you expect the clustering to represent, e.g. if you expect the clustering to
@@ -261,55 +283,54 @@ noise_filtering:
   # run_name sets the name of the run for the noise filtering step
   run_name: "noise1"
 
-  # threshold
-  threshold: 1.2
+  # split_rank sets the taxonomic rank to split the ASVs by before running the
+  # noise filtering.
+  split_rank: "Order"
 
-  # max_singleton_reads
-  max_singleton_reads: 20
+  # assignment_rank sets the taxonomic rank to use for the noise filtering.
+  # ASVs unassigned or ambiguously assigned at this rank are considered noise and will be removed.
+  assignment_rank: "Order"
 
-  # max_singletons
-  max_singletons: 1
+  # maximum number of target sequences to return for aligner
+  max_target_seqs: 10
 
-  # in NOISE filtering, n_closest defines how many potential closely related
-  # parent clusters to use in the comparison when identifying noise. Setting
-  # this to a higher value increases the chances to identify noisy sequences but
-  # results in longer runtimes.
-  n_closest: 5
+  # min_match is the minimum threshold of sequence similarity for considering any
+  # OTU as an error of another
+  min_match: 84
 
-  # as part of noise filtering, abundance_threshold sets the minimum total reads
-  # that a cluster has to have (summed across all samples) to not be flagged
-  # for removal
-  abundance_threshold: 3
+  # n_closest is the number of potential parent clusters to use in the comparison
+  # when identifying noise
+  n_closest: 10
 
-  # non_noise_ASVs is a list of ASV ids that are known to be non-noise. These are
-  # used to evaluate the noise filtering.
-  non_noise_ASVs: ""
+  # echo_min_overlap
+  echo_min_overlap: 0.9
 
-  # spikein_file is a tab-separated file with taxonomic information for
-  # biological spike ins. This file should have either species labels or
-  # BOLD_bin ids The file should have either 'Species' or 'BOLD_bin' columns.
-  # Multiple BOLD_bins can be given on the same row and should then be quoted
-  # and separated by a ';'. Below is an example. 
-  # Species           BOLD_bin
-  # Orius majusculus  BOLD:ABA5781 
-  # Aphidius colemani "BOLD:AAC7809; BOLD:AAI4338"
-  spikein_file: ""
-  
-  # spikein_method determines how clusters corresponding to biological spike ins
-  # are identified. This setting can be either 'BOLD_bin' or 'Species' which
-  # means that clusters will be identified either using the BOLD_bin or Species
-  # values in the spike in file, respectively.
-  spikein_method: "BOLD_bin"
+  # echo_read_ratio_type max/mean
+  echo_read_ratio_type: mean
 
-  # specify which orders (if any) are known to contain a large number of clusters
-  # if any order has > 10 k clusters then add them to this list
-  # this will increase the resources (threads) requested when running noise filtering
-  large_orders: ["Diptera"]
-  
-  # filter_unclassified_rank sets a taxonomic rank to used for filtering ASV clusters without a taxonomic assignments.
-  # For example, when this parameter is set to "Order", all ASV clusters that are unclassified at the Order level will be considered noise.
-  # These clusters are not evaluated in the main noise filtering algorithm but are likely to be noise due to the lack of taxonomic information.
-  filter_unclassified_rank: "Order"
+  # echo_max_read_ratio
+  echo_max_read_ratio: 0.1
+
+  # echo_require_corr
+  echo_require_corr: False
+
+  # evo_local_min_overlap
+  evo_local_min_overlap: 0.95
+
+  # dist_type_local wdadn/dadn
+  dist_type_local: dadn
+
+  # dist_threshold_local
+  dist_threshold_local: 1.8
+
+  # dist_threshold_global
+  dist_threshold_global: 4.0
+
+  # abundance_cutoff_type sum/max
+  abundance_cutoff_type: sum
+
+  # abundance_cutoff
+  abundance_cutoff: 4
 
 lulu:
   run_name: lulu1
@@ -364,25 +385,7 @@ lulu:
 # as long as they are distinct from the other sample types. The
 
 cleaning:
-  # specify path to a tab-separated metadata file (see above)
-  metadata_file: ""
-
-  # name of column in metadata file that contains sample ids
-  sample_id_col: ""
-
-  # sample_type_col is the name of the column in the metadata file that specifies the
-  # sample type
-  sample_type_col: ""
-
-  # blank_val is a list of values in the sample_type_col that correspond to blank samples
-  blank_val: []
-
   # max_blank_occurrence is the maximum percentage of blanks that an ASV can be present
   # in before it is removed from the dataset. Note that if a cluster contains at least one ASV
   # that is present in more than max_blank_occurrence, the entire cluster is removed.
   max_blank_occurrence: 5
-
-  # split_col is the column in the metadata file that specifies what samples
-  # belong to the same dataset. This is used to split the samples by dataset for counting
-  # occurence in blanks.
-  split_col: ""
