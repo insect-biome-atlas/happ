@@ -1,9 +1,6 @@
 localrules:
-    generate_counts_files,
     generate_taxa_seqs,
     generate_aa_seqs,
-    generate_datasets,
-    generate_evodistlists
 
 rule generate_counts_files:
     """
@@ -41,6 +38,8 @@ checkpoint generate_taxa_seqs:
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
     shadow: "minimal"
+    params:
+        assignment_rank=(config["noise_filtering"]["assignment_rank"]).lower()
     run:
         import subprocess
         import pandas as pd
@@ -51,8 +50,9 @@ checkpoint generate_taxa_seqs:
         rank = (wildcards.noise_rank).lower()
         taxdf = pd.read_csv(input.taxonomy, sep="\t", index_col=0)
         taxdf.rename(columns = lambda x: x.lower(), inplace=True)
-        # remove unclassified and ambiguous taxa
-        taxdf = taxdf.loc[(~taxdf[rank].str.contains("_X+$"))&(~taxdf[rank].str.startswith("unclassified"))]
+        # remove unclassified and ambiguous taxa if noise_rank == assignment_rank
+        if rank == assignment_rank:
+            taxdf = taxdf.loc[(~taxdf[rank].str.contains("_X+$"))&(~taxdf[rank].str.startswith("unclassified"))]
         # extract representative ASVs
         taxdf = taxdf.loc[taxdf["representative"]==1]
         # taxa is the unique set of values for split_rank
@@ -188,10 +188,10 @@ rule pal2nal:
 
 rule generate_evodistlists:
     """
-    generates order-level evolutionary distance files for the evo_filter function of neeat
+    generates evolutionary distance files for the evo_filter function of neeat
     """
     output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/evodist/{tax}_evodistlist.tsv"
+        tsv="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/evodist/{tax}_evodistlist.tsv"
     input:
         matchlist=rules.matchlist_vsearch.output[0],
         taxonomy=rules.generate_datasets.output.taxonomy,
@@ -206,12 +206,45 @@ rule generate_evodistlists:
     script:
         "../scripts/neeat/generate_evo_dists.R"
 
-def aggregate_evodistlists(wildcards):
+rule generate_neeat_filtered:
+    output:
+        retained="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_retained.tsv",
+        discarded="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_discarded.tsv",
+        counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_counts.tsv",
+    input:
+        counts=rules.generate_datasets.output.counts,
+        distlist=rules.generate_evodistlists.output[0],
+        taxonomy=rules.generate_datasets.output.taxonomy,
+    log:
+        "logs/neeat_filter/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
+    params:
+        echo_filter=workflow.source_path("../scripts/neeat/echo_filter.R"),
+        evo_filter=workflow.source_path("../scripts/neeat/evo_filter.R"),
+        abundance_filter=workflow.source_path("../scripts/neeat/abundance_filter.R"),
+        min_match=config["noise_filtering"]["min_match"],
+        n_closest=config["noise_filtering"]["n_closest"],
+        echo_min_overlap=config["noise_filtering"]["echo_min_overlap"],
+        echo_read_ratio_type=config["noise_filtering"]["echo_read_ratio_type"],
+        echo_max_read_ratio=config["noise_filtering"]["echo_max_read_ratio"],
+        echo_require_corr=config["noise_filtering"]["echo_require_corr"],
+        evo_local_min_overlap=config["noise_filtering"]["evo_local_min_overlap"],
+        dist_type_local=config["noise_filtering"]["dist_type_local"],
+        dist_threshold_local=config["noise_filtering"]["dist_threshold_local"],
+        dist_threshold_global=config["noise_filtering"]["dist_threshold_global"],
+        abundance_cutoff_type=config["noise_filtering"]["abundance_cutoff_type"],
+        abundance_cutoff=config["noise_filtering"]["abundance_cutoff"],
+        assignment_rank=config["noise_filtering"]["assignment_rank"]
+    conda:
+        "../envs/r-env.yml"
+    script:
+        "../scripts/neeat/generate_neeat_filtered.R"
+    
+def aggregate_neeat(wildcards):
     """
     Aggregate the evodistlists for all taxa
     """
     checkpoint_dir = checkpoints.generate_taxa_seqs.get(**wildcards).output[0]
-    files = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/evodist/{tax}_evodistlist.tsv",
+    files = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_retained.tsv",
         tool=wildcards.tool,
         rundir=wildcards.rundir,
         chimera_run=wildcards.chimera_run,
@@ -223,27 +256,8 @@ def aggregate_evodistlists(wildcards):
         )
     return files
 
-rule evodist:
+rule neeat:
     output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/evodistlist.tsv"
+        touch("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/done")
     input:
-        aggregate_evodistlists
-    shell:
-        """
-        cat {input} > {output}
-        """
-
-rule neeat_filter:
-    output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_filtered.tsv"
-    input:
-        counts=rules.generate_datasets.output.counts,
-        distlist=rules.generate_evodistlists.output[0],
-        taxonomy=rules.generate_datasets.output.taxonomy,
-    log:
-        "logs/neeat_filter/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
-    params:
-        echo_filter=workflow.source_path("../scripts/neeat/echo_filter.R"),
-        evo_filter=workflow.source_path("../scripts/neeat/evo_filter.R"),
-        abundance_filter=workflow.source_path("../scripts/neeat/abundance_filter.R"),
-    
+        aggregate_neeat
