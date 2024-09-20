@@ -1,6 +1,8 @@
 sink(file = snakemake@log[[1]], append = FALSE, type = c("output", "message"),
      split = FALSE)
+
 # Script for computing evolutionary distance lists (including pdist)
+
 library(seqinr)
 source(snakemake@params$codon_model)
 
@@ -13,9 +15,15 @@ matchlist <- read.delim(matchlist_file,header=FALSE)
 
 T <- read.delim(taxonomy_file)
 T <- T[T$representative==1,]
+rownames(T) <- T$cluster
 
 tax_asvs <- T$ASV
 seqs <- read.alignment(fasta_file,format="fasta")
+
+# map from cluster name to ASV name
+matchlist$V1 <- T[matchlist$V1,"ASV"]
+matchlist$V2 <- T[matchlist$V2,"ASV"]
+
 evodistlist <- matchlist[(matchlist$V1 %in% seqs$nam) & (matchlist$V2 %in% seqs$nam),]
 colnames(evodistlist) <- c("asv1","asv2","idty")
 evodistlist$pdist <- 1.0 - (evodistlist$idty / 100.0)
@@ -29,7 +37,7 @@ if (nrow(evodistlist>0)) {
             cat("-")
         s1_name <- evodistlist$asv1[i]
         s2_name <- evodistlist$asv2[i]
-        if ((s1_name %in% ord_asvs) && (s2_name %in% ord_asvs)) {
+        if ((s1_name %in% tax_asvs) && (s2_name %in% tax_asvs)) {
             seq1 <- seqs$seq[[which(seqs$nam==s1_name)]]
             seq2 <- seqs$seq[[which(seqs$nam==s2_name)]]
             evodistlist$dadn[i] <- dadn_dist(seq1, seq2)
@@ -39,6 +47,6 @@ if (nrow(evodistlist>0)) {
     cat("|\n")
 }
 
-write.table(evodistlist, snakemake@output, row.names=FALSE, sep="\t")
+write.table(evodistlist, snakemake@output$tsv, row.names=FALSE, sep="\t")
 
 sink()
