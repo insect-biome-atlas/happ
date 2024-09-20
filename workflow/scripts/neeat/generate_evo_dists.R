@@ -11,6 +11,13 @@ taxonomy_file <- snakemake@input$taxonomy
 fasta_file <- snakemake@input$fasta
 tax <- snakemake@wildcards$tax
 
+# Check lines in matchlist
+matchlist_lines <- length(readLines(matchlist_file, n=1))
+if (matchlist_lines == 0) {
+     cat("Insufficient data (no pairwise matches)\n")
+     file.create(snakemake@output$tsv)
+     quit(save="no", status=0)
+}
 matchlist <- read.delim(matchlist_file,header=FALSE)
 
 T <- read.delim(taxonomy_file)

@@ -31,7 +31,12 @@ taxonomy_file <- snakemake@input$taxonomy
 counts <- read.delim(counts_file, sep="\t")
 rownames(counts) <- counts[, 1]
 counts <- counts[, 2:ncol(counts)]
-distlist <- read.delim(dist_file, sep="\t")
+distlist_lines <- length(readLines(dist_file, n=1))
+if (distlist_lines == 0) {
+     distlist <- data.frame()
+} else {
+     distlist <- read.delim(dist_file, sep="\t")
+}
 taxonomy <- read.delim(taxonomy_file, sep="\t")
 results <- neeat_filter(
      counts=counts,
