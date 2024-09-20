@@ -5,6 +5,64 @@ description: snakemake configuration file
 type: object
 
 properties:
+  # INPUT PARAMETERS
+  rundir:
+    type: string
+    description: "name of input directories, each should contain a 'asv_counts.tsv', a 'asv_seqs.fasta' file and a 'asv_taxa.tsv' file"
+    default: "test"
+  run_name:
+    type: string
+    description: "Specify a name of the run. Using different run_name you can run clustering with different parameters using the same vsearch output"
+    default: "run1"
+  split_rank:
+    type: string
+    description: "rank at which to split input file prior to clustering"
+    default: "Family"
+    enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+  ranks:
+    type: array
+    description: "ranks included in the asv_taxa.tsv taxonomy file"
+    default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+    items:
+      type: string
+  codon_table:
+    type: integer
+    description: "codon table to use for translation"
+    default: 5
+    enum: [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]
+  codon_start:
+    type: integer
+    description: "reading frame start (1 based)"
+    default: 1
+    enum: [1, 2, 3]
+  metadata:
+    type: object
+    default:
+      metadata_file: ""
+      sample_id_col: ""
+      sample_type_col: ""
+      sample_val: []
+      blank_val: []
+      split_col: ""
+    properties:
+      metadata_file:
+        type: string
+        description: "path to metadata file"
+      sample_id_col:
+        type: string
+        description: "name of the column in the metadata file that contains the sample ids"
+      sample_type_col: 
+        type: string
+        description: "column in metadata file that contains the sample type"
+      split_col:
+        type: string
+        description: "split_col is the column in the metadata file that specifies what samples belong to the same dataset. This is used to split the samples by dataset for counting occurence in blanks."
+        default: "dataset"
+      blank_val:
+        type: array
+        description: "blank_val is the value in the split_col that specifies a blank sample"
+        default: ["buffer_blank", "extraction_neg", "pcr_neg"]
+  ### PREPROCESSING PARAMETERS
   taxonomy_source:
     type: string
     description: "source of taxonomic information"
@@ -57,7 +115,7 @@ properties:
       max_length: 418
       filter_codons: True
       stop_codons: "TAA,TAG"
-      start_position: 2
+      start_position: 1
       end_position: 0
     properties:
       filter_length:
@@ -82,39 +140,13 @@ properties:
         description: Comma-separated list of stop codons
       start_position:
         type: integer
-        default: 2
+        default: 1
         description: Reading frame start (1 based)
       end_position:
         type: integer
         default: 0
         description: Reading frame end (1 based), set to 0 to ignore
-  default_partition:
-    type: string
-    description: "default partition to use for slurm jobs"
-    default: "shared"
-  long_partition:
-    type: string
-    description: "long partition to use for slurm jobs"
-    default: "long"
-  run_name:
-    type: string
-    description: "Specify a name of the run. Using different run_name you can run clustering with different parameters using the same vsearch output"
-    default: "run1"
-  rundir:
-    type: string
-    description: "name of input directories, each should contain a 'asv_counts.tsv', a 'asv_seqs.fasta' file and a 'asv_taxa.tsv' file"
-    default: "test"
-  split_rank:
-    type: string
-    description: "rank at which to split input file prior to clustering"
-    default: "Family"
-    enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
-  ranks:
-    type: array
-    description: "ranks included in the asv_taxa.tsv taxonomy file"
-    default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
-    items:
-      type: string
+  ## TAXONOMY PARAMETERS
   consensus_ranks:
     type: array
     description: "ranks to use for calculating consensus taxonomy for clusters"
@@ -143,27 +175,6 @@ properties:
     type: boolean
     description: "whether to run postprocessing steps"
     default: False
-  metadata_file:
-    type: string
-    description: "path to metadata file"
-  sample_id_col:
-    type: string
-    description: "name of the column in the metadata file that contains the sample ids"
-  sample_type_col: 
-    type: string
-    description: "column in metadata file that contains the sample type"
-  split_col:
-    type: string
-    description: "split_col is the column in the metadata file that specifies what samples belong to the same dataset. This is used to split the samples by dataset for counting occurence in blanks."
-    default: "dataset"
-  blank_val:
-    type: array
-    description: "blank_val is the value in the split_col that specifies a blank sample"
-    default: ["buffer_blank", "extraction_neg", "pcr_neg"]
-  max_blank_occurrence:
-    type: integer
-    description: "max_blank_occurrence is the maximum number of times an ASV can occur in a blank sample"
-    default: 5
   swarm:
     type: object
     default:
@@ -387,47 +398,85 @@ properties:
   noise_filtering:
     type: object
     default:
-      run_name: "noise1"
-      threshold: 1.2
-      max_singleton_reads: 20
-      max_singletons: 1
-      n_closest: 5
-      abundance_threshold: 3
-      non_noise_ASVs: ""
-      spikein_file: ""
-      spikein_method: "BOLD_bin"
-      large_orders: []
-      filter_unclassified_rank: "Order"
+      split_rank: "Order"
+      assignment_rank: "Order"
+      max_target_seqs: 10
+      min_match: 84
+      n_closest: 10
+      echo_min_overlap: 0.9
+      echo_read_ratio_type: "mean"
+      echo_max_read_ratio: 0.1
+      echo_require_corr: False
+      evo_local_min_overlap: 0.95
+      dist_type_local: "dadn"
+      dist_threshold_local: 1.8
+      dist_threshold_global: 4.0
+      abundance_cutoff_type: "sum"
+      abundance_cutoff: 4
     properties:
+      split_rank:
+        type: string
+        description: "rank at which to split input file prior to noise_filtering"
+        default: "Order"
+      assignment_rank:
+        type: string
+        description: "treat clusters as noise if they are unassigned at this rank"
+        default: "Order"
+      max_target_seqs:
+        type: integer
+        description: "Maximum number of target sequences to return from aligner"
+        default: 10
       n_closest:
         type: integer
         description: "Maximum number of closest sequences to compare to when filtering noise"
-        default: 5
-      abundance_threshold:
+        default: 10
+      min_match:
         type: integer
-        description: "Minimum abundance threshold for filtering noise"
-        default: 3
-      non_noise_ASVs:
+        description: "minimum threshold of sequence similarity for considering any OTU as an error of another can be set"
+        default: 84
+      echo_min_overlap:
+        type: number
+        description: ""
+        default: 0.9
+      echo_read_ratio_type:
         type: string
-        description: "Path to a file containing ASVs that are known to be non-noise"
-        default: ""
-      spikein_file: 
+        description: ""
+        default: "mean"
+        enum: ["max", "mean"]
+      echo_max_read_ratio:
+        type: number
+        description: ""
+        default: 0.1
+      echo_require_corr:
+        type: boolean
+        description: ""
+        default: False
+      evo_local_min_overlap:
+        type: number
+        description: ""
+        default: 0.95
+      dist_type_local:
         type: string
-        description: "Path to a tab-separated file containing taxonomic information for biological spike-ins"
-        default: ""
-      spikein_method:
+        description: ""
+        default: "dadn"
+        enum: ["dadn", "wdadn"]
+      dist_threshold_local:
+        type: number
+        description: ""
+        default: 1.8
+      dist_threshold_global:
+        type: number
+        description: ""
+        default: 4.0
+      abundance_cutoff_type:
         type: string
-        description: "Method to identify spike-in clusters"
-        default: "BOLD_bin"
-        enum: ["BOLD_bin", "species"]
-      large_orders:
-        type: array
-        description: "List of orders known to contain a large number of clusters"
-        default: []
-      filter_unclassified_rank:
-        type: string
-        description: "Remove ASVs that are unclassified at this rank (begin with unclassified) prior to chimera filtering and clustering"
-        default: "Order"
+        description: ""
+        default: "sum"
+        enum: ["sum", "max"]
+      abundance_cutoff:
+        type: number
+        description: ""
+        default: 4
   chimera:
     type: object
     default:
