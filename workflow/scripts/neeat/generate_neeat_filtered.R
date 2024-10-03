@@ -38,7 +38,8 @@ if (distlist_lines == 0) {
 } else {
      distlist <- read.delim(dist_file, sep="\t", header=TRUE)
 }
-taxonomy <- read.delim(taxonomy_file, sep="\t")
+taxonomy <- read.delim(taxonomy_file, sep="\t", header=TRUE, row.names=1)
+taxonomy$ASV <- rownames(taxonomy)
 results <- neeat_filter(
      counts=counts,
      distlist=distlist,
@@ -59,7 +60,6 @@ results <- neeat_filter(
      )
 
 # output retained taxonomy df
-rownames(taxonomy) <- taxonomy$ASV
 taxonomy_retained <- taxonomy[results$retained_clusters,]
 write.table(taxonomy_retained, snakemake@output$retained, sep="\t", row.names=FALSE, quote=FALSE)
 
