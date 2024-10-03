@@ -302,34 +302,55 @@ noise_filtering:
   # when identifying noise
   n_closest: 10
 
-  # echo_min_overlap
+  # echo_min_overlap (numeric on the interval (0,1)): In the echo filter, the minimum fraction of
+  # the putative “noise” OTU samples that must also contain the putative
+  # authentic CO1 “parent” OTU
   echo_min_overlap: 0.9
 
-  # echo_read_ratio_type max/mean
+  # echo_read_ratio_type (“max”/“mean”): In the echo filter, the type of read
+  # ratio considered by the echo_max_read_ratio criterion: “max” = maximum ratio
+  # between noise and parent reads across the samples where they co-occur;
+  # “mean” = mean ratio between noise and parent reads across the sample where
+  # they co-occur.
   echo_read_ratio_type: mean
 
-  # echo_max_read_ratio
+  # echo_max_read_ratio (numeric, positive real): In the echo filter, the
+  # maximum value of the ratio between noise and parent reads
   echo_max_read_ratio: 0.1
 
-  # echo_require_corr
+  # echo_require_corr (TRUE/FALSE): In the echo filter, should a significant
+  # correlation between noise and parent read numbers be required before the
+  # putative OTU is removed? The significance is evaluated using a linear model,
+  # requiring that the regression coefficient is smaller than
+  # echo_max_read_ratio, and the p-value <=0.05.
   echo_require_corr: False
 
-  # evo_local_min_overlap
+  # evo_local_min_overlap (numeric on the interval (0.1)): In the local evo
+  # filter, minimum fraction of the putative “noise” OTU samples that must also
+  # contain the putative authentic CO1 “parent” OTU.
   evo_local_min_overlap: 0.95
 
-  # dist_type_local wdadn/dadn
+  # dist_type_local (“dadn”/“wdadn”): In the local evo filter, should distances
+  # between representative ASVs be based on unweighted amino acid distances
+  # (“dadn”) or amino acid distances weighted based on biochemical similarities
+  # (“wdadn”)?
   dist_type_local: dadn
 
-  # dist_threshold_local
+  # dist_threshold_local (numeric, positive real): In the local evo filter, the
+  # distance value above which an OTU is considered to represent noise.
   dist_threshold_local: 1.8
 
-  # dist_threshold_global
+  # dist_threshold_global (numeric, positive real): In the global evo filter,
+  # the distance value above which an OTU is considered to represent noise.
   dist_threshold_global: 4.0
 
-  # abundance_cutoff_type sum/max
+  # abundance_cutoff_type (“sum”/“max”): Should the abundance cutoff be based on
+  # the sum of reads across samples in the dataset (“sum”), or the max number of
+  # reads (“max”)?
   abundance_cutoff_type: sum
 
-  # abundance_cutoff
+  # abundance_cutoff (numeric, positive integer): The minimum number of reads
+  # required for an OTU to pass the abundance filter
   abundance_cutoff: 4
 
 lulu:

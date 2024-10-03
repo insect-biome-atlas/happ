@@ -436,46 +436,50 @@ properties:
         default: 84
       echo_min_overlap:
         type: number
-        description: ""
+        description: "In the echo filter, the minimum fraction of the putative “noise” OTU samples that must also contain the putative authentic CO1 “parent” OTU"
         default: 0.9
+        minimum: 0.0
+        maximum: 1.0
       echo_read_ratio_type:
         type: string
-        description: ""
+        description: "In the echo filter, the type of read ratio considered by the echo_max_read_ratio criterion: “max” = maximum ratio between noise and parent reads across the samples where they co-occur; “mean” = mean ratio between noise and parent reads across the sample where they co-occur."
         default: "mean"
         enum: ["max", "mean"]
       echo_max_read_ratio:
         type: number
-        description: ""
+        description: "In the echo filter, the maximum value of the ratio between noise and parent reads"
         default: 0.1
       echo_require_corr:
         type: boolean
-        description: ""
+        description: "In the echo filter, should a significant correlation between noise and parent read numbers be required before the putative OTU is removed? The significance is evaluated using a linear model, requiring that the regression coefficient is smaller than echo_max_read_ratio, and the p-value <=0.05."
         default: False
       evo_local_min_overlap:
         type: number
-        description: ""
+        description: "In the local evo filter, minimum fraction of the putative “noise” OTU samples that must also contain the putative authentic CO1 “parent” OTU."
         default: 0.95
+        minimum: 0.0
+        maximum: 1.0
       dist_type_local:
         type: string
-        description: ""
+        description: "In the local evo filter, should distances between representative ASVs be based on unweighted amino acid distances (“dadn”) or amino acid distances weighted based on biochemical similarities (“wdadn”)?"
         default: "dadn"
         enum: ["dadn", "wdadn"]
       dist_threshold_local:
         type: number
-        description: ""
+        description: "In the local evo filter, the distance value above which an OTU is considered to represent noise."
         default: 1.8
       dist_threshold_global:
         type: number
-        description: ""
+        description: "In the gloval evo filter, the distance value above which an OTU is considered to represent noise."
         default: 4.0
       abundance_cutoff_type:
         type: string
-        description: ""
+        description: "Should the abundance cutoff be based on the sum of reads across samples in the dataset (“sum”), or the max number of reads (“max”)?"
         default: "sum"
         enum: ["sum", "max"]
       abundance_cutoff:
         type: number
-        description: ""
+        description: "The minimum number of reads required for an OTU to pass the abundance filter"
         default: 4
   chimera:
     type: object
