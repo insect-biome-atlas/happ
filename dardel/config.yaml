@@ -29,7 +29,8 @@ set-resources:
     runtime: 30
     mem_mb: 24000
   pal2nal:
-    runtime: 30
+    runtime: 1440
+    mem_mb: 96000
   run_opticlust:
     mem_mb: 60000
   split_counts_samplewise:
@@ -45,13 +46,17 @@ set-resources:
     runtime: 120
   evaluate_order_lulu:
     runtime: 4320
+  generate_counts_files:
+    runtime: 240
+    mem_mb: 60000
   generate_datasets:
     runtime: 60
-    mem_mb: 8800
+    mem_mb: 64000
   generate_evodistlists:
-    runtime: 60
+    runtime: 1440
   generate_neeat_filtered:
-    runtime: 120
+    runtime: 180
+    mem_mb: 4000
 
 set-threads:
   vsearch_align: 1
@@ -64,8 +69,10 @@ set-threads:
   chimera_samplewise: 40
   id_spikeins: 10
   lulu_matchlist_vsearch: 40
+  matchlist_vsearch: 40
   lulu_matchlist_blastn: 40
   generate_datasets: 10
+  generate_neeat_filtered: 5
 
 # The settings below define command line flags for snakemake
 keep-going: True
