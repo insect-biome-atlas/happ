@@ -1,6 +1,29 @@
 localrules:
     generate_taxa_seqs,
+    taxonomy_filter,
     generate_aa_seqs,
+
+rule taxonomy_filter:
+    output:
+        taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/taxonomy_filter/{assignment_rank}/cluster_taxonomy.tsv",
+    input:
+        taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
+    log:
+        "logs/taxonomy_filter/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{assignment_rank}.log"
+    run:
+        import pandas as pd
+        assignment_rank = wildcards.assignment_rank
+        taxdf = pd.read_csv(input.taxonomy, sep="\t", index_col=0)
+        taxdf = taxdf.loc[(~taxdf[assignment_rank].str.contains("_X+$"))&(~taxdf[assignment_rank].str.startswith("unclassified"))]
+        taxdf.to_csv(output.taxonomy, sep="\t")
+
+def get_taxonomy(wildcards):
+    if config["noise_filtering"]["assignment_rank"] == "":
+        return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
+            tool=wildcards.tool, rundir=wildcards.rundir, chimera_run=wildcards.chimera_run, chimdir=wildcards.chimdir, rank=wildcards.rank, run_name=wildcards.run_name)
+    else:
+        return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/taxonomy_filter/{assignment_rank}/cluster_taxonomy.tsv",
+            tool=wildcards.tool, rundir=wildcards.rundir, chimera_run=wildcards.chimera_run, chimdir=wildcards.chimdir, rank=wildcards.rank, run_name=wildcards.run_name, assignment_rank=config["noise_filtering"]["assignment_rank"])
 
 rule generate_counts_files:
     """
@@ -8,12 +31,12 @@ rule generate_counts_files:
     """
     output:
         cluster_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/cluster_counts.tsv",
-        calibrated_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/calibrated_cluster_counts.tsv",
-        tot_proportional_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/tot_proportional_cluster_counts.tsv.tsv",
-        sample_proportional_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/sample_proportional_cluster_counts.tsv",
+        #calibrated_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/calibrated_cluster_counts.tsv",
+        #tot_proportional_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/tot_proportional_cluster_counts.tsv",
+        #sample_proportional_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/sample_proportional_cluster_counts.tsv",
     input:
         counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_counts.tsv",
-        taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
+        taxonomy=get_taxonomy,
     log:
         "logs/generate_counts_files/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}.log"
     params:
@@ -35,26 +58,28 @@ checkpoint generate_taxa_seqs:
     output:
         directory("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/fasta"),
     input:
-        taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
+        taxonomy=get_taxonomy,
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
+        counts=rules.generate_counts_files.output.cluster_counts
+    log:
+        "logs/generate_taxa_seqs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}.log"
     shadow: "minimal"
-    params:
-        assignment_rank=(config["noise_filtering"]["assignment_rank"]).lower()
     run:
         import subprocess
         import pandas as pd
+        rank = wildcards.noise_rank
         outdir=output[0]
         os.makedirs(outdir, exist_ok=True)
         # read in the taxonomy file
-        # translate rank and columns to lowercase
-        rank = (wildcards.noise_rank).lower()
-        taxdf = pd.read_csv(input.taxonomy, sep="\t", index_col=0)
-        taxdf.rename(columns = lambda x: x.lower(), inplace=True)
-        # remove unclassified and ambiguous taxa if noise_rank == assignment_rank
-        if rank == assignment_rank:
-            taxdf = taxdf.loc[(~taxdf[rank].str.contains("_X+$"))&(~taxdf[rank].str.startswith("unclassified"))]
+        taxdf = pd.read_csv(input.taxonomy[0], sep="\t", index_col=0)
         # extract representative ASVs
         taxdf = taxdf.loc[taxdf["representative"]==1]
+        # also make sure that only clusters that remain in the counts file are used
+        clusters_w_counts = []
+        with open(input.counts, 'r') as fhin:
+            for line in fhin:
+                clusters_w_counts.append(line.split("\t")[0])
+        taxdf = taxdf.loc[taxdf["cluster"].isin(clusters_w_counts)]
         # taxa is the unique set of values for split_rank
         taxa = taxdf[rank].unique()
         # iterate over taxa
@@ -107,15 +132,15 @@ rule generate_datasets:
     output:
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_taxonomy.tsv",
         counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_counts.tsv",
-        cal_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_cal_counts.tsv",
-        tot_prop_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_tot_prop_counts.tsv",
-        sample_prop_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_sample_prop_counts.tsv",
+        #cal_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_cal_counts.tsv",
+        #tot_prop_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_tot_prop_counts.tsv",
+        #sample_prop_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_sample_prop_counts.tsv",
     input:
         counts=rules.generate_counts_files.output.cluster_counts,
-        cal_counts=rules.generate_counts_files.output.calibrated_counts,
-        tot_prop_counts=rules.generate_counts_files.output.tot_proportional_counts,
-        sample_prop_counts=rules.generate_counts_files.output.sample_proportional_counts,
-        taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
+        #cal_counts=rules.generate_counts_files.output.calibrated_counts,
+        #tot_prop_counts=rules.generate_counts_files.output.tot_proportional_counts,
+        #sample_prop_counts=rules.generate_counts_files.output.sample_proportional_counts,
+        taxonomy=get_taxonomy,
     log:
         "logs/generate_datasets/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     params:
@@ -206,6 +231,21 @@ rule generate_evodistlists:
     script:
         "../scripts/neeat/generate_evo_dists.R"
 
+def agg_evodist(wc):
+    """
+    Aggregate the evodistlists for all taxa
+    """
+    checkpoint_dir = checkpoints.generate_taxa_seqs.get(**wc).output[0]
+    return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/evodist/{tax}_evodistlist.tsv",
+        tool=wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank,
+        run_name=wc.run_name, noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
+
+rule aggregate_evodist:
+    input:
+        agg_evodist
+    output:
+        touch("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/evodist.done")
+
 rule generate_neeat_filtered:
     output:
         retained="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_retained.tsv",
@@ -218,6 +258,7 @@ rule generate_neeat_filtered:
     log:
         "logs/neeat_filter/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     params:
+        neeat_filter=workflow.source_path("../scripts/neeat/neeat_filter.R"),
         echo_filter=workflow.source_path("../scripts/neeat/echo_filter.R"),
         evo_filter=workflow.source_path("../scripts/neeat/evo_filter.R"),
         abundance_filter=workflow.source_path("../scripts/neeat/abundance_filter.R"),
@@ -239,25 +280,34 @@ rule generate_neeat_filtered:
     script:
         "../scripts/neeat/generate_neeat_filtered.R"
     
-def aggregate_neeat(wildcards):
+def aggregate_neeat(wc):
     """
     Aggregate the evodistlists for all taxa
     """
-    checkpoint_dir = checkpoints.generate_taxa_seqs.get(**wildcards).output[0]
-    files = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_retained.tsv",
-        tool=wildcards.tool,
-        rundir=wildcards.rundir,
-        chimera_run=wildcards.chimera_run,
-        chimdir=wildcards.chimdir,
-        rank=wildcards.rank,
-        run_name=wildcards.run_name,
-        noise_rank=wildcards.noise_rank,
-        tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax
-        )
-    return files
+    checkpoint_dir = checkpoints.generate_taxa_seqs.get(**wc).output[0]
+    retained = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_retained.tsv",
+        tool=wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank,
+        run_name=wc.run_name, noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
+    discarded = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_discarded.tsv",
+        tool=wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank,
+        run_name=wc.run_name, noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
+    counts = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_counts.tsv",
+        tool=wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank,
+        run_name=wc.run_name, noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
+    return {"retained": retained, "discarded": discarded, "counts": counts}
 
 rule neeat:
     output:
-        touch("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/done")
+    #    counts = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered_counts.tsv",
+    #    retained = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/cluster_taxonomy_retained.tsv",
+    #    discarded = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/cluster_taxonomy_discarded.tsv"
+        touch("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/neeat.done")
     input:
-        aggregate_neeat
+        unpack(aggregate_neeat)
+    #run:
+    #    import pandas as pd
+    #    counts = pd.DataFrame()
+    #    for f in input.counts:
+    #        _counts = pd.read_csv(f, sep="\t", index_col=0)
+    #        _counts = _counts.loc[:, sorted(counts.columns)]
+    #        counts = pd.concat([counts, _counts], axis=0)
