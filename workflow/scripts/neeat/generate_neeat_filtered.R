@@ -4,6 +4,7 @@ sink(file = snakemake@log[[1]], append = FALSE, type = c("output", "message"),
 source(snakemake@params$echo_filter)
 source(snakemake@params$evo_filter)
 source(snakemake@params$abundance_filter)
+source(snakemake@params$neeat_filter)
 
 ## WILDCARDS
 assignment_rank <- snakemake@wildcards$noise_rank
@@ -35,7 +36,7 @@ distlist_lines <- length(readLines(dist_file, n=1))
 if (distlist_lines == 0) {
      distlist <- data.frame()
 } else {
-     distlist <- read.delim(dist_file, sep="\t")
+     distlist <- read.delim(dist_file, sep="\t", header=TRUE)
 }
 taxonomy <- read.delim(taxonomy_file, sep="\t")
 results <- neeat_filter(
@@ -67,6 +68,8 @@ taxonomy_discarded <- taxonomy[results$discarded_clusters,]
 write.table(taxonomy_discarded, snakemake@output$discarded, sep="\t", row.names=FALSE, quote=FALSE)
 
 # output filtered counts
-write.table(results$filtered_counts, snakemake@output$counts, sep="\t", row.names=TRUE, quote=FALSE)
+filtered_counts <- results$filtered_counts
+filtered_counts <- cbind("ASV"=rownames(filtered_counts), filtered_counts)
+write.table(filtered_counts, snakemake@output$counts, sep="\t", row.names=TRUE, quote=FALSE)
 
 sink()
