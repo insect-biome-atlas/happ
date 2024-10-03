@@ -31,20 +31,20 @@ echo_filter <- function(counts, matchlist,
 
   # Cycle over clusters
 
-  cat ("Processing clusters...\n")
-  cat ("0%                                                100%\n")
-  cat ("|")
+  cat (paste0("Processing ", nrow(counts), " clusters...\n"))
+  #cat ("0%                                                100%\n")
+  #cat ("|")
   print_interval <- ceiling(nrow(counts) / 50)
 
   retained_clusters <- rownames(counts)[1]
   discarded_clusters <- character()
-
+  pb <- txtProgressBar(min = 0, max = nrow(counts)-1, style = 3, width = 50)
   for (i in 2:nrow(counts)) {
 
     # Print progress
-    if (i %% print_interval == 0)
-      cat("-")
- 
+    #if (i %% print_interval == 0)
+    #  cat("-")
+    setTxtProgressBar(pb, i)
     # Find cluster name
     cluster <- rownames(counts)[i]
     discard <- FALSE
@@ -98,7 +98,7 @@ echo_filter <- function(counts, matchlist,
       retained_clusters <- c(retained_clusters, cluster)
   }
   
-  cat ("|\n") # Done processing all clusters
+  #cat ("|\n") # Done processing all clusters
 
   list(retained_clusters=retained_clusters, discarded_clusters=discarded_clusters)
 }
