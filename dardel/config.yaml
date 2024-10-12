@@ -57,6 +57,8 @@ set-resources:
   generate_neeat_filtered:
     runtime: 180
     mem_mb: 4000
+  order_otutab:
+    mem_mb: 64000
 
 set-threads:
   vsearch_align: 1
