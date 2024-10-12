@@ -30,7 +30,6 @@ wildcard_constraints:
     chimdir=config["chimdir"],
     chimera_run=config["chimera"]["run_name"],
     algo=config["chimera"]["algorithm"],
-    noise_run=config["noise_filtering"]["run_name"],
 
 include: "rules/preprocess.smk"
 include: "rules/chimeras.smk"
@@ -40,7 +39,7 @@ include: "rules/sintax.smk"
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
 include: "rules/opticlust.smk"
-include: "rules/noise_filter.smk"
+include: "rules/neeat.smk"
 
 localrules:
     all,
@@ -128,10 +127,27 @@ def get_all_input(wildcards):
         suff=["json", "cmd"],
     )
     # noise filtered files
-    input += rules.noise_filtering.input
-    # cleaning files
-    if os.path.exists(config["cleaning"]["metadata_file"]):
-        input += rules.cleaning.input
+    input += expand(
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/noise_filtered_{f}.tsv",
+        tool=config["software"],
+        rundir=config["rundir"],
+        chimdir=config["chimdir"],
+        chimera_run=config["chimera"]["run_name"],
+        rank=config["split_rank"],
+        run_name=config["run_name"],
+        noise_rank=config["noise_filtering"]["split_rank"],
+        f=["cluster_counts", "cluster_taxonomy", "cluster_consensus_taxonomy"],
+    )
+    input += expand(
+        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/noise_filtered_precision_recall.txt",
+        tool=config["software"],
+        rundir=config["rundir"],
+        chimdir=config["chimdir"],
+        chimera_run=config["chimera"]["run_name"],
+        rank=config["split_rank"],
+        run_name=config["run_name"],
+        noise_rank=config["noise_filtering"]["split_rank"],
+    )
     return input
 
 
@@ -412,6 +428,7 @@ def get_consensus_taxonomy_files(wildcards):
         tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}", "asv_seqs.fasta.gz")).tax,
         run_name=wildcards.run_name
         )
+    return files
 
 rule aggregate_consensus_taxonomy:
     output:
