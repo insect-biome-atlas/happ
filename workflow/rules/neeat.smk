@@ -2,6 +2,8 @@ localrules:
     generate_taxa_seqs,
     taxonomy_filter,
     generate_aa_seqs,
+    neeat,
+
 
 rule taxonomy_filter:
     output:
@@ -17,6 +19,11 @@ rule taxonomy_filter:
         taxdf = taxdf.loc[(~taxdf[assignment_rank].str.contains("_X+$"))&(~taxdf[assignment_rank].str.startswith("unclassified"))]
         taxdf.to_csv(output.taxonomy, sep="\t")
 
+# This function `get_taxonomy` generates the file paths for taxonomy results based on the provided wildcards and configuration.
+# It checks the `assignment_rank` in the configuration under `noise_filtering`.
+# If `assignment_rank` is an empty string, it returns the path for the taxonomy file without the `neeat/taxonomy_filter` directory.
+# Otherwise, it includes the `neeat/taxonomy_filter` directory and the `assignment_rank` in the path.
+# The paths are generated using the `expand` function with the wildcards: tool, rundir, chimera_run, chimdir, rank, and run_name.
 def get_taxonomy(wildcards):
     if config["noise_filtering"]["assignment_rank"] == "":
         return expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
@@ -31,9 +38,6 @@ rule generate_counts_files:
     """
     output:
         cluster_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/cluster_counts.tsv",
-        #calibrated_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/calibrated_cluster_counts.tsv",
-        #tot_proportional_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/tot_proportional_cluster_counts.tsv",
-        #sample_proportional_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/counts/sample_proportional_cluster_counts.tsv",
     input:
         counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_counts.tsv",
         taxonomy=get_taxonomy,
@@ -44,7 +48,6 @@ rule generate_counts_files:
         sample_id_col=config["metadata"]["sample_id_col"],
         sample_type_col=config["metadata"]["sample_type_col"],
         sample_val=config["metadata"]["sample_val"],
-        functions=workflow.source_path("../scripts/neeat/spikes_controls_fxns.R")
     conda:
         "../envs/r-env.yml"
     script: 
@@ -296,18 +299,73 @@ def aggregate_neeat(wc):
         run_name=wc.run_name, noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
     return {"retained": retained, "discarded": discarded, "counts": counts}
 
+def concat(files):
+    """
+    Concatenates multiple tab-separated value (TSV) files into a single DataFrame.
+
+    Args:
+        files (list of str): List of file paths to the TSV files to be concatenated.
+
+    Returns:
+        pandas.DataFrame: A DataFrame containing the concatenated data from all input files.
+
+    The function reads each file into a DataFrame, ensuring that all DataFrames have the same columns
+    by using the columns from the first file. It then concatenates all DataFrames along the row axis.
+    """
+    df = pd.DataFrame()
+    for i, f in enumerate(files):
+            _df = pd.read_csv(f, sep="\t", index_col=0)
+            if i==0:
+                cols = _df.columns
+            else:
+                _df = _df.loc[:, cols]
+            df = pd.concat([df, _df], axis=0)
+    return df
+
 rule neeat:
     output:
-    #    counts = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered_counts.tsv",
-    #    retained = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/cluster_taxonomy_retained.tsv",
-    #    discarded = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/cluster_taxonomy_discarded.tsv"
-        touch("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/neeat.done")
+        counts = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/noise_filtered_cluster_counts.tsv",
+        retained = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/noise_filtered_cluster_taxonomy.tsv",
+        cons_retained = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/noise_filtered_cluster_consensus_taxonomy.tsv",
+        discarded = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/discarded_cluster_taxonomy.tsv"
     input:
-        unpack(aggregate_neeat)
-    #run:
-    #    import pandas as pd
-    #    counts = pd.DataFrame()
-    #    for f in input.counts:
-    #        _counts = pd.read_csv(f, sep="\t", index_col=0)
-    #        _counts = _counts.loc[:, sorted(counts.columns)]
-    #        counts = pd.concat([counts, _counts], axis=0)
+        unpack(aggregate_neeat),
+        taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
+        consensus="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv"
+    run:
+        import pandas as pd
+        counts = concat(input.counts)
+        retained = concat(input.retained)
+        # filter cluster taxonomy
+        taxdf = pd.read_csv(input.taxonomy, sep="\t", index_col=0)
+        # write discarded
+        taxdf.loc[~taxdf["cluster"].isin(retained.index)].to_csv(output.discarded, sep="\t")
+        # write retained
+        taxdf.loc[taxdf["cluster"].isin(retained.index)].to_csv(output.retained, sep="\t")
+        # filter consensus taxonomy
+        cons_tax = pd.read_csv(input.consensus, sep="\t", index_col=0)
+        cons_tax.loc[retained.index].to_csv(output.cons_retained, sep="\t")
+        # filter counts
+        counts = counts.drop("ASV", axis=1)
+        counts = pd.merge(counts, pd.DataFrame(retained.loc[:, "ASV"]), left_index=True, right_on="ASV")
+        counts = counts.drop("ASV", axis=1)
+        counts.to_csv(output.counts, sep="\t")
+
+rule noise_filtered_precision_recall:
+    """
+    Calculate precision and recall for the clusters
+    """
+    input:
+        rules.neeat.output.retained,
+    output:
+        txt="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/noise_filtered_precision_recall.txt",
+        txt_order="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/noise_filtered_precision_recall.order.txt",
+    log:
+        "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/precision_recall.log",
+    params:
+        src=workflow.source_path("../scripts/evaluate_clusters.py"),
+        eval_rank=config["evaluation_rank"],
+    shell:
+        """
+        python {params.src} {input[0]} {input[0]} --rank {params.eval_rank} --order_level {output.txt_order} > {output.txt} 2>{log}
+        """
