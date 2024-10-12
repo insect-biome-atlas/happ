@@ -1,6 +1,5 @@
 sink(file = snakemake@log[[1]], append = FALSE, type = c("output", "message"),
      split = FALSE)
-source(snakemake@params$functions)
 library(data.table)
 
 ## INPUT
@@ -15,7 +14,6 @@ sample_val <- snakemake@params$sample_val
 
 # Read in data
 cat("Processing data\n")
-#meta <- get_se_meta()
 
 if ((meta_file!=FALSE) && file.exists(meta_file)) {
     meta <- read.delim(meta_file)
@@ -54,9 +52,8 @@ counts <- counts[include_rows,]
 # extract counts with colSum > 0
 include_cols <- c(TRUE,as.logical(colSums(counts[,2:ncol(counts)])>0))
 counts <- counts[,include_cols]
-#write.table(counts,"../bigdata/cluster_counts.tsv", row.names=FALSE, sep="\t")
 write.table(counts, snakemake@output$cluster_counts, row.names=FALSE, sep="\t", quote=FALSE)
 
-quit(save="no", status=0)
-
 sink()
+
+quit(save="no", status=0)
