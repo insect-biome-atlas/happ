@@ -1,4 +1,5 @@
 localrules:
+    generate_counts_files,
     generate_taxa_seqs,
     taxonomy_filter,
     generate_aa_seqs,
@@ -60,6 +61,7 @@ checkpoint generate_taxa_seqs:
     """
     output:
         directory("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/fasta"),
+        touch("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/single_otus.tsv")
     input:
         taxonomy=get_taxonomy,
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
@@ -85,15 +87,17 @@ checkpoint generate_taxa_seqs:
         taxdf = taxdf.loc[taxdf["cluster"].isin(clusters_w_counts)]
         # taxa is the unique set of values for split_rank
         taxa = taxdf[rank].unique()
+        singles = pd.DataFrame()
         # iterate over taxa
         for tax in taxa:
             # get asvs and cluster designation
             asvs = taxdf.loc[taxdf[rank]==tax, "cluster"]
+            # skip taxa with fewer than 2 ASVs
+            if len(asvs) < 2: #TODO: add back OTUs in taxa with only 1 OTU
+                singles = pd.concat([singles, asvs])
+                continue
             # generate strings with '<asv> <cluster>' format to match fasta headers
             asvs = [f"{x[0]} {x[1]}" for x in list(zip(asvs.index, asvs))]
-            # skip taxa with fewer than 2 ASVs
-            if len(asvs) < 2:
-                continue
             # write asvs to file
             with open(f"{tax}.ids", "w") as f:
                 _ = f.write("\n".join(asvs))
@@ -101,6 +105,7 @@ checkpoint generate_taxa_seqs:
             with open(f"{outdir}/{tax}.fasta", 'w') as fhout:
                 cmd = ["seqkit", "grep", "-f",f"{tax}.ids","-n", "--quiet", input.fasta]
                 _ = subprocess.run(cmd, stdout=fhout)
+        singles.to_csv(output[1], sep="\t")
 
 
 rule matchlist_vsearch:
@@ -119,12 +124,15 @@ rule matchlist_vsearch:
         tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{noise_rank}/{tax}/",
         maxhits = config["noise_filtering"]["max_target_seqs"]
     threads: 1
+    resources:
+        tasks = 4,
+        cpus_per_task = 1
     shell:
         """
         mkdir -p {params.tmpdir}
         cat {input} | sed 's/>.\+ />/g' > {params.tmpdir}/cluster_reps.fasta
         vsearch --usearch_global {params.tmpdir}/cluster_reps.fasta --db {params.tmpdir}/cluster_reps.fasta --self --id .84 --iddef 1 \
-            --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits {params.maxhits} --threads {threads} > {log} 2>&1
+            --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits {params.maxhits} --threads {resources.tasks} > {log} 2>&1
         rm -rf {params.tmpdir}
         """
 
@@ -185,8 +193,11 @@ rule mafft_align:
     conda: 
         "../envs/mafft.yml"
     threads: 4
+    resources:
+        tasks = 4,
+        cpus_per_task = 1
     shell:
-        "mafft --auto --thread {threads} {input} > {output} 2>{log}"
+        "mafft --auto --thread {resources.tasks} {input} > {output} 2>{log}"
 
 rule pal2nal:
     """
@@ -291,13 +302,7 @@ def aggregate_neeat(wc):
     retained = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_retained.tsv",
         tool=wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank,
         run_name=wc.run_name, noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
-    discarded = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_discarded.tsv",
-        tool=wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank,
-        run_name=wc.run_name, noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
-    counts = expand("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/filtered/{tax}_counts.tsv",
-        tool=wc.tool, rundir=wc.rundir, chimera_run=wc.chimera_run, chimdir=wc.chimdir, rank=wc.rank,
-        run_name=wc.run_name, noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
-    return {"retained": retained, "discarded": discarded, "counts": counts}
+    return retained
 
 def concat(files):
     """
@@ -329,15 +334,22 @@ rule neeat:
         cons_retained = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/noise_filtered_cluster_consensus_taxonomy.tsv",
         discarded = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/discarded_cluster_taxonomy.tsv"
     input:
-        unpack(aggregate_neeat),
+        retained=aggregate_neeat,
+        counts = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_counts.tsv",
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
-        consensus="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv"
+        consensus="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv",
+        singles = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/single_otus.tsv"
     run:
         import pandas as pd
-        counts = concat(input.counts)
-        retained = concat(input.retained)
         # filter cluster taxonomy
         taxdf = pd.read_csv(input.taxonomy, sep="\t", index_col=0)
+        counts = pd.read_csv(input.counts, sep="\t", index_col=0)
+        retained = concat(input.retained)
+        singles = pd.read_csv(input.singles, sep="\t", index_col=0, header=0, names=["ASV","cluster"])
+        if len(singles) > 0:
+            singles = taxdf.loc[singles.index].reset_index().set_index("cluster")
+            singles = singles.loc[:, retained.columns]
+            retained = pd.concat([retained, singles])
         # write discarded
         taxdf.loc[~taxdf["cluster"].isin(retained.index)].to_csv(output.discarded, sep="\t")
         # write retained
@@ -346,10 +358,7 @@ rule neeat:
         cons_tax = pd.read_csv(input.consensus, sep="\t", index_col=0)
         cons_tax.loc[retained.index].to_csv(output.cons_retained, sep="\t")
         # filter counts
-        counts = counts.drop("ASV", axis=1)
-        counts = pd.merge(counts, pd.DataFrame(retained.loc[:, "ASV"]), left_index=True, right_on="ASV")
-        counts = counts.drop("ASV", axis=1)
-        counts.to_csv(output.counts, sep="\t")
+        counts.loc[retained.index].to_csv(output.counts, sep="\t")
 
 rule noise_filtered_precision_recall:
     """
