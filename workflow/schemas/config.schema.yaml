@@ -170,6 +170,34 @@ properties:
         default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
         items:
           type: string
+  reassign:
+    type: object
+    default:
+      placeholder_rank: "Class"
+      placeholder_taxa: ["Collembola", "Diplura", "Protura", "Insecta"]
+      reassign_ranks: ["Order"]
+      downstream_ranks: ["Family", "Genus", "Species", "BOLD_bin"]
+    properties:
+      placeholder_rank:
+        type: string
+        description: "taxonomic rank at which ASVs must be classified by EPA-NG, but unclassified by SINTAX in order to be reclassified."
+        default: "Class"
+      placeholder_taxa:
+        type: array
+        description: "taxa that ASVs must be classified as by both EPA-NG, and SINTAX (at placeholder_rank) in order to be reassigned at lower levels."
+        default: ["Collembola", "Diplura", "Protura", "Insecta"]
+      reassign_ranks:
+        type: array
+        description: "ranks at which to reassign ASVs"
+        default: ["Order"]
+        items:
+          type: string
+      downstream_ranks:
+        type: array
+        description: "taxonomic ranks downstream of reassign_ranks for which to update taxonomic assignments"
+        default: ["Family", "Genus", "Species", "BOLD_bin"]
+        items:
+          type: string
   preprocessing:
     type: object
     default:
