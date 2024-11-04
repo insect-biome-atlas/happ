@@ -129,6 +129,22 @@ epa-ng:
     distribution_ratio: -1
     consensus_thresh: 1
 
+# Below are settings that control how ASVs that are unclassified by SINTAX will
+# be handled. The default is to use the EPA-NG results to reassign the SINTAX
+# taxonomy at high levels in the taxonomy tree.
+reassign:
+  # placeholder_rank is the taxonomic rank at which ASVs must be classified by EPA-NG, 
+  # but unclassified by SINTAX in order to be reclassified.
+  placeholder_rank: "Class"
+  # placeholder_taxa is a list of taxa that ASVs must be classified as by both EPA-NG,
+  # and SINTAX (at placeholder_rank) in order to be reassigned at lower levels.
+  placeholder_taxa: ["Collembola", "Diplura", "Protura", "Insecta"]
+  # reassign_rank is the taxonomic rank at which ASVs will be reassigned if they meet
+  # the criteria above.
+  reassign_ranks: ["Order"]
+  # reassign_taxa is a list of taxa that ASVs must be classified as by both EPA-NG,
+  downstream_ranks: ["Family", "Genus", "Species", "BOLD_bin"]
+
 
 # The evaluation rank parameter specifies what taxonomic rank to use for evaluating
 # the clustering results. This rank should correspond to the taxonomic rank that
