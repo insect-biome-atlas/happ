@@ -5,8 +5,6 @@ localrules:
     split_aln,
     gappa2taxdf,
     collate_gappa_taxdf,
-    write_config,
-    write_software,
     filter_query_aln,
     add_missing
 
@@ -48,9 +46,11 @@ rule nexus2newick:
         config["epa-ng"]["tree"],
     log:
         "logs/nexus2newick.log",
+    params:
+        src=workflow.source_path("../scripts/nexus2newick.py"),
     shell:
         """
-        python workflow/scripts/nexus2newick.py {input} {output} >{log} 2>&1
+        python {params.src} {input} {output} >{log} 2>&1
         """
 
 def ref_tree(wildcards):
@@ -74,24 +74,24 @@ rule extract_ref_taxonomy:
         "logs/epa-ng/extract_ref_taxonomy.log",
     params:
         config["epa-ng"]["tree_ranks"],
+        src=workflow.source_path("../scripts/extract_ref_taxonomy.py"),
     shell:
         """
-        python workflow/scripts/extract_ref_taxonomy.py {input} {output} --ranks {params.ranks} >{log} 2>&1
+        python {params.src} {input} {output} --ranks {params.ranks} >{log} 2>&1
         """
 
 rule nexus2fasta:
     output:
-        "resources/epa-ng/ref_msa.fasta,
+        "resources/epa-ng/ref_msa.fasta",
     input:
         config["epa-ng"]["msa"],
     log:
         "logs/epa-ng/nexus2fasta.log",
-    envmodules:
-        "bioinfo-tools",
-        "biopython"
+    params:
+        src=workflow.source_path("../scripts/convertalign.py"),
     shell:
         """
-        python workflow/scripts/convertalign.py {input} nexus {output} fasta >{log} 2>&1
+        python {params.src} {input} nexus {output} fasta >{log} 2>&1
         """
 
 def ref_msa(wildcards):
@@ -107,35 +107,13 @@ rule hmm_build:
         ref_msa,
     log:
         "logs/epa-ng/hmmbuild.log",
+    conda:
+        "../envs/epa-ng.yml"
     resources:
         runtime=60,
-    envmodules:
-        "bioinfo-tools",
-        "hmmer/3.3.2"
     shell:
         """
         hmmbuild {output} {input} > {log} 2>&1
-        """
-
-checkpoint split_epang_input:
-    """
-    Splits the sintax fasta file into chunks with fixed size
-    """
-    output:
-        directory("results/phylogeny/{ref}/queries/{query}/splits")
-    input:
-        qry=lambda wildcards: config["phylogeny"]["query"][wildcards.query],
-    log:
-        "logs/phylogeny/{ref}.{query}.split.log"
-    params:
-        outdir=lambda wildcards, output: output[0],
-        size=2000
-    resources:
-        runtime = 60,
-    threads: 1
-    shell:
-        """
-        cat {input.qry} | seqkit split2 -O {params.outdir} -j {threads} -s {params.size} --by-part-prefix split >{log} 2>&1
         """
 
 rule hmm_align:
@@ -143,19 +121,16 @@ rule hmm_align:
         temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/{split}.fasta"),
     input:
         hmm=rules.hmm_build.output,
-        qry=qry="results/common/{rundir}/splits/stdin.part_{split}.fasta"
+        qry="results/common/{rundir}/splits/stdin.part_{split}.fasta",
         ref_msa=ref_msa
     log:
         "logs/epa-ng/{rundir}/hmmalign/{split}.log",
+    conda:
+        "../envs/epa-ng.yml"
     resources:
-        runtime=60,
+        runtime=5,
     params:
-        tmpdir=lambda wildcards: f"$TMPDIR/{wildcards.ref}.{wildcards.query}.{wildcards.split}.hmm_align",
-    envmodules:
-        "bioinfo-tools",
-        "hmmer/3.3.2"
-    group: "hmmalign"
-    threads: 4
+        tmpdir=lambda wildcards: f"$TMPDIR/{wildcards.rundir}.{wildcards.split}.hmm_align",
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -175,7 +150,7 @@ rule split_aln:
         "logs/epa-ng/{rundir}/split_aln/{split}.log",
     params:
         outdir=lambda wildcards, output: os.path.dirname(output.ref_msa),
-    conda: "../envs/epang.yml"
+    conda: "../envs/epa-ng.yml"
     shell:
         """
         epa-ng --redo --split {input.ref_msa} {input.msa} --outdir {params.outdir} > {log} 2>&1
@@ -217,19 +192,15 @@ rule raxml_evaluate:
         msa=rules.split_aln.output.ref_msa,
     log:
         "logs/epa-ng/{rundir}/raxml_evaluate/{split}.log",
+    conda:
+        "../envs/epa-ng.yml"
     params:
         model=lambda wildcards: config["epa-ng"]["model"],
         prefix=lambda wildcards, output: os.path.dirname(output[0]) + "/info",
-    envmodules:
-        "bioinfo-tools",
-        "RAxML-NG/1.1.0"
-    #group: "raxml_eval"
     threads: 2
-    resources:
-        runtime=30,
     shell:
         """
-        raxml-ng --redo --threads {threads} --evaluate --msa {input.msa} --tree {input.tree} --prefix {params.prefix} --model {params.model} >{log} 2>&1
+        raxml-ng --extra thread-pin --redo --threads {threads} --evaluate --msa {input.msa} --tree {input.tree} --prefix {params.prefix} --model {params.model} >{log} 2>&1
         """
 
 ## epa-ng
@@ -255,9 +226,9 @@ rule epa_ng:
     params:
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         heur=get_heuristic,
-    conda: "../envs/epang.yml"
+    conda: 
+        "../envs/epa-ng.yml"
     threads: 20
-    group: "epang"
     resources:
         runtime=60*24,
     shell:
@@ -270,43 +241,44 @@ rule epa_ng:
 ## gappa
 
 def ref_taxonomy(wildcards):
-    if config["phylogeny"]["ref"][wildcards.ref]["ref_taxonomy"]:
-        return config["phylogeny"]["ref"][wildcards.ref]["ref_taxonomy"]
+    if config["epa-ng"]["ref_taxonomy"]:
+        return config["epa-ng"]["ref_taxonomy"]
     else:
         return rules.extract_ref_taxonomy.output
 
 
 def get_dist_ratio(config):
-    if config["phylogeny"]["gappa"]["distribution_ratio"] == -1:
+    dist_ratio = config["epa-ng"]["gappa"]["distribution_ratio"]
+    if dist_ratio == -1:
         return ""
     else:
-        return f"--distribution-ratio {config['phylogeny']['gappa']['distribution_ratio']}"
+        return f"--distribution-ratio {dist_ratio}"
 
 rule gappa_assign:
     """
     Run gappa taxonomic assignment on placement file
     """
     output:
-        temp("results/epa-ng/{ref}/queries/{query}/splits/{split}/{heur}/per_query.tsv"),
-        temp("results/epa-ng/{ref}/queries/{query}/splits/{split}/{heur}/profile.tsv"),
-        temp("results/epa-ng/{ref}/queries/{query}/splits/{split}/{heur}/labelled_tree.newick"),
+        temp("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/per_query.tsv"),
+        temp("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/profile.tsv"),
+        temp("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/labelled_tree.newick"),
     input:
         jplace=rules.epa_ng.output,
         taxonfile=ref_taxonomy,
     log:
-        "logs/epa-ng/{ref}/queries/{query}/splits/{split}/{heur}/gappa_assign.log",
+        "logs/epa-ng/{rundir}/assignments/splits/{split}/{heur}/gappa_assign.log",
     params:
-        ranks_string=lambda wildcards: "|".join(config["phylogeny"]["ref"][wildcards.ref]["tree_ranks"]),
+        ranks_string=lambda wildcards: "|".join(config["epa-ng"]["tree_ranks"]),
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
-        consensus_thresh=config["phylogeny"]["gappa"]["consensus_thresh"],
+        consensus_thresh=config["epa-ng"]["gappa"]["consensus_thresh"],
         distribution_ratio=get_dist_ratio(config),
     conda:
-        "../envs/gappa.yml"
-    threads: 20
-    group: "gappa_assign"
-    resources:
-        runtime=30,
-    group: "gappa"
+        "../envs/epa-ng.yml"
+    threads: 4
+    #resources:
+        #runtime=20,
+        #cpus_per_task=1,
+        #tasks=4
     shell:
         """
         gappa examine assign --threads {threads} --out-dir {params.outdir} \
@@ -322,28 +294,29 @@ rule gappa2taxdf:
     Convert gappa output to a taxonomic dataframe
     """
     output:
-        temp("results/epa-ng/{ref}/queries/{query}/splits/{split}/{heur}/taxonomy.tsv"),
+        temp("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/taxonomy.tsv"),
     input:
         rules.gappa_assign.output[0],
     log:
-        "logs/epa-ng/{ref}/queries/{query}/splits/{heur}/gappa2taxdf.{split}.log"
+        "logs/epa-ng/{rundir}/assignments/splits/{split}/{heur}/gappa2taxdf.log"
     params:
-        ranks=lambda wildcards: config["phylogeny"]["ref"][wildcards.ref]["tree_ranks"],
+        src=workflow.source_path("../scripts/gappa2taxdf.py"),
+        ranks=lambda wildcards: config["epa-ng"]["tree_ranks"],
     shell:
         """
-        python workflow/scripts/gappa2taxdf.py {input} {output} --ranks {params.ranks} >{log} 2>&1
+        python {params.src} {input} {output} --ranks {params.ranks} >{log} 2>&1
         """
 
 def aggregate_gappa(wildcards):
-    checkpoint_output = checkpoints.split_epang_input.get(**wildcards).output[0]
-    return expand("results/epa-ng/{ref}/queries/{query}/splits/{split}/{heur}/taxonomy.tsv",
-                    ref=wildcards.ref, query=wildcards.query, heur=wildcards.heur, 
+    checkpoint_output = checkpoints.split_input.get(**wildcards).output[0]
+    return expand("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/taxonomy.tsv",
+                    rundir=config["rundir"],
+                    heur=wildcards.heur,
                     split=glob_wildcards(os.path.join(checkpoint_output, "stdin.part_{split}.fasta")).split)
-
 
 rule collate_gappa_taxdf:
     output:
-        "results/epa-ng/{ref}/queries/{query}/{heur}/taxonomy.raw.tsv"
+        "results/taxonomy/epa-ng/{rundir}/assignments/{heur}/taxonomy.raw.tsv"
     input:
         aggregate_gappa
     run:
@@ -357,19 +330,20 @@ rule collate_gappa_taxdf:
                             out.write(line)
 
 def aggregate_removed(wildcards):
-    checkpoint_output = checkpoints.split_epang_input.get(**wildcards).output[0]
-    return expand("results/phylogeny/{ref}/hmmalign/{query}/splits/{split}/query.removed.txt",
-                    ref=wildcards.ref, query=wildcards.query, split=glob_wildcards(os.path.join(checkpoint_output, "stdin.part_{split}.fasta")).split)
+    checkpoint_output = checkpoints.split_input.get(**wildcards).output[0]
+    return expand("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.removed.txt",
+                    rundir=config["rundir"], 
+                    split=glob_wildcards(os.path.join(checkpoint_output, "stdin.part_{split}.fasta")).split)
 
 rule add_missing:
     """
     Adds ASVs to the taxonomy table that were filtered out during the alignment step
     """
+    output:
+        "results/taxonomy/epa-ng/{rundir}/assignments/{heur}/taxonomy.tsv"
     input:
         df=rules.collate_gappa_taxdf.output[0],
         asv=aggregate_removed,
-    output:
-        "results/epa-ng/{ref}/queries/{query}/{heur}/taxonomy.tsv"
     run:
         import pandas as pd
         df = pd.read_csv(input.df, sep="\t", index_col=0)
