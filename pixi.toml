@@ -17,16 +17,17 @@ noise_filtering = {cmd="snakemake noise_filtering", depends_on = ["init"]}
 all = {cmd="snakemake", depends_on = ["init"]}
 
 [dependencies]
-python = "3.11"
+python = ">=3.12"
 mamba = "*"
-snakemake = "8.*"
-scikit-learn = "1.1.3"
-biopython = "1.80"
+snakemake = ">=8.20"
+scikit-learn = "*"
+biopython = "*"
 tqdm = "*"
 polars = "*"
 pandas = "*"
 pip = "*"
 seqkit = "*"
+conda = ">=24.7.1"
 
 [pypi-dependencies]
 snakemake-executor-plugin-slurm = "*"
