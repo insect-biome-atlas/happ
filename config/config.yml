@@ -118,9 +118,18 @@ qiime2:
     - "Species"
     - "BOLD_bin"
 epa-ng:
-  tree: "resources/epa-ng/epa-ng.tree"
+  tree: "/cfs/klemming/projects/snic/snic2020-16-248/git/paper-bioinformatic-methods/data/chesters_tree/chesters_new_outgroups.nwk"
   tree_format: "newick"
+  msa: "/cfs/klemming/projects/snic/snic2020-16-248/git/paper-bioinformatic-methods/data/chesters_tree/chesters_new_outgroups_aligned.trim0.9.fasta"
+  msa_format: "fasta"
+  model: "GTR+G+F"
   heuristic: "dyn-heur"
+  ref_taxonomy: "/cfs/klemming/projects/snic/snic2020-16-248/git/paper-bioinformatic-methods/data/chesters_tree/taxonomy.tsv"
+  gappa:
+    distribution_ratio: -1
+    consensus_thresh: 1
+
+
 # The evaluation rank parameter specifies what taxonomic rank to use for evaluating
 # the clustering results. This rank should correspond to the taxonomic rank that
 # you expect the clustering to represent, e.g. if you expect the clustering to
