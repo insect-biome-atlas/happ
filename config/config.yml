@@ -84,7 +84,7 @@ preprocessing:
 # to partition the ASVs into smaller fasta files based on the split_rank
 # parameter. If you already have a tab-separated file with taxonomic
  # assignments, set taxonomy_source to the path of that file.
-taxonomy_source: "sintax"
+taxonomy_source: "sintax+epa-ng"
 taxtools:
   - "sintax"
   - "vsearch"
@@ -142,7 +142,7 @@ reassign:
   # reassign_rank is the taxonomic rank at which ASVs will be reassigned if they meet
   # the criteria above.
   reassign_ranks: ["Order"]
-  # reassign_taxa is a list of taxa that ASVs must be classified as by both EPA-NG,
+  # downstream_ranks is a list of ranks which will be updated for ASVs with reassignments
   downstream_ranks: ["Family", "Genus", "Species", "BOLD_bin"]
 
 
