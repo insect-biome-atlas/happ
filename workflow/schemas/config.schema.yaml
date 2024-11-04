@@ -74,6 +74,69 @@ properties:
     items:
       type: string
       enum: ["sintax", "epa-ng", "vsearch"]
+  epa-ng:
+    type: object
+    default:
+      tree: ""
+      tree_format: "newick"
+      msa: ""
+      msa_format: "fasta"
+      model: "GTR+G+F"
+      heuristic: "dyn-heur"
+      tree_ranks:
+        - "Kingdom"
+        - "Phylum"
+        - "Class"
+        - "Order"
+        - "Family"
+        - "Genus"
+        - "Species"
+    properties:
+      tree:
+        type: string
+        description: "path to reference tree"
+      tree_format:
+        type: string
+        description: "format of reference tree"
+        default: "newick"
+        enum: ["newick", "nexus"]
+      msa:
+        type: string
+        description: "path to reference alignment"
+      msa_format:
+        type: string
+        description: "format of reference alignment"
+        default: "fasta"
+        enum: ["fasta", "nexus"]
+      model:
+        type: string
+        description: "model to use for epa-ng"
+        default: "GTR+G+F"
+      heuristic:
+        type: string
+        description: "heuristic to use for epa-ng"
+        default: "dyn-heur"
+        enum: ["dyn-heur", "baseball-heur", "no-heur"]
+      tree_ranks:
+        type: array
+        description: "ranks present in the reference tree"
+        default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
+        items:
+          type: string
+      gappa:
+        type: object
+        default:
+          distribution_ratio: -1
+          consensus_thresh: 1
+        properties:
+          distribution_ratio:
+            type: number
+            description: "ratio of the distribution of the number of gaps in the alignment"
+            default: -1
+          consensus_thresh:
+            type: number
+            description: "threshold for consensus"
+            default: 1
   sintax:
     type: object
     default:
