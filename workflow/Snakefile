@@ -36,10 +36,12 @@ include: "rules/chimeras.smk"
 include: "rules/common.smk"
 include: "rules/qiime2.smk"
 include: "rules/sintax.smk"
+include: "rules/epang.smk"
 include: "rules/swarm.smk"
 include: "rules/dbotu3.smk"
 include: "rules/opticlust.smk"
 include: "rules/neeat.smk"
+
 
 localrules:
     all,
