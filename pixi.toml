@@ -14,26 +14,20 @@ init = "conda config --set channel_priority strict"
 chimera_filtering = {cmd="snakemake chimera_filtering", depends_on = ["init"]}
 clustering = {cmd="snakemake clustering", depends_on = ["init"]}
 noise_filtering = {cmd="snakemake noise_filtering", depends_on = ["init"]}
-lulu_filtering = {cmd="snakemake lulu_filtering", depends_on = ["init"]}
-cleaning = {cmd="snakemake cleaning", depends_on = ["init"]}
 all = {cmd="snakemake", depends_on = ["init"]}
+
 [dependencies]
-python = "3.11"
+python = ">=3.12"
 mamba = "*"
-snakemake = "8.*"
-scikit-learn = "1.1.3"
-biopython = "1.80"
+snakemake = ">=8.20"
+scikit-learn = "*"
+biopython = "*"
 tqdm = "*"
 polars = "*"
 pandas = "*"
 pip = "*"
 seqkit = "*"
+conda = ">=24.7.1"
 
 [pypi-dependencies]
 snakemake-executor-plugin-slurm = "*"
-
-[feature.jupyter]
-dependencies = {jupyter = "*", jupyterlab = "*", pandas = "*"}
-
-[environments]
-jupyter = ["jupyter"]

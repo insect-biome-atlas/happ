@@ -24,14 +24,28 @@ def get_input_taxa(wildcards):
     Return the taxonomy file for the dataset
     """
     taxonomy_source=config["taxonomy_source"]
+    # check if the taxonomy source is a link
+    if os.path.islink(taxonomy_source):
+        taxonomy_source_target = os.readlink(taxonomy_source)
+        if os.path.isfile(taxonomy_source_target):
+            return taxonomy_source
+        else: 
+            raise FileNotFoundError(f"Taxonomy source {taxonomy_source_target} is not a file")
     # check if the taxonomy source is a file
-    if os.path.isfile(taxonomy_source):
+    elif os.path.isfile(taxonomy_source):
         return taxonomy_source
-    return expand(
-        "results/taxonomy/{taxonomy_source}/{rundir}/taxonomy.tsv",
-        taxonomy_source=taxonomy_source,
-        rundir=config["rundir"],
-    )[0]
+    elif taxonomy_source == "sintax+epa-ng":
+        return expand(
+            "results/taxonomy/sintax_epang/{rundir}/{heur}/taxonomy.tsv",
+            rundir=config["rundir"],
+            heur=config["epa-ng"]["heuristic"],
+        )[0]
+    elif taxonomy_source in ["sintax","epa-ng","vsearch"]:    
+        return expand(
+            "results/taxonomy/{taxonomy_source}/{rundir}/taxonomy.tsv",
+            taxonomy_source=taxonomy_source,
+            rundir=config["rundir"],
+        )[0]
 
 checkpoint split_input:
     """

@@ -42,7 +42,12 @@ set-resources:
     runtime: 30
     mem_mb: 24000
   pal2nal:
+<<<<<<< HEAD
     runtime: 30
+=======
+    runtime: 1440
+    mem_mb: 96000
+>>>>>>> c15bfaa6d238b946bc2b100359808351d20e974c
   run_opticlust:
     mem_mb: 60000
   split_counts_samplewise:
@@ -59,12 +64,17 @@ set-resources:
   evaluate_order_lulu:
     runtime: 4320
   generate_counts_files:
+<<<<<<< HEAD
     runtime: 60
+=======
+    runtime: 240
+>>>>>>> c15bfaa6d238b946bc2b100359808351d20e974c
     mem_mb: 60000
   generate_datasets:
     runtime: 60
     mem_mb: 64000
   generate_evodistlists:
+<<<<<<< HEAD
     runtime: 60
   generate_neeat_filtered:
     runtime: 2410
@@ -74,16 +84,34 @@ set-resources:
   run_swarm:
     runtime: 60
     mem_mb: 60000
+=======
+    runtime: 1440
+  generate_neeat_filtered:
+    runtime: 180
+    mem_mb: 4000
+  order_otutab:
+    mem_mb: 64000
+>>>>>>> c15bfaa6d238b946bc2b100359808351d20e974c
 
 set-threads:
   run_swarm: 20
   sum_asvs: 1
   split_counts: 1
+<<<<<<< HEAD
   chimera_samplewise: 4
   lulu_matchlist_vsearch: 4
   matchlist_vsearch: 4
   lulu_matchlist_blastn: 4
   generate_datasets: 2
+=======
+  chimera_samplewise: 40
+  id_spikeins: 10
+  lulu_matchlist_vsearch: 40
+  matchlist_vsearch: 40
+  lulu_matchlist_blastn: 40
+  generate_datasets: 10
+  generate_neeat_filtered: 5
+>>>>>>> c15bfaa6d238b946bc2b100359808351d20e974c
 
 # The settings below define command line flags for snakemake
 keep-going: True
