@@ -7,9 +7,22 @@ default-resources:
   slurm_account: <your-slurm-account>
   slurm_partition: shared
   runtime: 240
+  tasks: f"{threads}"
+  cpus_per_task: 1
 
 # The settings below override the default-resources for specific rules
 set-resources:
+  hmm_align:
+    runtime: 5
+  raxml_evaluate:
+    runtime: 60
+    mem_mb: 3552
+  epa_ng:
+    runtime: 30
+    mem_mb: 42624
+  gappa_assign:
+    runtime: 20
+    mem_mb: 3552
   sintax:
     runtime: 30
     mem_mb: 10000
@@ -26,10 +39,10 @@ set-resources:
     slurm_partition: long
     mem_mb: 24000
   mafft_align:
-    runtime: 120
+    runtime: 30
     mem_mb: 24000
   pal2nal:
-    runtime: 120
+    runtime: 30
   run_opticlust:
     mem_mb: 60000
   split_counts_samplewise:
@@ -45,19 +58,32 @@ set-resources:
     runtime: 120
   evaluate_order_lulu:
     runtime: 4320
+  generate_counts_files:
+    runtime: 60
+    mem_mb: 60000
+  generate_datasets:
+    runtime: 60
+    mem_mb: 64000
+  generate_evodistlists:
+    runtime: 60
+  generate_neeat_filtered:
+    runtime: 2410
+    mem_mb: 4000
+  order_otutab:
+    mem_mb: 64000
+  run_swarm:
+    runtime: 60
+    mem_mb: 60000
 
 set-threads:
-  vsearch_align: 1
-  mafft_align: 20
-  mothur_align: 20
-  run_opticlust: 1
   run_swarm: 20
   sum_asvs: 1
   split_counts: 1
-  chimera_samplewise: 40
-  id_spikeins: 10
-  lulu_matchlist_vsearch: 40
-  lulu_matchlist_blastn: 40
+  chimera_samplewise: 4
+  lulu_matchlist_vsearch: 4
+  matchlist_vsearch: 4
+  lulu_matchlist_blastn: 4
+  generate_datasets: 2
 
 # The settings below define command line flags for snakemake
 keep-going: True
