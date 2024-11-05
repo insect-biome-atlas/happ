@@ -1,15 +1,19 @@
-name: ASV-clustering
+name: happ
 channels:
   - conda-forge
   - bioconda
   - defaults
   - r
 dependencies:
-  - python
-  - snakemake
+  - python>=3.12
+  - snakemake>=8.2
   - scikit-learn
   - biopython
   - tqdm
+  - polars
+  - pandas
+  - pip
+  - seqkit
   - pip:
     - snakemake-executor-plugin-slurm
     
