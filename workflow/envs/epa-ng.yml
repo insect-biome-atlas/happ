@@ -1,0 +1,9 @@
+name: epa-ng
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - epa-ng
+  - gappa
+  - raxml-ng
+  - hmmer
