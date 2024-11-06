@@ -97,8 +97,27 @@ def log_files(wildcards):
         )
     return input
 
+def get_all_taxinput(wildcards):
+    input = []
+    taxfiles = {'epa-ng': [config["epa-ng"]["msa"], config["epa-ng"]["tree"], config["epa-ng"]["ref_taxonomy"]],
+            'sintax': [config["sintax"]["ref"]],
+            'vsearch': [config["qiime2"]["ref"], config["qiime2"]["taxfile"]]
+            }
+    # taxonomy files
+    for taxtool in config["taxtools"]:
+        if taxtool == "sintax+epa-ng" and all(os.path.exists(x) for x in taxfiles["epa-ng"]+taxfiles["sintax"]):
+            input.append(f"results/taxonomy/sintax_epang/{config['rundir']}/{config['epa-ng']['heuristic']}/taxonomy.tsv")
+        elif taxtool == "epa-ng" and all(os.path.exists(x) for x in taxfiles["epa-ng"]):
+            input.append(f"results/taxonomy/epa-ng/{config['rundir']}/assignments/{config['epa-ng']['heuristic']}/taxonomy.tsv")
+        elif taxtool == "sintax" and all(os.path.exists(x) for x in taxfiles["sintax"]):
+            input.append(f"results/taxonomy/sintax/{config['rundir']}/taxonomy.tsv")
+        elif taxtool == "vsearch" and all(os.path.exists(x) for x in taxfiles["vsearch"]) or all(os.path.exists(x) for x in taxfiles["sintax"]):
+            input.append(f"results/taxonomy/vsearch/{config['rundir']}/taxonomy.tsv")
+    return input
+
 def get_all_input(wildcards):
     input = []
+    input += get_all_taxinput(wildcards)
     # cluster files
     input += expand(
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_{suff}",
@@ -153,10 +172,13 @@ def get_all_input(wildcards):
     )
     return input
 
-
 rule all:
     input:
         get_all_input
+
+rule assign_taxonomy:
+    input:
+        get_all_taxinput
 
 rule evaluate:
     input:
