@@ -2,6 +2,5 @@ name: opticlust
 channels:
   - bioconda
   - conda-forge
-  - defaults
 dependencies:
-  - mothur=1.44.11
+  - mothur

@@ -1,7 +1,7 @@
 name: epa-ng
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
 dependencies:
   - epa-ng
   - gappa

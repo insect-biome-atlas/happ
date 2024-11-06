@@ -2,6 +2,5 @@ name: swarm
 channels:
   - bioconda
   - conda-forge
-  - defaults
 dependencies:
-  - swarm=3.1.0
+  - swarm

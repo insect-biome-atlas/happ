@@ -2,6 +2,5 @@ name: pal2nal
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - pal2nal
