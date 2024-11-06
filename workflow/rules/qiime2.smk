@@ -231,29 +231,19 @@ rule aggregate_qiime:
                         elif j > 0:
                             out.write(line)
 
-def add_unassigned(row):
-    _row = row[0:-1]
-    if sum(_row!="") == 0:
-        return row.replace("", "unclassified")
-    last_known = _row[_row!=''].index[-1]
-    if last_known == _row.index[-1]:
-        return row
-    if _row[last_known].startswith("unclassified"):
-        uncl_str = _row[last_known]
-    else:
-        uncl_str = f"unclassified.{_row[_row.index[_row!=''][-1]]}"
-    row[row==""] =  uncl_str
-    return row
 
 rule parse_qiime:
     output:
         "results/taxonomy/{classifier}/{rundir}/taxonomy.tsv"
     input:
         rules.aggregate_qiime.output[0]
-    run:
-        import pandas as pd
-        df = pd.read_csv(input[0], sep="\t", index_col=0)
-        parsed = parse_qiime2(df)
-        parsed = parsed.apply(add_unassigned, axis=1)
-        parsed.to_csv(output[0], sep="\t")
+    log:
+        "logs/parse_qiime/{classifier}/{rundir}.log"
+    params:
+        src=workflow.source_path("../scripts/parse_qiime.py"),
+        ranks=config["qiime2"]["ranks"]
+    shell:
+        """
+        python {params.src} {input} {output} -r {params.ranks} > {log} 2>&1
+        """
     
