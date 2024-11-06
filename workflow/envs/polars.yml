@@ -1,8 +1,0 @@
-name: polars
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
-dependencies:
-  - polars
-  - pandas
