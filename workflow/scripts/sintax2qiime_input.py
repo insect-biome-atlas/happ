@@ -20,7 +20,7 @@ def read_seqs(fasta):
     seqs = {}
     tax = {}
     for record in parse(fasta, "fasta"):
-        seqid, desc = (record.id).split(";")
+        seqid, desc = (record.description).split(";")
         desc = desc.replace("tax=", "")
         items = desc.split(",")
         lineage = "; ".join([x[0]+"__"+x[2:] for x in items])
