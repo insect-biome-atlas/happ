@@ -25,7 +25,7 @@ def main(args):
                     print(line)
                     continue
                 count = line.split("\t")[1]
-                if int(count) > 0:
+                if int(float(count)) > 0:
                     print(line)
     os.remove(fhout.name)
 
