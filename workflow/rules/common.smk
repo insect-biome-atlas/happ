@@ -24,6 +24,10 @@ def get_input_taxa(wildcards):
     Return the taxonomy file for the dataset
     """
     taxonomy_source=config["taxonomy_source"]
+    taxfiles = {'epa-ng': [config["epa-ng"]["msa"], config["epa-ng"]["tree"], config["epa-ng"]["ref_taxonomy"]],
+                'sintax': [config["sintax"]["ref"]],
+                'vsearch': [config["qiime2"]["ref"], config["qiime2"]["taxfile"]]
+                }
     # check if the taxonomy source is a link
     if os.path.islink(taxonomy_source):
         taxonomy_source_target = os.readlink(taxonomy_source)
@@ -34,18 +38,30 @@ def get_input_taxa(wildcards):
     # check if the taxonomy source is a file
     elif os.path.isfile(taxonomy_source):
         return taxonomy_source
-    elif taxonomy_source == "sintax+epa-ng":
+    elif taxonomy_source == "sintax+epa-ng" and all(os.path.exists(x) for x in taxfiles['epa-ng']+taxfiles['sintax']):
         return expand(
             "results/taxonomy/sintax_epang/{rundir}/{heur}/taxonomy.tsv",
             rundir=config["rundir"],
             heur=config["epa-ng"]["heuristic"],
         )[0]
-    elif taxonomy_source in ["sintax","epa-ng","vsearch"]:    
+    elif taxonomy_source == "sintax" and all(os.path.exists(x) for x in taxfiles["sintax"]):
         return expand(
             "results/taxonomy/{taxonomy_source}/{rundir}/taxonomy.tsv",
             taxonomy_source=taxonomy_source,
             rundir=config["rundir"],
         )[0]
+    elif taxonomy_source == "vsearch" and all(os.path.exists(x) for x in taxfiles['vsearch']) or all(os.path.exists(x) for x in taxfiles['sintax']):
+        return expand(
+            "results/taxonomy/vsearch/{rundir}/taxonomy.tsv",
+            rundir=config["rundir"],
+        )[0]
+    elif taxonomy_source == "epa-ng" and all(os.path.exists(x) for x in taxfiles['epa-ng']):
+        return expand(
+            "results/taxonomy/epa-ng/{rundir}/{heur}/taxonomy.tsv",
+            rundir=config["rundir"],
+            heur=config["epa-ng"]["heuristic"],
+        )[0]
+    sys.exit(f"ERROR: Taxonomy reference files not found")
 
 checkpoint split_input:
     """
