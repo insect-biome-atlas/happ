@@ -26,38 +26,7 @@ ranks:
   - "Genus"
   - "Species"
   - "BOLD_bin"
-# codon_table specifies the genetic code to use for codon filtering. The default is 5
-codon_table: 5
-# codon_start specifies the position in the ASV sequence where to start checking for stop codons. The default is 1.
-codon_start: 1
-
-# The metadata section below specifies properties of the metadata file that can
-# be used for to extract samples for calibrating counts and for removing
-# ASVs that are present in a certain fraction of 'blank' samples.
-# If your dataset contains spike-ins, the metadata file should contain a column
-# named 'spikein_sample' with values True or False (alternatively 1 or 0).
-metadata:
-  # specify path to a tab-separated metadata file
-  metadata_file: ""
-
-  # name of column in metadata file that contains sample ids
-  sample_id_col: ""
-
-  # sample_type_col is the name of the column in the metadata file that specifies the
-  # sample type.
-  sample_type_col: ""
-
-  # sample_val is a list of values in the sample_type_col that correspond to samples
-  sample_val: []
-
-  # blank_val is a list of values in the sample_type_col that correspond to blank samples
-  blank_val: []
-
-  # split_col is the column in the metadata file that specifies what samples
-  # belong to the same dataset. This is used to split the samples by dataset for counting
-  # occurence in blanks.
-  split_col: ""
-
+  
 ####################################
 ##### PREPROCESSING PARAMETERS #####
 ####################################
@@ -72,7 +41,7 @@ preprocessing:
   # Specific stop codons to look for. Specify multiple codons with in a comma separated list like: "TAA,TAG". By default TAA and TAG are being looked for.
   stop_codons: "TAA,TAG"
   # Specific position of the ASV where to start checking for codons.
-  start_position: 1
+  start_position: 2
   # Specific position of the ASV where to stop checking for codons. By default it checks until the end of the sequence
   end_position: 0
 
@@ -89,8 +58,9 @@ taxtools:
   - "sintax"
   - "vsearch"
   - "epa-ng"
+  - "sintax+epa-ng"
 sintax:
-  ref: "resources/sintax/coidb.sintax.fasta"
+  ref: ""
   randseed: 15
   cutoff: 0.8
   ranks: 
@@ -118,13 +88,13 @@ qiime2:
     - "Species"
     - "BOLD_bin"
 epa-ng:
-  tree: "/cfs/klemming/projects/snic/snic2020-16-248/git/paper-bioinformatic-methods/data/chesters_tree/chesters_new_outgroups.nwk"
+  tree: ""
   tree_format: "newick"
-  msa: "/cfs/klemming/projects/snic/snic2020-16-248/git/paper-bioinformatic-methods/data/chesters_tree/chesters_new_outgroups_aligned.trim0.9.fasta"
+  msa: ""
   msa_format: "fasta"
   model: "GTR+G+F"
   heuristic: "dyn-heur"
-  ref_taxonomy: "/cfs/klemming/projects/snic/snic2020-16-248/git/paper-bioinformatic-methods/data/chesters_tree/taxonomy.tsv"
+  ref_taxonomy: ""
   gappa:
     distribution_ratio: -1
     consensus_thresh: 1
@@ -376,62 +346,4 @@ noise_filtering:
 
   # abundance_cutoff (numeric, positive integer): The minimum number of reads
   # required for an OTU to pass the abundance filter
-  abundance_cutoff: 4
-
-lulu:
-  run_name: lulu1
-
-  # choose between vsearch and blastn for alignments
-  alignment_tool: "vsearch"
-
-  # maximum number of target sequences to return for aligner
-  max_target_seqs: 10
-  
-  # minimum_ratio_type sets whether a potential error must have lower abundance
-  # than the parent in all samples
-  minimum_ratio_type: "min"
-  
-  # minimum_ratio sets the minimum abundance ratio between a potential error and
-  # a potential parent to be identified as an error
-  minimum_ratio: 1
-
-  # minimum_match is the minimum threshold of sequence similarity for
-  # considering any OTU as an error of another
-  minimum_match: 84
-
-  # minimum co-occurrence rate – i.e. the lower rate of occurrence of the
-  # potential error explained by co-occurrence with the potential parent for
-  # considering error state.
-  minimum_relative_cooccurence: 0.95
-
-  # specify which orders (if any) are known to contain a large number of
-  # clusters if any order has > 10 k clusters then add them to this list this
-  # will increase the resources (threads) requested when running noise filtering
-  large_orders: ["Diptera"]
-  
-  # filter_unclassified_rank sets a taxonomic rank to used for filtering ASV
-  # clusters without a taxonomic assignments. For example, when this parameter
-  # is set to "Order", all ASV clusters that are unclassified at the Order level
-  # will be considered noise. These clusters are not evaluated in the main noise
-  # filtering algorithm but are likely to be noise due to the lack of taxonomic
-  # information.
-  filter_unclassified_rank: "Order"
-
-  # non_noise_ASVs is a list of ASV ids that are known to be non-noise. These are
-  # used to evaluate the filtering.
-  non_noise_ASVs: ""
-
-#####################
-##### CLEANING ######
-#####################
-# Parameters below specify whether to remove ASVs that are present in a certain
-# fraction of 'blank' samples. For this to work you must supply a path to a
-# tab-separated metadata file with at least one column specifying the sample ids
-# and one column specifying the sample type. The blanks can be labelled in any way
-# as long as they are distinct from the other sample types. The
-
-cleaning:
-  # max_blank_occurrence is the maximum percentage of blanks that an ASV can be present
-  # in before it is removed from the dataset. Note that if a cluster contains at least one ASV
-  # that is present in more than max_blank_occurrence, the entire cluster is removed.
-  max_blank_occurrence: 5
+  abundance_cutoff: 3
