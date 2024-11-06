@@ -66,14 +66,14 @@ properties:
   taxonomy_source:
     type: string
     description: "source of taxonomic information"
-    default: "sintax"
+    default: "sintax+epa-ng"
   taxtools:
     type: array
     description: "list of taxonomic tools to run"
     default: ["sintax"]
     items:
       type: string
-      enum: ["sintax", "epa-ng", "vsearch"]
+      enum: ["sintax", "epa-ng", "vsearch", "sintax+epa-ng"]
   epa-ng:
     type: object
     default:
@@ -83,6 +83,7 @@ properties:
       msa_format: "fasta"
       model: "GTR+G+F"
       heuristic: "dyn-heur"
+      chunk_size: 5000
       tree_ranks:
         - "Kingdom"
         - "Phylum"
@@ -91,6 +92,7 @@ properties:
         - "Family"
         - "Genus"
         - "Species"
+      ref_taxonomy: ""
     properties:
       tree:
         type: string
@@ -117,12 +119,20 @@ properties:
         description: "heuristic to use for epa-ng"
         default: "dyn-heur"
         enum: ["dyn-heur", "baseball-heur", "no-heur"]
+      chunk_size:
+        type: integer
+        description: "size of chunks to use for epa-ng"
+        default: 5000
       tree_ranks:
         type: array
         description: "ranks present in the reference tree"
         default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
         items:
           type: string
+      ref_taxonomy:
+        type: string
+        description: "path to reference taxonomy"
+        default: ""
       gappa:
         type: object
         default:
@@ -137,6 +147,33 @@ properties:
             type: number
             description: "threshold for consensus"
             default: 1
+  qiime2:
+    type: object
+    default:
+      ref: ""
+      taxfile: ""
+      ranks:
+        - "Kingdom"
+        - "Phylum"
+        - "Class"
+        - "Order"
+        - "Family"
+        - "Genus"
+        - "Species"
+        - "BOLD_bin"
+    properties:
+      ref:
+        type: string
+        description: "path to reference database"
+      taxfile:
+        type: string
+        description: "path to taxonomy file"
+      ranks:
+        type: array
+        description: "ranks to use for qiime2"
+        default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+        items:
+          type: string
   sintax:
     type: object
     default:
@@ -206,7 +243,7 @@ properties:
       max_length: 418
       filter_codons: True
       stop_codons: "TAA,TAG"
-      start_position: 1
+      start_position: 2
       end_position: 0
     properties:
       filter_length:
@@ -231,7 +268,7 @@ properties:
         description: Comma-separated list of stop codons
       start_position:
         type: integer
-        default: 1
+        default: 2
         description: Reading frame start (1 based)
       end_position:
         type: integer
@@ -503,7 +540,7 @@ properties:
       dist_threshold_local: 1.8
       dist_threshold_global: 4.0
       abundance_cutoff_type: "sum"
-      abundance_cutoff: 4
+      abundance_cutoff: 3
     properties:
       split_rank:
         type: string

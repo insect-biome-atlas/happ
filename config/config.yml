@@ -95,6 +95,7 @@ epa-ng:
   model: "GTR+G+F"
   heuristic: "dyn-heur"
   ref_taxonomy: ""
+  chunk_size: 5000
   gappa:
     distribution_ratio: -1
     consensus_thresh: 1

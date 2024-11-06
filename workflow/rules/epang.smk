@@ -13,29 +13,6 @@ wildcard_constraints:
 
 ## target rules
 
-""" def epa_ng_input(wildcards):
-    input = []
-    for ref in config["phylogeny"]["ref"].keys():
-        if "query" in config["phylogeny"].keys():
-            for query in config["phylogeny"]["query"].keys():
-                for heur in config["phylogeny"]["epa-ng"]["heuristics"]:
-                    input.append(f"results/epa-ng/{ref}/queries/{query}/{heur}/taxonomy.tsv")
-        if "reassign_sintax" in config["phylogeny"]["ref"][ref].keys():
-            rank = config["phylogeny"]["ref"][ref]["reassign_sintax"]["rank"]
-            taxa = config["phylogeny"]["ref"][ref]["reassign_sintax"]["taxa"]
-            for sintax_ref in config["sintax"]["ref"].keys():
-                for sintax_query in config["sintax"]["query"].keys():
-                    for tax in taxa:
-                        new_query = f"{sintax_query}.{tax}.reassigned"
-                        for heur in config["phylogeny"]["epa-ng"]["heuristics"]:
-                            input.append(f"results/epa-ng/{ref}/queries/{new_query}/{heur}/taxonomy.tsv")
-                            input.append(f"results/reassign/{sintax_ref}/queries/{sintax_query}/{ref}/{heur}/taxonomy.tsv")
-    return input """
-
-#rule run_epa_ng:
-#    input:
-#        epa_ng_input,
-
 rule nexus2newick:
     """
     Converts a nexus tree to newick format
@@ -226,6 +203,7 @@ rule epa_ng:
     params:
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         heur=get_heuristic,
+        chunkszie=config["epa-ng"]["chunk_size"],
     conda: 
         "../envs/epa-ng.yml"
     threads: 20
@@ -233,7 +211,7 @@ rule epa_ng:
         runtime=60*24,
     shell:
         """
-        epa-ng --redo -T {threads} --tree {input.ref_tree} --ref-msa {input.ref_msa} \
+        epa-ng --chunk-size {params.chunksize} --redo -T {threads} --tree {input.ref_tree} --ref-msa {input.ref_msa} \
             --query {input.qry} --out-dir {params.outdir} {params.heur} --model {input.info} >{log} 2>&1
         mv {params.outdir}/epa_result.jplace {output[0]}
         """
