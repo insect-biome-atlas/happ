@@ -17,7 +17,7 @@ rule sintax:
     params:
         seed=config["sintax"]["randseed"],
         cutoff=config["sintax"]["cutoff"]
-    conda: "../envs/sintax.yml"
+    conda: "../envs/vsearch.yml"
     resources:
         runtime = 30,
     threads: 1
