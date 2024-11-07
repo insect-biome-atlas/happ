@@ -1,10 +1,10 @@
 [![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
 
-# ASV-clustering
+# HAPP: High-Accuracy Pipeline for Processing deep metabarcoding data
 
 ## Overview
 
-This repository contains a Snakemake workflow to filter and cluster Amplicon
+This repository contains a Snakemake workflow for taxonomic assignments, filtering and clustering of Amplicon
 Sequence Variants (ASVs). 
 
 Currently the following clustering tools are supported:
@@ -17,33 +17,163 @@ Currently the following clustering tools are supported:
 
 The idea with this workflow is to make it easy to run OTU clustering with many 
 different parameter settings then evaluate which settings you think works best
-for your data. `vsearch` makes up the basis of the workflow by creating pairwise
-alignments of the sequences (often the most time-consuming step) and several 
-clustering runs can then be executed without having to re-create the alignments
-for each run.
+for your data.
 
-## Requirements
+## Installation
 
-This workflow was developed for a Linux system. The easiest way to get set up
-is to use the [pixi](https://pixi.sh/latest/) package manager to handle all 
-software requirements.
-
-## Installing
-
-1. Clone the repository and change into the directory:
+To install the workflow, either clone the repository by running:
 
 ```bash
-git clone git@github.com:johnne/ASV-clustering.git
-cd ASV-clustering
+git clone git@github.com:insect-biome-atlas/happ.git
+cd happ
 ```
 
-2. Install pixi
+or visit the [release page](https://github.com/insect-biome-atlas/happ/releases) and download the latest release.
 
-If you don't have [pixi](https://pixi.sh/) installed, follow the
-[instructions](https://pixi.sh/latest/#installation) to install it on your
-system. Once pixi is installed you're ready to start using the workflow.
+### Software requirements
+
+The software required to run the workflow can either be installed via
+[pixi](https://pixi.sh) or with [Conda](https://docs.conda.io/en/latest/).
+
+#### Installation with pixi (recommended)
+
+Follow the [instructions](https://pixi.sh/latest/#installation) to install pixi
+on your system, then run:
+
+```bash
+pixi install -a && pixi shell
+```
+
+from within the root of the repository. This will install all required software
+environments, store them in subdirectories of `.pixi/` in the repository
+root and then activate an interactive shell ready to use with the workflow.
+
+> [!NOTE]
+> The `pixi install -a` part is only needed the first time you set up the workflow.
+> On subsequent runs you can just run `pixi shell` to activate the environment.
+
+#### Installation with Conda
+
+If you prefer to use Conda, you can create a new environment with the required
+software by running:
+
+```bash
+conda env create -f environment.yml
+```
+
+Then activate the environment with:
+  
+  ```bash
+  conda activate happ
+  ```
+
+## Configuration
+
+The workflow can be configured using a configuration file in YAML format. A default config file is available at [config/config.yml](config/config.yml). It's recommended that you copy this file and make your changes in the copy, then pass it on the command line with `--configfile <path-to-your-configfile>`.
+
+The most important parameters in the config file are the input files:
+
+- `asv_seqs.fasta` (ASV sequences in FASTA format)
+- `asv_counts.tsv` (tab separated file with counts of ASVs (rows) in samples (columns))
+
+These files **must** be placed in a subdirectory under `data/` that is specified by the `rundir` parameter in the config file. The `rundir` parameter should be the name of the subdirectory containing the input files.
+
+The default config file contains:
+
+```yaml
+rundir: "test"
+```
+
+and the input files are placed under `data/test/`.
+
+### Taxonomic references
+
+HAPP uses taxonomic information about your input ASVs to split sequences by taxonomic ranks, allowing for parallel clustering of ASVs. Therefore the ASVs need to be assigned to taxonomic ranks. This can be done using the workflow itself, or by providing a file with taxonomic assignments.
+
+The workflow supports taxonomic assignment using the following tools:
+
+- SINTAX
+- EPA-NG (including assignments with GAPPA)
+- SINTAX + EPA-NG (reassigning SINTAX assignments with EPA-NG)
+- vsearch (implemented in QIIME2)
+
+To assign taxonomy to your input ASVs you need to provide a reference database
+that works with SINTAX and/or with EPA-NG and GAPPA, depending on the tools you
+want to use.
+
+#### SINTAX taxonomic reference
+
+A SINTAX compatible reference database containing COI (mitochondrial cytochrome oxidase subunit I) sequences collected from the BOLD database is available on [Figshare](https://doi.org/10.17044/scilifelab.20514192). From there, simply download the file `bold_clustered.sintax.fasta.gz`, unzip it and set the path to the file in the config file under the `sintax` section:
+
+```yaml
+sintax:
+  ref: "/path/to/bold_clustered.sintax.fasta"
+```
+
+#### EPA-NG and GAPPA taxonomic reference
+
+The phylogenetic placement/assignment tools EPA-NG and GAPPA require a reference
+tree, a multiple alignment and a reference taxonomy file. A compatible reference that allows assignments to classes Collembola, Diplura, Protura and Insecta is available to download from https://github.com/insect-biome-atlas/paper-bioinformatic-methods/data/chesters_tree/. The files you need are:
+
+- chesters_new_outgroups_aligned.trim0.9.fasta (alignment)
+- chesters_new_outgroups.nwk (tree)
+- taxonomy.tsv (taxonomy)
+
+Download these files and place them in a directory on your system. Then set the path to the files in the config file under the `epa-ng` section in the config file:
+
+```yaml
+epa-ng:
+  tree: "/path/to/chesters_tree/chesters_new_outgroups.nwk"
+  msa: "/path/to/chesters_new_outgroups_aligned.trim0.9.fasta"
+  ref_taxonomy: "/path/to/chesters_tree/taxonomy.tsv"
+```
+
+#### QIIME2 taxonomic reference
+
+To run the `vsearch` taxonomic assignment method (implemented in QIIME2) you need to provide compatible files. However, if you downloaded the COIDB SINTAX reference above you can leave the `ref:` and `taxfile:` config parameters empty. HAPP will then generate the necessary files using the SINTAX reference.
+
+#### Existing taxonomic assignments (optional)
+
+If you already have taxonomic assignments for your ASVs you can point to the file with taxonomic assignments in the config file with the `taxonomy_source:` parameter:
+
+```yaml
+taxonomy_source: "/path/to/asv_taxa.tsv"
+```
+
+ This file should be a tab-separated file with the ASV id in the first column and subsequent columns with taxonomic assignments at different ranks. An example of such a file is shown below:
+
+| ASV | Kingdom | Phylum | Class | Order | Family | Genus | Species | BOLD_bin |
+|-----|---------|--------|-------|-------|--------|-------|---------|----------|
+| ASV1 | Animalia | Arthropoda | Insecta | Coleoptera | Scarabaeidae | Melinopterus |  Melinopterus punctatosulcatus | BOLD:AAJ8574 |
+| ASV2 | Animalia | Arthropoda | Insecta | Lepidoptera | Tortricidae | Dichrorampha | Dichrorampha sylvicolana | BOLD:AAL6971 |
+
+If you do not want to run additional taxonomic assignment tools, you can then set the `taxtools:` parameter to an empty list in the config file:
+
+```yaml
+taxtools: []
+```
 
 ## Running the workflow
+
+### Preprocessing
+
+```bash
+snakemake --configfile <path-to-your-config-file> --profile local -n preprocess
+```
+
+### Filter chimeras
+
+```bash
+snakemake --configfile <path-to-your-config-file> --profile local -n filter_chimeras
+```
+
+### Assign taxonomy
+
+```bash
+snakemake --configfile <path-to-your-config-file> --profile local -n assign_taxonomy
+```
+
+
 
 This workflow was written in
 [Snakemake](https://snakemake.readthedocs.io/en/stable/index.html) but is
