@@ -1,0 +1,7 @@
+name: qiime2
+channels:
+  - conda-forge
+  - bioconda
+  - qiime2
+dependencies:
+  - qiime2
