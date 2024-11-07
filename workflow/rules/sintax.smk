@@ -1,7 +1,6 @@
 localrules:
     parse_sintax,
     aggregate_sintax,
-    extract_ASVs,
 
 rule sintax:
     """
@@ -18,6 +17,7 @@ rule sintax:
         seed=config["sintax"]["randseed"],
         cutoff=config["sintax"]["cutoff"]
     conda: "../envs/vsearch.yml"
+    container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     resources:
         runtime = 30,
     threads: 1
@@ -62,34 +62,3 @@ rule parse_sintax:
         """
         python {params.src} -i {input} -o {output} -r {params.ranks} > {log} 2>&1
         """
-
-rule extract_ASVs:
-    """
-    Extract ASVs matching reassign_rank == reassign_taxa but unclassified at child rank.
-    For example, ASVs classified as reassign_taxa == 'Insecta' at reassign_rank == 'Class' but unclassified at 'Order'.
-    """
-    output:
-        tsv="results/taxonomy/sintax/{rundir}/reassign/{rank}/unclassified.{taxa}.tsv",
-        fasta="results/taxonomy/sintax/{rundir}/reassign/{rank}/unclassified.{taxa}.fasta"
-    input:
-        tsv=rules.parse_sintax.output[0],
-        qry="data/{rundir}/asv_seqs.fasta"
-    params:
-        reassign_rank = lambda wildcards: wildcards.rank,
-        reassign_taxa = lambda wildcards: wildcards.taxa,
-    run:
-        reassign_taxa = params.reassign_taxa
-        reassign_rank = params.reassign_rank
-        from Bio.SeqIO import parse, write as write_fasta
-        import pandas as pd
-        df = pd.read_csv(input.tsv, sep="\t", index_col=0)
-        cols = df.columns.tolist()
-        child_rank = cols[cols.index(reassign_rank)+1]
-        taxdf = df.loc[df[child_rank]==f"unclassified.{reassign_taxa}"]
-        seqs = []
-        for record in parse(input.qry, "fasta"):
-            if record.id in taxdf.index:
-                seqs.append(record)
-        with open(output.fasta, "w") as f:
-            write_fasta(seqs, f, "fasta")
-        taxdf.to_csv(output.tsv, sep="\t")
