@@ -84,8 +84,8 @@ rule hmm_build:
         ref_msa,
     log:
         "logs/epa-ng/hmmbuild.log",
-    conda:
-        "../envs/epa-ng.yml"
+    conda: "../envs/hmmer.yml"
+    container: "docker://quay.io/biocontainers/hmmer:3.4--hdbdd923_2"
     resources:
         runtime=60,
     shell:
@@ -102,8 +102,8 @@ rule hmm_align:
         ref_msa=ref_msa
     log:
         "logs/epa-ng/{rundir}/hmmalign/{split}.log",
-    conda:
-        "../envs/epa-ng.yml"
+    conda: "../envs/hmmer.yml"
+    container: "docker://quay.io/biocontainers/hmmer:3.4--hdbdd923_2"
     resources:
         runtime=5,
     params:
@@ -128,6 +128,7 @@ rule split_aln:
     params:
         outdir=lambda wildcards, output: os.path.dirname(output.ref_msa),
     conda: "../envs/epa-ng.yml"
+    container: "docker://quay.io/biocontainers/epa-ng:0.3.8--hd03093a_3"
     shell:
         """
         epa-ng --redo --split {input.ref_msa} {input.msa} --outdir {params.outdir} > {log} 2>&1
@@ -169,8 +170,8 @@ rule raxml_evaluate:
         msa=rules.split_aln.output.ref_msa,
     log:
         "logs/epa-ng/{rundir}/raxml_evaluate/{split}.log",
-    conda:
-        "../envs/epa-ng.yml"
+    conda: "../envs/epa-ng.yml"
+    container: "docker://quay.io/biocontainers/raxml-ng:1.2.2--h6d1f11b_0"
     params:
         model=lambda wildcards: config["epa-ng"]["model"],
         prefix=lambda wildcards, output: os.path.dirname(output[0]) + "/info",
@@ -204,8 +205,8 @@ rule epa_ng:
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         heur=get_heuristic,
         chunkszie=config["epa-ng"]["chunk_size"],
-    conda: 
-        "../envs/epa-ng.yml"
+    conda:  "../envs/epa-ng.yml"
+    container: "docker://quay.io/biocontainers/epa-ng:0.3.8--hd03093a_3"
     threads: 20
     resources:
         runtime=60*24,
@@ -250,8 +251,8 @@ rule gappa_assign:
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         consensus_thresh=config["epa-ng"]["gappa"]["consensus_thresh"],
         distribution_ratio=get_dist_ratio(config),
-    conda:
-        "../envs/epa-ng.yml"
+    conda: "../envs/gappa.yml"
+    container: "docker://quay.io/biocontainers/gappa:0.8.5--hdcf5f25_2"   
     threads: 4
     #resources:
         #runtime=20,
