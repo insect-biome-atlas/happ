@@ -178,8 +178,8 @@ rule vsearch_align:
         iddef=config["vsearch"]["iddef"],
         query_cov=config["vsearch"]["query_cov"],
     threads: config["vsearch"]["threads"]
-    conda:
-        "../envs/vsearch.yml"
+    conda: "../envs/vsearch.yml"
+    container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     resources:
         runtime=60 * 24,
     shell:
