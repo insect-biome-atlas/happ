@@ -63,8 +63,8 @@ rule qiime2_import_ref_seqs:
         qiime2_ref_seqs,
     log:
         "logs/qiime2_import_ref_seqs.log"
-    container:
-        "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
+    conda: "../envs/qiime2.yml"
+    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     threads: 1
     resources:
         runtime = 60
@@ -83,8 +83,8 @@ rule qiime2_import_qry_seqs:
         "results/common/{rundir}/splits/stdin.part_{split}.fasta"
     log:
         "logs/qiime2_import_qry_seqs/{rundir}/{split}.log"
-    container:
-        "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
+    conda: "../envs/qiime2.yml"
+    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     threads: 1
     resources:
         runtime = 60
@@ -113,8 +113,8 @@ rule qiime2_import_taxonomy:
         qiime2_taxonomy,
     log:
         "logs/qiime2_import_taxonomy.log"
-    container:
-        "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
+    conda: "../envs/qiime2.yml"
+    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     threads: 1
     resources:
         runtime = 60
@@ -135,8 +135,8 @@ rule qiime2_train:
         seq=rules.qiime2_import_ref_seqs.output[0]
     log:
         "logs/qiime2_train.log"
-    container:
-        "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
+    conda: "../envs/qiime2.yml"
+    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     resources:
         runtime=60 * 24 * 10,
     threads: 20
@@ -158,8 +158,8 @@ rule qiime2_classify_sklearn:
     log:
         "logs/qiime2_classify_sklearn/{rundir}/{split}.log"
     threads: 20
-    container:
-        "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
+    conda: "../envs/qiime2.yml"
+    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     resources:
         runtime = 60 * 10,
     shell:
@@ -181,8 +181,8 @@ rule qiime2_classify_vsearch:
     log:
         "logs/qiime2_classify_vsearch/{rundir}/{split}.log"
     threads: 20
-    container:
-        "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
+    conda: "../envs/qiime2.yml"
+    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     resources:
         runtime = 60 * 10,
     shell:
@@ -199,8 +199,8 @@ rule qiime2_export:
         "results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.qza"
     log:
         "logs/qiime2_export/{classifier}/{rundir}/{split}.log"
-    container: 
-        "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
+    conda: "../envs/qiime2.yml"
+    container:  "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     threads: 1
     shell:
         """
