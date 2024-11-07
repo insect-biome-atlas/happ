@@ -49,7 +49,10 @@ wildcard_constraints:
 
 ## Utilities ##
 
-rule chimera_filtering:
+rule filter_chimeras:
+    """
+    Pseudo-rule to act as a target for filtering chimeras
+    """
     input:
         expand(
             "results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{f}",
@@ -86,11 +89,7 @@ rule sum_asvs:
         tmpdir="$TMPDIR/{rundir}.sum_counts",
     shell:
         """
-        mkdir -p {params.tmpdir}
-        cp {input.counts} {params.tmpdir}/asv_counts.tsv
-        python {params.src} {params.tmpdir}/asv_counts.tsv > {params.tmpdir}/asv_sum.tsv 2>{log}
-        mv {params.tmpdir}/asv_sum.tsv {output.sums}
-        rm -rf {params.tmpdir}
+        python {params.src} {input.counts} > {output.sums} 2>{log}
         """
 
 rule append_size:
@@ -134,8 +133,8 @@ rule chimera_batchwise:
         uchimealns="results/chimera/{rundir}/batchwise.{algo}/uchimealns.out",
     log:
         "logs/chimeras/{rundir}/batchwise/{algo}.log",
-    conda:
-        "../envs/vsearch.yml"
+    conda: "../envs/vsearch.yml"
+    container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     threads: 1
     resources:
         runtime=60 * 24,
@@ -217,8 +216,8 @@ rule chimera_samplewise:
         fasta=rules.add_sums.output.fasta,
     log:
         "logs/chimeras/{rundir}/samplewise.{algo}/samples/{sample}.log",
-    conda:
-        "../envs/vsearch.yml"
+    conda: "../envs/vsearch.yml"
+    container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     threads: 4
     resources:
         runtime=60 * 4,
