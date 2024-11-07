@@ -27,8 +27,7 @@ rule run_dbotu3:
         counts="$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/asv_counts.tsv",
         tsv="$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/dbotu3.tsv",
         memb="$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/dbotu3.clusters.tsv",
-    conda:
-        "../envs/dbotu3.yml"
+    conda: "../envs/dbotu3.yml"
     threads: 4
     shell:
         """
