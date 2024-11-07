@@ -63,8 +63,8 @@ rule run_swarm:
         tsv="$TMPDIR/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/swarm_table.tsv",
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
     threads: config["swarm"]["threads"]
-    conda:
-        "../envs/swarm.yml"
+    conda: "../envs/swarm.yml"
+    container: "docker://quay.io/biocontainers/swarm:3.1.5--h4ac6f70_1"
     resources:
         runtime=60 * 24,
     shell:
