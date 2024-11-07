@@ -2,6 +2,7 @@ name: happ
 channels:
   - conda-forge
   - bioconda
+  - r
 dependencies:
   - python<3.12
   - snakemake>=8.2
@@ -12,6 +13,9 @@ dependencies:
   - pandas
   - pip
   - seqkit
+  - r-ape
+  - r-seqinr
+  - r-data.table
   - pip:
     - snakemake-executor-plugin-slurm
     
