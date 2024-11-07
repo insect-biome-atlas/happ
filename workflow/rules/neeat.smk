@@ -49,8 +49,6 @@ rule generate_counts_files:
         sample_id_col=config["metadata"]["sample_id_col"],
         sample_type_col=config["metadata"]["sample_type_col"],
         sample_val=config["metadata"]["sample_val"],
-    conda:
-        "../envs/r-env.yml"
     script: 
         "../scripts/neeat/generate_counts_files.R"
 
@@ -118,8 +116,8 @@ rule matchlist_vsearch:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/fasta/{tax}.fasta"
     log:
         "logs/matchlist_vsearch/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
-    conda:
-        "../envs/vsearch.yml"
+    conda: "../envs/vsearch.yml"
+    container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     params:
         tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{noise_rank}/{tax}/",
         maxhits = config["noise_filtering"]["max_target_seqs"]
@@ -156,8 +154,6 @@ rule generate_datasets:
         "logs/generate_datasets/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     params:
         split_rank = config["noise_filtering"]["split_rank"]
-    conda:
-        "../envs/r-env.yml"
     threads: 1
     script:
         "../scripts/neeat/generate_datasets.R"
@@ -175,8 +171,6 @@ rule generate_aa_seqs:
     params:
         codon_table = config["codon_table"],
         codon_start = config["codon_start"]
-    conda:
-        "../envs/r-env.yml"
     script:
         "../scripts/neeat/generate_aa_seqs.R"
 
@@ -190,8 +184,8 @@ rule mafft_align:
         rules.generate_aa_seqs.output.faa,
     log:
         "logs/mafft_align/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log",
-    conda: 
-        "../envs/mafft.yml"
+    conda:  "../envs/mafft.yml"
+    container: "docker://quay.io/biocontainers/mafft:7.525--h031d066_0"
     threads: 4
     resources:
         tasks = 4,
@@ -210,8 +204,8 @@ rule pal2nal:
         nuc="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/fasta/{tax}.fasta"
     log:
         "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
-    conda:
-        "../envs/pal2nal.yml"
+    conda: "../envs/pal2nal.yml"
+    container: "docker://biocontainers/pal2nal:v14.1-2-deb_cv1"
     params:
         codon_table = config["codon_table"],
         codon_start = config["codon_start"],
@@ -239,8 +233,6 @@ rule generate_evodistlists:
         "logs/generate_evodistlists/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     params:
         codon_model = workflow.source_path("../scripts/neeat/codon_model.R"),
-    conda:
-        "../envs/r-env.yml"
     threads: 1
     script:
         "../scripts/neeat/generate_evo_dists.R"
@@ -289,8 +281,6 @@ rule generate_neeat_filtered:
         abundance_cutoff_type=config["noise_filtering"]["abundance_cutoff_type"],
         abundance_cutoff=config["noise_filtering"]["abundance_cutoff"],
         assignment_rank=config["noise_filtering"]["assignment_rank"]
-    conda:
-        "../envs/r-env.yml"
     script:
         "../scripts/neeat/generate_neeat_filtered.R"
     
