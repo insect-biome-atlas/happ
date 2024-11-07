@@ -12,8 +12,8 @@ rule mothur_align:
     log:
         log="logs/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/mothur_align.log",
         err="logs/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/mothur_align.err",
-    conda:
-        "../envs/opticlust.yml"
+    conda: "../envs/opticlust.yml"
+    container: "docker://biocontainers/mothur:v1.41.21-1-deb_cv1"
     params:
         indir=lambda wildcards, input: os.path.dirname(input.fasta[0]),
         tmpdir="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}",
@@ -65,8 +65,6 @@ rule run_opticlust:
     log:
         log="logs/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/opticlust.log",
         err="logs/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/opticlust.err",
-    # shadow:
-    #    "full"
     params:
         dist="$TMPDIR/opticlust.{rundir}.{chimera_run}.{chimdir}.{rank}.{tax}.{run_name}/asv_seqs.dist",
         counts="$TMPDIR/opticlust.{rundir}.{chimera_run}.{chimdir}.{rank}.{tax}.{run_name}/counts.tsv",
@@ -77,8 +75,8 @@ rule run_opticlust:
         initialize=config["opticlust"]["initialize"],
         precision=config["opticlust"]["precision"],
         src=workflow.source_path("../scripts/run_opticlust.py"),
-    conda:
-        "../envs/opticlust.yml"
+    conda: "../envs/opticlust.yml"
+    container: "docker://biocontainers/mothur:v1.41.21-1-deb_cv1"
     threads: config["opticlust"]["threads"]
     resources:
         runtime=60 * 24,
