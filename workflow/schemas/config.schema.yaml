@@ -674,3 +674,65 @@ properties:
         type: integer
         description: "In samplewise mode this is the minimum fraction of samples in which a sequence has to be marked as chimeric"
         default: 0
+  ## CONDA ENVS
+  pixi:
+    type: boolean
+    description: "whether to use the pixi environment"
+    default: False
+  blastn-env:
+    type: string
+    description: "path to blastn environment"
+    default: "../envs/blastn.yml"
+  datatable-env:
+    type: string
+    description: "path to data.table environment"
+    default: "../envs/data.table.yml"
+  dbotu3-env:
+    type: string
+    description: "path to dbotu3 environment"
+    default: "../envs/dbotu3.yml"
+  epang-env:
+    type: string
+    description: "path to epang environment"
+    default: "../envs/epa-ng.yml"
+  gappa-env:
+    type: string
+    description: "path to gappa environment"
+    default: "../envs/gappa.yml"
+  hmmer-env:
+    type: string
+    description: "path to hmmer environment"
+    default: "../envs/hmmer.yml"
+  mafft-env:
+    type: string
+    description: "path to mafft environment"
+    default: "../envs/mafft.yml"
+  opticlust-env:
+    type: string
+    description: "path to opticlust environment"
+    default: "../envs/opticlust.yml"
+  pal2nal-env:
+    type: string
+    description: "path to pal2nal environment"
+    default: "../envs/pal2nal.yml"
+  qiime2-env:
+    type: string
+    description: "path to qiime2 environment"
+    default: "../envs/qiime2.yml"
+  raxml-env:
+    type: string
+    description: "path to raxml environment"
+    default: "../envs/raxml.yml"
+  seqinr-env:
+    type: string
+    description: "path to seqinr environment"
+    default: "../envs/seqinr.yml"
+  swarm-env:
+    type: string
+    description: "path to swarm environment"
+    default: "../envs/swarm.yml"
+  vsearch-env:
+    type: string
+    description: "path to vsearch environment"
+    default: "../envs/vsearch.yml"
+  
