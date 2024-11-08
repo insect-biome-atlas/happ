@@ -204,7 +204,7 @@ rule epa_ng:
     params:
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         heur=get_heuristic,
-        chunkszie=config["epa-ng"]["chunk_size"],
+        chunksize=config["epa-ng"]["chunk_size"],
     conda: config["epang-env"]
     container: "docker://quay.io/biocontainers/epa-ng:0.3.8--hd03093a_3"
     threads: 20
