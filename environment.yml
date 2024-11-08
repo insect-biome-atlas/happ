@@ -5,7 +5,7 @@ channels:
   - r
 dependencies:
   - python<3.12
-  - snakemake>=8.2
+  - snakemake>=8.21.0
   - scikit-learn
   - biopython
   - tqdm
@@ -14,8 +14,5 @@ dependencies:
   - pip
   - seqkit
   - r-ape
-  - r-seqinr
-  - r-data.table
-  - pip:
-    - snakemake-executor-plugin-slurm
+  - snakemake-executor-plugin-slurm
     
