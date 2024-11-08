@@ -39,6 +39,16 @@ To use Apptainer on Dardel you first need to load the Apptainer module with:
 module load PDC apptainer
 ```
 
+Also, make sure to set the `APPTAINER_CACHE` environment variable to a directory
+somewhere in your scratch space to avoid Disk quota errors. For example, you can create a folder `$TMPDIR/.cache/apptainer` and set the environment variable like this:
+
+```bash
+mkdir -p $TMPDIR/.cache/apptainer
+export APPTAINER_CACHE=$TMPDIR/.cache/apptainer
+```
+
+You can also add the `export APPTAINER_CACHE=$TMPDIR/.cache/apptainer` line to your shell configuration file (e.g. `~/.bashrc` if using bash or `~/.zshrc` if using zsh) to make the change permanent.
+
 Then add the `--software-deployment-method apptainer` (or `--sdm apptainer`) flag to your Snakemake command:
 
 ```bash
