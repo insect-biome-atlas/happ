@@ -3,7 +3,7 @@
 This directory contains a configuration profile for the Dardel HPC system at
 PDC.
 
-You can read more about the [available partitions](https://www.pdc.kth.se/support/documents/run_jobs/job_scheduling.html#dardel-partitions) at 
+Read more about the [available partitions](https://www.pdc.kth.se/support/documents/run_jobs/job_scheduling.html#dardel-partitions) 
 and [compute nodes](https://www.pdc.kth.se/support/documents/run_jobs/job_scheduling.html#dardel-compute-nodes).
 
 ## Using the profile
@@ -30,12 +30,27 @@ snakemake --configfile <path-to-your-configfile.yml> --profile dardel <additiona
 
 ## Additional tips for running on Dardel
 
+### Using Apptainer
+
+The `happ` workflow can be run with Apptainer to handle software dependencies.
+To use Apptainer on Dardel you first need to load the Apptainer module with:
+
+```bash
+module load PDC apptainer
+```
+
+Then add the `--software-deployment-method apptainer` (or `--sdm apptainer`) flag to your Snakemake command:
+
+```bash
+snakemake --configfile <path-to-your-configfile.yml> --sdm apptainer --profile dardel  <additional-arguments>
+```
+
 ### Using Conda
 
 The Dardel system has a module for Conda that you can load with the following command:
 
 ```bash
-module bioinfo-tools conda
+module load bioinfo-tools conda
 ```
 
 If this is your first time loading conda, also initialize your shell with:
