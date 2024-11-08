@@ -1,6 +1,4 @@
 rerun-triggers: "mtime"
 keep-going: True
 printshellcmds: True
-configfile: config/config.yml
 cores: 1
-software-deployment-method: "conda"
