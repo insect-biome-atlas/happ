@@ -1,6 +1,7 @@
-name: epa-ng
+name: seqinr
 channels:
   - conda-forge
   - bioconda
+  - r
 dependencies:
-  - epa-ng
+  - r-seqinr

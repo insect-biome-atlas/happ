@@ -1,6 +1,6 @@
-name: epa-ng
+name: raxml
 channels:
   - conda-forge
   - bioconda
 dependencies:
-  - epa-ng
+  - raxml-ng

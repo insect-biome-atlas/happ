@@ -1,6 +1,7 @@
-name: epa-ng
+name: r-data.table
 channels:
   - conda-forge
   - bioconda
+  - r
 dependencies:
-  - epa-ng
+  - r-data.table
