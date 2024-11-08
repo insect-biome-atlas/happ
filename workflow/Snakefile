@@ -4,8 +4,12 @@ from snakemake.utils import validate
 
 include: "scripts/common.py"
 
-
 validate(config, schema="schemas/config.schema.yaml", set_default=True)
+
+for key in [x for x in config.keys() if x.endswith("-env")]:
+    pixi_dir = f".pixi/envs/{key.replace('-env', '')}"
+    if os.path.exists(pixi_dir) and os.path.isdir(pixi_dir):
+        config[key] = pixi_dir
 
 if config["chimera"]["remove_chimeras"]:
     # If config is set to remove chimeras, include the rules file and set
