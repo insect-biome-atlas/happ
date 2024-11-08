@@ -1,33 +1,78 @@
 [project]
-name = "ASV-clustering"
+name = "happ"
 version = "0.1.0"
-description = "Add a short description here"
+description = "Pixi project file for HAPP workflow"
 authors = ["johnne <john.sundh@scilifelab.se>"]
 channels = ["conda-forge", "bioconda", "main", "r", "msys2", "cduvallet"]
-platforms = ["linux-64"]
+platforms = ["linux-64", "osx-64", "linux-aarch64", "osx-arm64"]
 
-[system-requirements]
-linux="3.10.0"
+[feature.happ]
+dependencies = {python = "*", snakemake = "8.21.0", scikit-learn = "*", biopython = "*", tqdm = "*", polars = "*", pandas = "*", seqkit = "*", conda = "*", r-ape = "*", snakemake-executor-plugin-slurm = "*"}
 
-[tasks]
-init = "conda config --set channel_priority strict"
-chimera_filtering = {cmd="snakemake chimera_filtering", depends_on = ["init"]}
-clustering = {cmd="snakemake clustering", depends_on = ["init"]}
-noise_filtering = {cmd="snakemake noise_filtering", depends_on = ["init"]}
-all = {cmd="snakemake", depends_on = ["init"]}
+[feature.blastn]
+dependencies = {blast = "*"}
+platforms = ["linux-64", "osx-64"]
 
-[dependencies]
-python = ">=3.12"
-mamba = "*"
-snakemake = ">=8.20"
-scikit-learn = "*"
-biopython = "*"
-tqdm = "*"
-polars = "*"
-pandas = "*"
-pip = "*"
-seqkit = "*"
-conda = ">=24.7.1"
+[feature.datatable]
+dependencies = {'r-data.table' = "*"}
 
-[pypi-dependencies]
-snakemake-executor-plugin-slurm = "*"
+[feature.dbotu3]
+dependencies = {dbotu = "*"}
+channels = ["conda-forge", "bioconda", "cduvallet"]
+
+[feature.epang]
+dependencies = {epa-ng = "*"}
+platforms = ["linux-64", "osx-64"]
+
+[feature.gappa]
+dependencies = {gappa = "*"}
+
+[feature.hmmer]
+dependencies = {hmmer = "*"}
+
+[feature.mafft]
+dependencies = {mafft = "*"}
+
+[feature.opticlust]
+dependencies = {mothur = "*"}
+platforms = ["linux-64", "osx-64"]
+
+[feature.pal2nal]
+dependencies = {pal2nal = "*"}
+
+[feature.qiime2]
+dependencies = {q2-vsearch = "*", q2-feature-classifier = "*", q2-feature-table = "*", qiime2 = "*", q2cli = "*"}
+platforms = ["linux-64", "osx-64"]
+channels = ["qiime2", "conda-forge", "bioconda"]
+
+[feature.raxml]
+dependencies = {raxml-ng = "*"}
+platforms = ["linux-64", "osx-64", "linux-aarch64"]
+
+[feature.seqinr]
+dependencies = {r-seqinr = "*"}
+platforms = ["linux-64", "osx-64", "linux-aarch64"]
+
+[feature.swarm]
+dependencies = {swarm = "*"}
+platforms = ["linux-64", "osx-64", "linux-aarch64"]
+
+[feature.vsearch]
+dependencies = {vsearch = "*"}
+
+[environments]
+default = ["happ"]
+blastn = ["blastn"]
+datatable = ["datatable"]
+dbotu3 = ["dbotu3"]
+epang = ["epang"]
+gappa = ["gappa"]
+hmmer = ["hmmer"]
+mafft = ["mafft"]
+opticlust = ["opticlust"]
+pal2nal = ["pal2nal"]
+qiime2 = ["qiime2"]
+raxml = ["raxml"]
+seqinr = ["seqinr"]
+swarm = ["swarm"]
+vsearch = ["vsearch"]
