@@ -32,16 +32,27 @@ snakemake --configfile <path-to-your-configfile.yml> --profile dardel <additiona
 
 ### Using Conda
 
-The Dardel system has a module for Conda that you can load with `module load
-conda`. After loading this module update the conda config with
+The Dardel system has a module for Conda that you can load with the following command:
+
+```bash
+module bioinfo-tools conda
+```
+
+If this is your first time loading conda, also initialize your shell with:
+
+```bash
+conda init
+```
+
+then close and reopen your terminal.
+
+To avoid Disk quota errors create a `pkgs` directory in your scratch path and
+configure Conda to use this for storing package downloads. Run the following:
 
 ```bash
 mkdir -p $TMPDIR/pkgs
 conda config --add pkgs_dirs $TMPDIR/pkgs
 ```
-
-This will create a `pkgs` subfolder in your scratch path, and configure Conda to
-use this for storing package downloads. This avoids Disk quota errors.
 
 It is also recommended to create the main `happ` environment in the root of the
 git repository, for instance if you cloned `happ` into a directory called
@@ -56,6 +67,13 @@ You can then update your Conda config to make this environment findable:
 
 ```bash
 conda config --append envs_dirs /cfs/klemming/projects/snic/snic2024-1-100/happ/envs
+```
+
+Once you have completed the above, on subsequent logins you load conda then activate the environment with:
+
+```bash
+module load bioinfo-tools conda
+conda activate happ
 ```
 
 ### Using pixi
