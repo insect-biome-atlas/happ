@@ -52,6 +52,17 @@ root and then activate an interactive shell ready to use with the workflow.
 > The `pixi install -a` part is only needed the first time you set up the workflow.
 > On subsequent runs you can just run `pixi shell` to activate the environment.
 
+> [!TIP]
+> You can also use `pixi` to install just the main `happ` environment and let 
+> Snakemake handle software requirements on the fly. This can be
+> done by running:
+> ```bash
+> pixi shell
+> ```
+> then just run the workflow as described below, adding either
+> `--software-deployment-method conda` or `--software-deployment-method
+> apptainer` to the Snakemake command line call.
+
 #### Installation with Conda
 
 If you prefer to use Conda, you can create a new environment with the required
@@ -61,11 +72,28 @@ software by running:
 conda env create -f environment.yml
 ```
 
+> [!TIP]
+> If you are installing on a system with limited home quota (_e.g._ a HPC cluster), you can specify a different location for the Conda environment by adding the `--prefix` or `-p` flag to the `conda env create` command. For example:
+> ```bash
+> conda env create -f environment.yml -p <project-envs-dir>/happ
+> ```
+> This way the storage of the Conda environment will not count towards your home quota. If you have cloned the workflow into a project directory (outside your home directory), a good place to store this environment is in a subdirectory `envs/` in the repository root:
+> ```bash
+> mkdir envs/
+> conda env create -f environment.yml -p envs/happ
+> ```
+
 Then activate the environment with:
   
   ```bash
   conda activate happ
   ```
+
+or if you followed the tip above:
+  
+```bash
+conda activate envs/happ
+```
 
 ## Configuration
 
@@ -113,7 +141,7 @@ sintax:
 #### EPA-NG and GAPPA taxonomic reference
 
 The phylogenetic placement/assignment tools EPA-NG and GAPPA require a reference
-tree, a multiple alignment and a reference taxonomy file. A compatible reference that allows assignments to classes Collembola, Diplura, Protura and Insecta is available to download from https://github.com/insect-biome-atlas/paper-bioinformatic-methods/data/chesters_tree/. The files you need are:
+tree, a multiple alignment and a reference taxonomy file. A compatible reference that allows assignments to classes Collembola, Diplura, Protura and Insecta is available to download from https://github.com/insect-biome-atlas/paper-bioinformatic-methods/tree/main/data/chesters_tree. The files you need are:
 
 - chesters_new_outgroups_aligned.trim0.9.fasta (alignment)
 - chesters_new_outgroups.nwk (tree)
