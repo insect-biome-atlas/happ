@@ -1,5 +1,6 @@
 results
 data
+!data/test
 .snakemake
 envs/
 logs/
@@ -19,3 +20,4 @@ clipboard
 !local/config.yaml
 !test/config.yaml
 !test/config.yml
+!workflow/envs/*.yml
