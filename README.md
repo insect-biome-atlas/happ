@@ -57,7 +57,7 @@ root and then activate an interactive shell ready to use with the workflow.
 > Snakemake handle software requirements on the fly. This can be
 > done by running:
 > ```bash
-> pixi shell
+> pixi shell -e default
 > ```
 > then just run the workflow as described below, adding either
 > `--software-deployment-method conda` or `--software-deployment-method
