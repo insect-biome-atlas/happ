@@ -65,10 +65,7 @@ rule qiime2_import_ref_seqs:
     log:
         "logs/qiime2_import_ref_seqs.log"
     conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
-    threads: 1
-    resources:
-        runtime = 60
+    container: "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime tools import --type 'FeatureData[Sequence]' --input-path {input} --output-path {output} > {log} 2>&1
@@ -85,10 +82,7 @@ rule qiime2_import_qry_seqs:
     log:
         "logs/qiime2_import_qry_seqs/{rundir}/{split}.log"
     conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
-    threads: 1
-    resources:
-        runtime = 60
+    container: "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime tools import --type 'FeatureData[Sequence]' --input-path {input} --output-path {output} > {log} 2>&1
@@ -115,10 +109,7 @@ rule qiime2_import_taxonomy:
     log:
         "logs/qiime2_import_taxonomy.log"
     conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
-    threads: 1
-    resources:
-        runtime = 60
+    container: "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime tools import --type 'FeatureData[Taxonomy]' --input-format TSVTaxonomyFormat \
@@ -137,10 +128,7 @@ rule qiime2_train:
     log:
         "logs/qiime2_train.log"
     conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
-    resources:
-        runtime=60 * 24 * 10,
-    threads: 20
+    container: "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime feature-classifier fit-classifier-naive-bayes --i-reference-reads {input.seq} --i-reference-taxonomy {input.tax} \
@@ -160,12 +148,14 @@ rule qiime2_classify_sklearn:
         "logs/qiime2_classify_sklearn/{rundir}/{split}.log"
     threads: 20
     conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
+    container: "docker://quay.io/qiime2/amplicon:2024.10"
     resources:
         runtime = 60 * 10,
+        tasks = 20,
+        cpus_per_task = 1
     shell:
         """
-        qiime feature-classifier classify-sklearn --i-classifier {input.classifier} --i-reads {input.qry} --o-classification {output} > {log} 2>&1
+        qiime feature-classifier classify-sklearn --p-n-jobs {resources.tasks} --i-classifier {input.classifier} --i-reads {input.qry} --o-classification {output} > {log} 2>&1
         """
 
 rule qiime2_classify_vsearch:
@@ -183,14 +173,16 @@ rule qiime2_classify_vsearch:
         "logs/qiime2_classify_vsearch/{rundir}/{split}.log"
     threads: 20
     conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
+    container: "docker://quay.io/qiime2/amplicon:2024.10"
     resources:
         runtime = 60 * 10,
+        tasks = 20,
+        cpus_per_task = 1
     shell:
         """
         qiime feature-classifier classify-consensus-vsearch --i-reference-reads {input.ref} --i-query {input.qry} \
             --i-reference-taxonomy {input.ref_tax} --o-classification {output.vsearch} --o-search-results {output.hits} \
-            --p-threads {threads} --verbose > {log} 2>&1
+            --p-threads {resources.tasks} --verbose > {log} 2>&1
         """
 
 rule qiime2_export:
@@ -201,8 +193,7 @@ rule qiime2_export:
     log:
         "logs/qiime2_export/{classifier}/{rundir}/{split}.log"
     conda: config["qiime2-env"]
-    container:  "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
-    threads: 1
+    container:  "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime tools export --input-path {input} --output-path {output[0]} --output-format TSVTaxonomyFormat > {log} 2>&1
