@@ -12,7 +12,7 @@ rule mothur_align:
     log:
         log="logs/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/mothur_align.log",
         err="logs/mothur/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/mothur_align.err",
-    conda: "../envs/opticlust.yml"
+    conda: config["opticlust-env"]
     container: "docker://biocontainers/mothur:v1.41.21-1-deb_cv1"
     params:
         indir=lambda wildcards, input: os.path.dirname(input.fasta[0]),
@@ -75,7 +75,7 @@ rule run_opticlust:
         initialize=config["opticlust"]["initialize"],
         precision=config["opticlust"]["precision"],
         src=workflow.source_path("../scripts/run_opticlust.py"),
-    conda: "../envs/opticlust.yml"
+    conda: config["opticlust-env"]
     container: "docker://biocontainers/mothur:v1.41.21-1-deb_cv1"
     threads: config["opticlust"]["threads"]
     resources:

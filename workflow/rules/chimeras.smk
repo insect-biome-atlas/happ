@@ -133,7 +133,7 @@ rule chimera_batchwise:
         uchimealns="results/chimera/{rundir}/batchwise.{algo}/uchimealns.out",
     log:
         "logs/chimeras/{rundir}/batchwise/{algo}.log",
-    conda: "../envs/vsearch.yml"
+    conda: config["vsearch-env"]
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     threads: 1
     resources:
@@ -216,7 +216,7 @@ rule chimera_samplewise:
         fasta=rules.add_sums.output.fasta,
     log:
         "logs/chimeras/{rundir}/samplewise.{algo}/samples/{sample}.log",
-    conda: "../envs/vsearch.yml"
+    conda: config["vsearch-env"]
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     threads: 4
     resources:

@@ -16,7 +16,7 @@ rule sintax:
     params:
         seed=config["sintax"]["randseed"],
         cutoff=config["sintax"]["cutoff"]
-    conda: "../envs/vsearch.yml"
+    conda: config["vsearch-env"]
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     resources:
         runtime = 30,

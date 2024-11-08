@@ -49,6 +49,8 @@ rule generate_counts_files:
         sample_id_col=config["metadata"]["sample_id_col"],
         sample_type_col=config["metadata"]["sample_type_col"],
         sample_val=config["metadata"]["sample_val"],
+    container: "quay.io/biocontainers/r-data.table:1.12.2"
+    conda: config["datatable-env"]
     script: 
         "../scripts/neeat/generate_counts_files.R"
 
@@ -116,7 +118,7 @@ rule matchlist_vsearch:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/fasta/{tax}.fasta"
     log:
         "logs/matchlist_vsearch/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
-    conda: "../envs/vsearch.yml"
+    conda: config["vsearch-env"]
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     params:
         tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{noise_rank}/{tax}/",
@@ -184,7 +186,7 @@ rule mafft_align:
         rules.generate_aa_seqs.output.faa,
     log:
         "logs/mafft_align/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log",
-    conda:  "../envs/mafft.yml"
+    conda:  config["mafft-env"]
     container: "docker://quay.io/biocontainers/mafft:7.525--h031d066_0"
     threads: 4
     resources:
@@ -204,7 +206,7 @@ rule pal2nal:
         nuc="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/fasta/{tax}.fasta"
     log:
         "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
-    conda: "../envs/pal2nal.yml"
+    conda: config["pal2nal-env"]
     container: "docker://biocontainers/pal2nal:v14.1-2-deb_cv1"
     params:
         codon_table = config["codon_table"],
@@ -233,6 +235,8 @@ rule generate_evodistlists:
         "logs/generate_evodistlists/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     params:
         codon_model = workflow.source_path("../scripts/neeat/codon_model.R"),
+    container: "docker://quay.io/biocontainers/r-seqinr:3.4_5--r3.4.1_0"
+    conda: config["seqinr-env"]
     threads: 1
     script:
         "../scripts/neeat/generate_evo_dists.R"

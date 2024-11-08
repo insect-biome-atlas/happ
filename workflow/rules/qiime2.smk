@@ -4,7 +4,8 @@ localrules:
     qiime2_import_ref_seqs,
     qiime2_import_taxonomy,
     qiime2_export,
-    parse_qiime
+    parse_qiime,
+    aggregate_qiime,
 
 wildcard_constraints:
     classifier = "vsearch|sklearn",
@@ -63,7 +64,7 @@ rule qiime2_import_ref_seqs:
         qiime2_ref_seqs,
     log:
         "logs/qiime2_import_ref_seqs.log"
-    conda: "../envs/qiime2.yml"
+    conda: config["qiime2-env"]
     container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     threads: 1
     resources:
@@ -83,7 +84,7 @@ rule qiime2_import_qry_seqs:
         "results/common/{rundir}/splits/stdin.part_{split}.fasta"
     log:
         "logs/qiime2_import_qry_seqs/{rundir}/{split}.log"
-    conda: "../envs/qiime2.yml"
+    conda: config["qiime2-env"]
     container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     threads: 1
     resources:
@@ -113,7 +114,7 @@ rule qiime2_import_taxonomy:
         qiime2_taxonomy,
     log:
         "logs/qiime2_import_taxonomy.log"
-    conda: "../envs/qiime2.yml"
+    conda: config["qiime2-env"]
     container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     threads: 1
     resources:
@@ -135,7 +136,7 @@ rule qiime2_train:
         seq=rules.qiime2_import_ref_seqs.output[0]
     log:
         "logs/qiime2_train.log"
-    conda: "../envs/qiime2.yml"
+    conda: config["qiime2-env"]
     container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     resources:
         runtime=60 * 24 * 10,
@@ -158,7 +159,7 @@ rule qiime2_classify_sklearn:
     log:
         "logs/qiime2_classify_sklearn/{rundir}/{split}.log"
     threads: 20
-    conda: "../envs/qiime2.yml"
+    conda: config["qiime2-env"]
     container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     resources:
         runtime = 60 * 10,
@@ -181,7 +182,7 @@ rule qiime2_classify_vsearch:
     log:
         "logs/qiime2_classify_vsearch/{rundir}/{split}.log"
     threads: 20
-    conda: "../envs/qiime2.yml"
+    conda: config["qiime2-env"]
     container: "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     resources:
         runtime = 60 * 10,
@@ -199,7 +200,7 @@ rule qiime2_export:
         "results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.qza"
     log:
         "logs/qiime2_export/{classifier}/{rundir}/{split}.log"
-    conda: "../envs/qiime2.yml"
+    conda: config["qiime2-env"]
     container:  "docker://quay.io/qiime2/amplicon:2024.10" # may have to be built as part of a SLURM job on Uppmax
     threads: 1
     shell:
@@ -210,7 +211,7 @@ rule qiime2_export:
 def get_classifier_files(wildcards):
     checkpoint_output = checkpoints.split_input.get(**wildcards).output[0]
     return expand("results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.tsv",
-                    classifier=wildcards.classifier, rundir=wildcards.rundir,
+                    classifier=wildcards.classifier, rundir=config["rundir"],
                     split=glob_wildcards(os.path.join(checkpoint_output, "stdin.part_{split}.fasta")).split)
 
 rule aggregate_qiime:
