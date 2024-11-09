@@ -307,7 +307,7 @@ properties:
   swarm:
     type: object
     default:
-      differences: 13
+      differences: 15
       no-otu-breaking: False
       fastidious: False
       boundary: 0
@@ -336,7 +336,7 @@ properties:
       differences:
         type: integer
         description: "maximum number of differences allowed between two amplicons"
-        default: 13
+        default: 15
       no-otu-breaking:
         type: boolean
         description: "when working with d = 1, deactivate the built-in cluster refinement (not recommended)"
