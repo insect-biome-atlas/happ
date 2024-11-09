@@ -32,12 +32,12 @@ ranks:
 ####################################
 preprocessing:
   # Whether to perform length filtering of input seqs
-  filter_length: True
+  filter_length: False
   # Minimum and maximum length of input seqs
   min_length: 403
   max_length: 418
   # Whether to perform codon filtering of input seqs
-  filter_codons: True
+  filter_codons: False
   # Specific stop codons to look for. Specify multiple codons with in a comma separated list like: "TAA,TAG". By default TAA and TAG are being looked for.
   stop_codons: "TAA,TAG"
   # Specific position of the ASV where to start checking for codons.
@@ -238,7 +238,7 @@ opticlust:
 
 swarm:
   # number of differences allowed to cluster sequences
-  differences: 13
+  differences: 15
 
   # setting 'no-otu-breaking' to True deactivates the built-in cluster
   # refinement when d=1
