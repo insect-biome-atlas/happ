@@ -123,10 +123,9 @@ rule matchlist_vsearch:
     params:
         tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{noise_rank}/{tax}/",
         maxhits = config["noise_filtering"]["max_target_seqs"]
-    threads: 1
+    threads: 4
     resources:
-        tasks = 4,
-        cpus_per_task = 1
+        tasks = 4
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -212,7 +211,6 @@ rule pal2nal:
         codon_table = config["codon_table"],
         codon_start = config["codon_start"],
         tmpdir="$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}"
-    threads: 1
     shell:
         """
         mkdir -p {params.tmpdir}
