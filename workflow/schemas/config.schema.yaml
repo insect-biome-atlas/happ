@@ -63,6 +63,46 @@ properties:
         description: "blank_val is the value in the split_col that specifies a blank sample"
         default: ["buffer_blank", "extraction_neg", "pcr_neg"]
   ### PREPROCESSING PARAMETERS
+  preprocessing:
+    type: object
+    default:
+      filter_length: False
+      min_length: 403
+      max_length: 418
+      filter_codons: False
+      stop_codons: "TAA,TAG"
+      start_position: 2
+      end_position: 0
+    properties:
+      filter_length:
+        type: boolean
+        default: False
+        description: Whether to filter sequences based on length
+      min_length:
+        type: integer
+        default: 403
+        description: Minimum length of sequences to keep
+      max_length:
+        type: integer
+        default: 418
+        description: Maximum length of sequences to keep
+      filter_codons:
+        type: boolean
+        default: False
+        description: Whether to filter sequences based on in-frame stop codons
+      stop_codons:
+        type: string
+        default: "TAA,TAG"
+        description: Comma-separated list of stop codons
+      start_position:
+        type: integer
+        default: 2
+        description: Reading frame start (1 based)
+      end_position:
+        type: integer
+        default: 0
+        description: Reading frame end (1 based), set to 0 to ignore
+  ### TAXONOMY PARAMETERS
   taxonomy_source:
     type: string
     description: "source of taxonomic information"
@@ -235,45 +275,6 @@ properties:
         default: ["Family", "Genus", "Species", "BOLD_bin"]
         items:
           type: string
-  preprocessing:
-    type: object
-    default:
-      filter_length: True
-      min_length: 403
-      max_length: 418
-      filter_codons: True
-      stop_codons: "TAA,TAG"
-      start_position: 2
-      end_position: 0
-    properties:
-      filter_length:
-        type: boolean
-        default: True
-        description: Whether to filter sequences based on length
-      min_length:
-        type: integer
-        default: 403
-        description: Minimum length of sequences to keep
-      max_length:
-        type: integer
-        default: 418
-        description: Maximum length of sequences to keep
-      filter_codons:
-        type: boolean
-        default: True
-        description: Whether to filter sequences based on in-frame stop codons
-      stop_codons:
-        type: string
-        default: "TAA,TAG"
-        description: Comma-separated list of stop codons
-      start_position:
-        type: integer
-        default: 2
-        description: Reading frame start (1 based)
-      end_position:
-        type: integer
-        default: 0
-        description: Reading frame end (1 based), set to 0 to ignore
   ## TAXONOMY PARAMETERS
   consensus_ranks:
     type: array
@@ -735,4 +736,3 @@ properties:
     type: string
     description: "path to vsearch environment"
     default: "../envs/vsearch.yml"
-  
