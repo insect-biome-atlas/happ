@@ -62,11 +62,12 @@ rule run_swarm:
         txt="$TMPDIR/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/swarm.txt",
         tsv="$TMPDIR/swarm/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/swarm_table.tsv",
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
-    threads: config["swarm"]["threads"]
+    threads: 10
     conda: config["swarm-env"]
     container: "docker://quay.io/biocontainers/swarm:3.1.5--h4ac6f70_1"
     resources:
         runtime=60 * 24,
+        tasks = 10
     shell:
         """
         exec &>{log}
@@ -74,7 +75,7 @@ rule run_swarm:
         gunzip -c {input} > {params.fasta}
         swarm {params.fastidious} {params.no_otu_breaking} -d {params.differences} {params.boundary} \
             {params.match_reward} {params.mismatch_penalty} {params.gap_opening_penalty} {params.gap_extension_penalty} \
-            {params.fasta} -o {params.txt} -i {params.tsv} -t {threads}
+            {params.fasta} -o {params.txt} -i {params.tsv} -t {resources.tasks}
         mv {params.txt} {params.outdir}
         mv {params.tsv} {params.outdir}
         rm -rf {params.tmpdir}
