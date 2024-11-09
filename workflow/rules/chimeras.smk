@@ -81,9 +81,6 @@ rule sum_asvs:
         sums="results/common/{rundir}/asv_sum.tsv",
     log:
         "logs/sum_asvs/{rundir}.log",
-    resources:
-        runtime=60,
-    threads: 10
     params:
         src=workflow.source_path("../scripts/sum_counts.py"),
         tmpdir="$TMPDIR/{rundir}.sum_counts",
@@ -135,9 +132,6 @@ rule chimera_batchwise:
         "logs/chimeras/{rundir}/batchwise/{algo}.log",
     conda: config["vsearch-env"]
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
-    threads: 1
-    resources:
-        runtime=60 * 24,
     params:
         algorithm="--{algo}",
         abskew=get_abskew,
@@ -167,9 +161,6 @@ rule split_counts_samplewise:
     params:
         src=workflow.source_path("../scripts/split_counts_samplewise.py"),
         tmpdir="$TMPDIR/split.{rundir}.{sample}"
-    group: "split_counts"
-    resources:
-        runtime=30,
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -220,7 +211,7 @@ rule chimera_samplewise:
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     threads: 4
     resources:
-        runtime=60 * 4,
+        tasks = 4
     params:
         tmpdir="$TMPDIR/{rundir}.{algo}.{sample}.chim",
         outdir=lambda wildcards, output: os.path.dirname(output.chim),
@@ -236,7 +227,7 @@ rule chimera_samplewise:
             touch {output.nochim} {output.chim} {output.alns} {output.border} {output.uchimeout} {params.outdir}/NOSEQS
         else
             mkdir -p {params.tmpdir}
-            vsearch --threads {threads} --dn {params.dn} --mindiffs {params.mindiffs} \
+            vsearch --threads {resources.tasks} --dn {params.dn} --mindiffs {params.mindiffs} \
                 --mindiv {params.mindiv} --minh {params.minh} {params.abskew} \
                 --chimeras {params.tmpdir}/chimeras.fasta --borderline {params.tmpdir}/borderline.fasta \
                 --nonchimeras {params.tmpdir}/nonchimeras.fasta --uchimealns {params.tmpdir}/uchimealns.out \
