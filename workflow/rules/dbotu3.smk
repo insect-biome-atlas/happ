@@ -28,7 +28,6 @@ rule run_dbotu3:
         tsv="$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/dbotu3.tsv",
         memb="$TMPDIR/dbotu3/{rundir}/{chimera_run}/{chimdir}/{rank}/{tax}/dbotu3.clusters.tsv",
     conda: config["dbotu3-env"]
-    threads: 4
     shell:
         """
         mkdir -p {params.tmpdir}
