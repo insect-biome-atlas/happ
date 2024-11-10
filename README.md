@@ -2,7 +2,15 @@
 
 # HAPP: High-Accuracy Pipeline for Processing deep metabarcoding data
 
-[Overview](#overview) | [Installation](#installation) | [Configuration](#configuration)
+- [Overview](#overview)
+- [Installation](#installation)
+  - [Software requirements](#software-requirements)
+- [Configuration](#configuration)
+  - [Taxonomic assignments](#taxonomic-assignments)
+  - [Preprocessing](#preprocessing)
+  - [Chimera filtering](#chimera-filtering)
+  - [ASV clustering tools](#asv-clustering-tools)
+  - [Noise filtering](#noise-filtering)
 
 ## Overview
 
