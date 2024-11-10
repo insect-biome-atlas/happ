@@ -70,7 +70,6 @@ rule run_opticlust:
         cutoff=config["opticlust"]["cutoff"],
         initialize=config["opticlust"]["initialize"],
         precision=config["opticlust"]["precision"],
-        #src=workflow.source_path("../scripts/run_opticlust.py"),
     conda: config["opticlust-env"]
     container: "docker://biocontainers/mothur:v1.41.21-1-deb_cv1"
     shadow: "minimal"
