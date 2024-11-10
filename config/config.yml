@@ -138,11 +138,11 @@ consensus_threshold: 80
 ##### CHIMERA FILTERING PARAMETERS #####
 ########################################
 chimera:
-  # Set a run name for the chimera detection and removal step
-  run_name: "chimera1"
-  
   # Should chimera detection and removal be performed on the input data?
   remove_chimeras: True
+
+  # Set a run name for the chimera detection and removal step
+  run_name: "chimera1"
   
   # Select method for chimera filtering:
   #'batchwise' = run chimera detection on dataset as a whole.
@@ -183,6 +183,7 @@ chimera:
   mindiffs: 3
   mindiv: 0.8
   minh: 0.28
+  #abskew: 2.0
 
 ###################################
 ##### CLUSTERING TOOLS TO RUN #####
@@ -198,10 +199,7 @@ software:
 ####################################
 ##### TOOL-SPECIFIC PARAMETERS #####
 ####################################
-vsearch:
-  # threads to use for vsearch (overridden in dardel profile)
-  threads: 10
-  
+vsearch:  
   # minimum pairwise identity to report
   id: 0.84
   
@@ -220,7 +218,7 @@ opticlust:
   # The delta parameter sets the stable value for the metric in opticlust
   delta: 0.0001
   
-  # sat what similarity threshold clusters are generated. 
+  # at what similarity threshold clusters are generated. 
   cutoff: 0.05
 
   # The `initialize` parameter sets the initial randomization for opticlust.
@@ -231,10 +229,6 @@ opticlust:
 
   # the floating point precision for opticlust.
   precision: 1000
-
-  # the number of threads to use for opticlust
-  # (overridden in dardel profile)
-  threads: 10
 
 swarm:
   # number of differences allowed to cluster sequences
@@ -251,9 +245,6 @@ swarm:
   # when 'fastidious' is set to True 'boundary' defines the minimum abundance of
   # what should be considered a large cluster.
   boundary: 0
-
-  # the number of threads to use for swarm (overridden in dardel profile)
-  threads: 10
 
   # the settings below modify the pairwise global alignment scoring parameters
   # when d>1
