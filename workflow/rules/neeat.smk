@@ -129,7 +129,7 @@ rule matchlist_vsearch:
     shell:
         """
         mkdir -p {params.tmpdir}
-        cat {input} | sed 's/>.\+ />/g' > {params.tmpdir}/cluster_reps.fasta
+        cat {input} | sed 's/>.\\+ />/g' > {params.tmpdir}/cluster_reps.fasta
         vsearch --usearch_global {params.tmpdir}/cluster_reps.fasta --db {params.tmpdir}/cluster_reps.fasta --self --id .84 --iddef 1 \
             --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits {params.maxhits} --threads {resources.tasks} > {log} 2>&1
         rm -rf {params.tmpdir}
@@ -196,14 +196,16 @@ rule mafft_align:
 
 rule trim_align:
     output:
-        nuc="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/trimmed/{tax}.aligned.faa"
+        nuc="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/trimmed/{tax}.aligned.fasta"
     input:
         nuc="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/fasta/{tax}.fasta"
+    log:
+        "logs/trim_align/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     params:
         codon_start = config["noise_filtering"]["codon_start"],
     shell:
         """
-        seqkit subseq --region {params.codon_start}:-1 {input.nuc} > {output.nuc}
+        seqkit subseq --region {params.codon_start}:-1 {input.nuc} > {output.nuc} 2>{log}
         """
 
 rule pal2nal:
@@ -216,7 +218,7 @@ rule pal2nal:
         pep=rules.mafft_align.output[0],
         nuc=rules.trim_align.output.nuc
     log:
-        "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
+        "logs/pal2nal/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     conda: config["pal2nal-env"]
     container: "docker://biocontainers/pal2nal:v14.1-2-deb_cv1"
     params:
