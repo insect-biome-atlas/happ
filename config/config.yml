@@ -348,3 +348,9 @@ noise_filtering:
   # abundance_cutoff (numeric, positive integer): The minimum number of reads
   # required for an OTU to pass the abundance filter
   abundance_cutoff: 3
+  
+  # codon table to use for translation when aligning sequences with pal2nal
+  codon_table: 5
+  
+  # reading frame start (1 based)
+  codon_start: 2
