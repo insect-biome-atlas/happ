@@ -183,7 +183,8 @@ def main(args):
     ]
     sys.stderr.write(f"#{clustdf.shape[0]} ASVs remaining after merging\n")
     if clustdf.shape[0] == 0:
-        sys.exit("Not enough data to evaluate\n")
+        sys.stderr.write("No ASVs remaining after merging\n")
+        sys.exit(0)
     if args.order_level:
         sys.stderr.write(
             f"Calculating statistics for {len(clustdf.Order.unique())} orders\n"
