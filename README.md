@@ -95,6 +95,14 @@ or if you followed the tip above:
 conda activate envs/happ
 ```
 
+> [!TIP]
+> If you are running the workflow on a high performance computing system with
+> the SLURM workload manager use the configuration profile under
+> [profiles/slurm](profiles/slurm). See the README file in that directory for
+> instructions on how to use it. If you are running on the Dardel HPC system at
+> PDC, use the configuration profile under [profiles/dardel](profiles/dardel)
+> (see the README file in that directory for instructions).
+
 ## Configuration
 
 The workflow can be configured using a configuration file in YAML format. A default config file is available at [config/config.yml](config/config.yml). It's recommended that you copy this file and make your changes in the copy, then pass it on the command line with `--configfile <path-to-your-configfile>`.
@@ -114,9 +122,12 @@ rundir: "test"
 
 and the input files are placed under `data/test/`.
 
-### Taxonomic references
+### Taxonomic assignments
 
-HAPP uses taxonomic information about your input ASVs to split sequences by taxonomic ranks, allowing for parallel clustering of ASVs. Therefore the ASVs need to be assigned to taxonomic ranks. This can be done using the workflow itself, or by providing a file with taxonomic assignments.
+HAPP uses taxonomic information about your input ASVs to split sequences by
+taxonomic ranks, allowing for parallel clustering of ASVs. Therefore the ASVs
+need to be assigned to taxonomic ranks. This can be done using the workflow
+itself, or by providing a file with taxonomic assignments.
 
 The workflow supports taxonomic assignment using the following tools:
 
@@ -127,9 +138,15 @@ The workflow supports taxonomic assignment using the following tools:
 
 To assign taxonomy to your input ASVs you need to provide a reference database
 that works with SINTAX and/or with EPA-NG and GAPPA, depending on the tools you
-want to use.
+want to use. See below for instructions on how to obtain and configure these
+references.
 
-#### SINTAX taxonomic reference
+> [!IMPORTANT] 
+> You will also need to make sure that the `split_rank` and `ranks`
+> config parameters are set correctly to match the taxonomic ranks in your
+> taxonomic assignments file.
+
+#### SINTAX
 
 A SINTAX compatible reference database containing COI (mitochondrial cytochrome oxidase subunit I) sequences collected from the BOLD database is available on [Figshare](https://doi.org/10.17044/scilifelab.20514192). From there, simply download the file `bold_clustered.sintax.fasta.gz`, unzip it and set the path to the file in the config file under the `sintax` section:
 
@@ -138,7 +155,9 @@ sintax:
   ref: "/path/to/bold_clustered.sintax.fasta"
 ```
 
-#### EPA-NG and GAPPA taxonomic reference
+By default, SINTAX assignments are made using a cutoff of 0.8. This can be changed by setting the `cutoff` parameter in the config file under the `sintax` section.
+
+#### EPA-NG and GAPPA assignments
 
 The phylogenetic placement/assignment tools EPA-NG and GAPPA require a reference
 tree, a multiple alignment and a reference taxonomy file. A compatible reference that allows assignments to classes Collembola, Diplura, Protura and Insecta is available to download from https://github.com/insect-biome-atlas/paper-bioinformatic-methods/tree/main/data/chesters_tree. The files you need are:
@@ -156,9 +175,46 @@ epa-ng:
   ref_taxonomy: "/path/to/chesters_tree/taxonomy.tsv"
 ```
 
-#### QIIME2 taxonomic reference
+EPA-NG and GAPPA can be further configured with the following parameters under the `epa-ng` section in the config file:
+
+- `model:` This is the starting model used by RAxML-NG to evaluate the reference tree.
+- `heuristic:` This is the preplacement heuristic used by EPA-NG. The default is `dyn-heur` which corresponds to the default dynamic mode in EPA-NG. Also available are `baseball-heur` (as used by pplacer) and `no-heur` (no preplacement heuristic).
+- `chunk_size:` This is the number of sequences to process in at a time. Set this to a lower value if you run out of memory during the EPA-NG step.
+
+Gappa can be configured using the `gappa:` section under `epa-ng:`:
+
+- `distribution_ration:` Determines how gappa handles edges with two possible annotations. If set to `-1` (default) the program will determine the ratio automatically from the 'distal length' specified per placement.
+- `consensus_thresh:` When assigning taxonomy to missing labels in the reference, require this consensus threshold to assign a label. The default is `1`.
+
+#### QIIME2 assignments
 
 To run the `vsearch` taxonomic assignment method (implemented in QIIME2) you need to provide compatible files. However, if you downloaded the COIDB SINTAX reference above you can leave the `ref:` and `taxfile:` config parameters empty. HAPP will then generate the necessary files using the SINTAX reference.
+
+#### Combining SINTAX + EPA-NG assignments
+
+If you want to run SINTAX and EPA-NG then use the latter to reasssign SINTAX assignments include `sintax+epa-ng` in the `taxtools` list in the config file:
+
+```yaml
+taxtools:
+  - "sintax+epa-ng"
+```
+
+To use this as the taxonomic source for downstream steps, also set the `taxonomy_source:` parameter in the config file to `sintax+epa-ng`:
+
+```yaml
+taxonomy_source: "sintax+epa-ng"
+```
+
+We have found that SINTAX has a high precision at low taxonomic ranks (_e.g._ species) meaning when it makes an assignment those assignments are often correct. However, SINTAX is conservative meaning that it will often fail to make assignments at higher taxonomic ranks (_e.g._ order), leaving ASVs unclassified. EPA-NG on the other hand is less conservative and will often make correct assignments at higher ranks such as order. By combining the two methods we can take advantage of the strengths of both, using SINTAX to make assignments at low ranks and use EPA-NG to update higher level assignments if those exist.
+
+The `reassign:` config section handles this behaviour and can be configured with the following parameters:
+
+- `placeholder_rank:` This is the taxonomic rank for which both SINTAX and EPA-NG assignments must be identical in order for any updates to be made. The default is `Class` which means that if both SINTAX and EPA-NG agree on the class level assignment for an ASV, the EPA-NG assignment can be used to update the SINTAX assignment (if additional criteria are met, see below).
+- `placeholder_taxa:` This is a list of taxa names at rank = `placeholder_rank` for which to make updates. This list should only contain taxa with sufficient coverage in the reference database used for EPA-NG.
+- `reassign_ranks:` This is a list of taxonomic ranks at which to update assignments. The default is `["Order"] which means that assignments will be updated at the order level if all criteria are met.
+- `downstream_ranks:` This is a list of taxonomic ranks below the `reassign_ranks`. Taxonomic assignments for ranks in this list will be prefixed with 'unclassified.' if the assignment at `reassign_ranks` is updated. The default is `["Family", "Genus", "Species", "BOLD_bin"]`.
+
+With default settings, this means that ASVs without an assignment at Order in SINTAX will be updated with the Order level EPA-NG assignment if the EPA-NG assignment is identical to the SINTAX assignment at Class. Downstream ranks will be left unchanged, unless they are also unassigned in which case they will be prefixed with 'unclassified.' followed by the updated assignment at the rank above.
 
 #### Existing taxonomic assignments (optional)
 
@@ -181,25 +237,123 @@ If you do not want to run additional taxonomic assignment tools, you can then se
 taxtools: []
 ```
 
-## Running the workflow
+#### Consensus taxonomy
+
+Once the ASVs have been clustered into OTU clusters, the workflow will attempt to assign a consensus taxonomy to each cluster. This is done by comparing the taxonomic assignments of the ASVs in the cluster starting from the lowest taxonomic rank and moving up until a consensus is reached. The consensus is reached when the sum of the abundance weighted assignments for a taxon is equal to or greater than a certain threshold (configurable by the `consensus_threshold` parameter in the config, default is 80%). The consensus taxonomy is then assigned to the cluster. The `consensus_ranks` parameter in the config file specifies the taxonomic ranks to use when assigning consensus taxonomy. The default is `["Family", "Genus", "Species"]` which means that the workflow will only attempt to assign a consensus using these ranks.
+
+As an example, if a cluster contains 3 ASVs with the following taxonomic
+assignments and total sum of counts across samples:
+
+| ASV | Family | Genus | Species | ASV_sum |
+|-----|--------|-------|---------|---------|
+| ASV1 | Tenthredinidae | Pristiphora | Pristiphora mollis | 20 |
+| ASV2 | Tenthredinidae	| Pristiphora	| Pristiphora cincta | 60 |
+| ASV3 | Tenthredinidae	| Pristiphora	| Pristiphora leucopodia | 20 |
+
+then at Species the abundance weighted taxonomic assignment is 60% _Pristiphora
+cincta_ and 20% _Pristiphora mollis_ and _Pristiphora leucopodia_ each. At a 80%
+consensus threshold we cannot assign a taxonomy at Species level to the cluster,
+so the algorithm will move up to Genus level where we have 100% agreement for
+Pristiphora. The final consensus taxonomy for the cluster will then be:
+
+| Cluster | Family | Genus | Species |
+|---------|--------|-------|---------|
+| Cluster1 | Tenthredinidae | Pristiphora | unresolved.Pristiphora |
+
+At `consensus_threshold: 60` we would have been able to assign taxonomy at the
+Species level and the cluster taxonomy would have been:
+
+| Cluster | Family | Genus | Species |
+|---------|--------|-------|---------|
+| Cluster1 | Tenthredinidae | Pristiphora | Pristiphora cincta |
 
 ### Preprocessing
 
-```bash
-snakemake --configfile <path-to-your-config-file> --profile local -n preprocess
+The workflow supports optional preprocessing of the input data by filtering ASVs by length and/or removal of ASVs with in-frame stop codons. These steps are controlled by the `preprocess` section in the config file.
+
+The following parameters are available:
+
+- `filter_length:` A boolean specifying whether to filter ASVs by length. The default is `False`.
+- `min_length:` The minimum length of ASVs to keep. The default is `403`.
+- `max_length:` The maximum length of ASVs to keep. The default is `418`.
+- `filter_codons:` A boolean specifying whether to filter ASVs for in-frame stop codons. The default is `False`.
+- `stop_codons:` A comma separated list of stop codons to look for. The default is `"TAA,TAG"`.
+- `start_position:` The position in the ASV sequence to start looking for stop codons. The default is `2`.
+- `end_position:` The position in the ASV sequence to stop looking for stop codons. The default is `0` which means that the entire sequence is checked.
+
+### Chimera filtering
+
+The workflow supports optional chimera removal using the uchime algorithm 
+implemented in vsearch. Chimera detection can be run either in 'batchwise' mode
+using the data under `rundir` directly or in 'samplewise' mode in which the 
+`asv_counts.tsv` file is used to generate sample-specific fasta files containing 
+sequences with a count > 0 in each sample. Sequences identified as non-chimeric
+are then passed downstream in the workflow and used as input for clustering.
+
+Config parameters for the chimera removal part of the workflow are nested 
+under `chimera:` in the config file and below are the default values:
+
+```yaml
+chimera:
+  run_name: "chimera1"
+  remove_chimeras: True
+  method: "samplewise"
+  algorithm: "uchime_denovo"
+  min_samples_shared: 1
+  min_frac_samples_shared: 0.5
+  min_chimeric_samples: 0
+  min_frac_chimeric_samples: 0
+  dn: 1.4
+  mindiffs: 3
+  mindiv: 0.8
+  minh: 0.28
 ```
 
-### Filter chimeras
+The `run_name` parameter works in a similar manner as the top level `run_name`
+and allows you to define different runs of the chimera filtering. A fasta file
+with non-chimeric sequences will be produced under
+`results/chimera/<rundir>/filterred/<run_name>/<method>.<algorithm>/nonchimeras.fasta`. 
+This fasta file will be used as input to the rest of the workflow.
 
-```bash
-snakemake --configfile <path-to-your-config-file> --profile local -n filter_chimeras
-```
+The `remove_chimeras` parameter is a boolean controlling whether to run chimera
+filtering or not. Set this to False to skip chimera filtering.
 
-### Assign taxonomy
+The `method` parameter can be either `batchwise` (all ASVs are taken into
+consideration) or `samplewise` (only ASVs occurring in the same samples are
+considered).
 
-```bash
-snakemake --configfile <path-to-your-config-file> --profile local -n assign_taxonomy
-```
+The `algorithm` parameter can be either `uchime_denovo`, `uchime2_denovo` or
+`uchime3_denovo`. The latter two require perfect matches between the ASV
+sequence and a chimeric model, whereas 'uchime_denovo' does not.
+
+The `min_samples_shared` parameter is specific to the batchwise mode and
+specifies the number of samples in which chimeric ASVs have to be present with
+their 'parents' (see Uchime
+[docs](https://drive5.com/usearch/manual/chimeras.html)) in ordered to be marked
+as chimeric.
+
+The `min_frac_samples_shared` parameter is similar to `min_samples_shared`, but
+instead of an absolute number require that sequences are present with their
+parents in a fraction of the samples in which they are present.
+
+The `min_chimeric_samples` parameter refers to the samplewise chimera mode, and
+determines in how many samples an ASVs has to be marked as chimeras in to be
+filtered as chimeric. Setting this value to 0 (the default) means that sequences
+have to be marked as chimeric in **all** samples where they are present in order
+to be filtered as chimeric.
+
+The `min_frac_chimeric_samples` is analogous to `min_chimeric_samples` but specifies
+a fraction of samples, instead of an absolute number
+
+The `dn`, `mindiffs`, `mindiv` and `minh` parameters are specific to how the
+chimeric score of sequences is calculated. Please see the Uchime
+[docs](https://www.drive5.com/usearch/manual6/UCHIME_score.html) for details. 
+
+In all algorithms ASV sequences are first aligned to other ASVs that are above a 
+certain abundance threshold. This so called [abundance skew](https://www.drive5.com/usearch/manual6/abundance_skew.html)
+threshold is by default set to 2.0 for the 'uchime_denovo' and 'uchime2_denovo'
+algorithms and to 16.0 for 'uchime3_denovo'. However, this value can be overridden
+by explicitly setting `abskew` in the config file under `chimera:`.
 
 
 
