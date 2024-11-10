@@ -2,6 +2,7 @@ localrules:
     generate_counts_files,
     generate_taxa_seqs,
     taxonomy_filter,
+    trim_align,
     generate_aa_seqs,
     neeat,
 
@@ -49,8 +50,6 @@ rule generate_counts_files:
         sample_id_col=config["metadata"]["sample_id_col"],
         sample_type_col=config["metadata"]["sample_type_col"],
         sample_val=config["metadata"]["sample_val"],
-    container: "quay.io/biocontainers/r-data.table:1.12.2"
-    conda: config["datatable-env"]
     script: 
         "../scripts/neeat/generate_counts_files.R"
 
@@ -68,7 +67,6 @@ checkpoint generate_taxa_seqs:
         counts=rules.generate_counts_files.output.cluster_counts
     log:
         "logs/generate_taxa_seqs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}.log"
-    shadow: "minimal"
     run:
         import subprocess
         import pandas as pd
@@ -93,19 +91,21 @@ checkpoint generate_taxa_seqs:
             # get asvs and cluster designation
             asvs = taxdf.loc[taxdf[rank]==tax, "cluster"]
             # skip taxa with fewer than 2 ASVs
-            if len(asvs) < 2: #TODO: add back OTUs in taxa with only 1 OTU
+            if len(asvs) < 2:
                 singles = pd.concat([singles, asvs])
                 continue
             # generate strings with '<asv> <cluster>' format to match fasta headers
             asvs = [f"{x[0]} {x[1]}" for x in list(zip(asvs.index, asvs))]
             # write asvs to file
-            with open(f"{tax}.ids", "w") as f:
+            with open(f"{output[0]}/{tax}.ids", "w") as f:
                 _ = f.write("\n".join(asvs))
             # use seqkit to extract sequences
             with open(f"{outdir}/{tax}.fasta", 'w') as fhout:
-                cmd = ["seqkit", "grep", "-f",f"{tax}.ids","-n", "--quiet", input.fasta]
+                cmd = ["seqkit", "grep", "-f",f"{output[0]}/{tax}.ids","-n", "--quiet", input.fasta]
                 _ = subprocess.run(cmd, stdout=fhout)
+                os.remove(f"{output[0]}/{tax}.ids")
         singles.to_csv(output[1], sep="\t")
+
 
 
 rule matchlist_vsearch:
@@ -170,8 +170,8 @@ rule generate_aa_seqs:
     log:
         "logs/generate_aa_seqs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     params:
-        codon_table = config["codon_table"],
-        codon_start = config["codon_start"]
+        codon_table = config["noise_filtering"]["codon_table"],
+        codon_start = config["noise_filtering"]["codon_start"]
     script:
         "../scripts/neeat/generate_aa_seqs.R"
 
@@ -194,6 +194,18 @@ rule mafft_align:
     shell:
         "mafft --auto --thread {resources.tasks} {input} > {output} 2>{log}"
 
+rule trim_align:
+    output:
+        nuc="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/trimmed/{tax}.aligned.faa"
+    input:
+        nuc="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/fasta/{tax}.fasta"
+    params:
+        codon_start = config["noise_filtering"]["codon_start"],
+    shell:
+        """
+        seqkit subseq --region {params.codon_start}:-1 {input.nuc} > {output.nuc}
+        """
+
 rule pal2nal:
     """
     Generate the corresponding nucleotide alignments with pal2nal
@@ -202,21 +214,16 @@ rule pal2nal:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/pal2nal/{tax}.fasta"
     input:
         pep=rules.mafft_align.output[0],
-        nuc="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/fasta/{tax}.fasta"
+        nuc=rules.trim_align.output.nuc
     log:
         "logs/noise_filtering/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     conda: config["pal2nal-env"]
     container: "docker://biocontainers/pal2nal:v14.1-2-deb_cv1"
     params:
-        codon_table = config["codon_table"],
-        codon_start = config["codon_start"],
-        tmpdir="$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}"
+        codon_table = config["noise_filtering"]["codon_table"],
     shell:
         """
-        mkdir -p {params.tmpdir}
-        seqkit subseq --region {params.codon_start}:-1 {input.nuc} > {params.tmpdir}/nuc.fasta
-        pal2nal.pl {input.pep} {params.tmpdir}/nuc.fasta -output fasta -codontable {params.codon_table} > {output} 2>{log}
-        rm -r {params.tmpdir}
+        pal2nal.pl {input.pep} {input.nuc} -output fasta -codontable {params.codon_table} > {output} 2>{log}
         """
 
 rule generate_evodistlists:

@@ -1,7 +1,0 @@
-name: r-data.table
-channels:
-  - conda-forge
-  - bioconda
-  - r
-dependencies:
-  - r-data.table

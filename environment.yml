@@ -14,5 +14,6 @@ dependencies:
   - pip
   - seqkit
   - r-ape
+  - r-data.table
   - snakemake-executor-plugin-slurm
     
