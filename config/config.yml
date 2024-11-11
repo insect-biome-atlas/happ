@@ -16,16 +16,6 @@ run_name: "run1"
 # speed things up on large datasets. 
 # Note that the split_rank must exactly match one of the columns in the asv_taxa.tsv file
 split_rank: "Family"
-# The ranks parameter specifies what taxonomic ranks are included in the asv_taxa.tsv taxonomy file
-ranks: 
-  - "Kingdom"
-  - "Phylum"
-  - "Class"
-  - "Order"
-  - "Family"
-  - "Genus"
-  - "Species"
-  - "BOLD_bin"
   
 ####################################
 ##### PREPROCESSING PARAMETERS #####
@@ -54,11 +44,19 @@ preprocessing:
 # parameter. If you already have a tab-separated file with taxonomic
  # assignments, set taxonomy_source to the path of that file.
 taxonomy_source: "sintax+epa-ng"
+# The ranks parameter specifies what taxonomic ranks are included in the optional
+# ASV taxonomy file. If you don't have a taxonomy file, and instead want to assign 
+# taxonomy using the taxonomic tools specified under 'taxtools', do not modify this
+# parameter.
+ranks: []
+# The taxtools parameter specifies what taxonomic tools to use for assigning taxonomy
 taxtools:
   - "sintax"
   - "vsearch"
   - "epa-ng"
   - "sintax+epa-ng"
+# The sintax parameter specifies the parameters to use for the sintax taxonomy
+# assignment tool.
 sintax:
   ref: ""
   randseed: 15
@@ -78,15 +76,9 @@ qiime2:
   ref: ""
   # taxfile is the path to the taxonomy file that corresponds to the reference database
   taxfile: ""
-  ranks:
-    - "Kingdom"
-    - "Phylum"
-    - "Class"
-    - "Order"
-    - "Family"
-    - "Genus"
-    - "Species"
-    - "BOLD_bin"
+  ranks: []
+# The epa-ng parameter specifies the parameters to use for the epa-ng taxonomy
+# assignment tool.
 epa-ng:
   tree: ""
   tree_format: "newick"
@@ -96,6 +88,14 @@ epa-ng:
   heuristic: "dyn-heur"
   ref_taxonomy: ""
   chunk_size: 5000
+  tree_ranks: 
+    - "Kingdom"
+    - "Phylum"
+    - "Class"
+    - "Order"
+    - "Family"
+    - "Genus"
+    - "Species"
   gappa:
     distribution_ratio: -1
     consensus_thresh: 1
