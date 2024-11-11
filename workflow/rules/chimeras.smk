@@ -7,6 +7,7 @@ localrules:
     append_size,
     filter_samplewise_chimeras,
     filter_batchwise_chimeras,
+    filter_chimeras
 
 
 def fetch_samples(f):
@@ -139,9 +140,12 @@ rule chimera_batchwise:
         mindiffs=config["chimera"]["mindiffs"],
         mindiv=config["chimera"]["mindiv"],
         minh=config["chimera"]["minh"],
+    threads: 4
+    resources:
+        tasks = 4
     shell:
         """
-        vsearch --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} \
+        vsearch --threads {resources.tasks} --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} \
             --minh {params.minh} {params.abskew} --chimeras {output.chim} \
             --borderline {output.border} --nonchimeras {output.nochim} \
             --uchimeout {output.uchimeout} --uchimealns {output.uchimealns} \
