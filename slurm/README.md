@@ -30,3 +30,10 @@ Example:
 ```bash
 snakemake --configfile <path-to-your-configfile.yml> --profile slurm <additional-arguments>
 ```
+
+> [!NOTE]
+> The `dbotu3` rule requires long runtimes. The default is set to 10080 minutes
+> (7 days). If the HPC system requires that such long running jobs run on
+> dedicated partitions you will need to set a specific partition for this rule.
+> Check your HPC system documentation and update the `slurm_partition` for this
+> rule in the `config.yaml` file.
