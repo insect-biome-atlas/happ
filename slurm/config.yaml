@@ -3,9 +3,8 @@
 # partition to use, as well as the runtime, memory, and number of threads for
 # specific rules. The configuration file also includes settings for the
 # Snakemake workflow management system, such as the number of jobs to run in
-# parallel, the latency wait time, and the software deployment method. The
-# configuration file can be customized to suit the specific requirements of the
-# workflow and the HPC system.
+# parallel and the latency wait time. The configuration file can be customized
+# to suit the specific requirements of the workflow and the HPC system.
 
 # Update the settings under 'default-resources' to specify the SLURM account and
 # partition to use for the jobs. The 'runtime' setting specifies the maximum
@@ -23,16 +22,14 @@ set-resources:
   sum_asvs:
     runtime: 60
     mem_mb: 8880
-  sum_asvs:
-    runtime: 60
-    mem_mb: 60000
   chimera_samplewise:
     runtime: 60
     tasks: 4
     mem_mb: 3552
   chimera_batchwise:
-    runtime: 240
+    runtime: 600
     mem_mb: 3552
+    tasks: 4
   split_counts_samplewise:
     runtime: 30
   # epang.smk
@@ -73,7 +70,7 @@ set-resources:
   # dbotu3.smk
   run_dbotu3:
     runtime: 10080
-    slurm_partition: long
+    #slurm_partition: <partition-for-long-jobs> # Uncomment and specify the partition for long jobs, if needed
     mem_mb: 17760
   # neeat.smk
   mafft_align:
@@ -109,7 +106,7 @@ set-resources:
     runtime: 60
   # Snakefile
   consensus_taxonomy:
-    runtime: 60
+    runtime: 30
 
 # The settings below define command line flags for Snakemake.
 keep-going: True
