@@ -423,6 +423,24 @@ rule aggregate_clusters:
         countsdf.to_csv(output.counts, sep="\t")
         shell("cat {input.fasta} > {output.fasta}")
 
+def get_rank_settings(config):
+    if config["taxonomy_source"] in ["sintax","sintax+epa-ng"]:
+        return "--ranks " + " ".join(config["sintax"]["ranks"])
+    elif config["taxonomy_source"] == "epa-ng":
+        return "--ranks " + " ".join(config["epa-ng"]["tree_ranks"])
+    elif config["taxonomy_source"] == "vsearch":
+        if os.path.exists(config["qiime2"]["ref"]) and os.path.exists(config["qiime"]["taxfile"]):
+            return "--ranks " + " ".join(config["qiime2"]["ranks"])
+        else:
+            if os.path.exists(config["sintax"]["ref"]):
+                return "--ranks " + " ".join(config["sintax"]["ranks"])
+            else:
+                return "--ranks"
+    elif os.path.isfile(config["taxonomy_source"]):
+        return "--ranks " + " ".join(config["ranks"])
+    else:
+        return "--ranks"
+
 rule consensus_taxonomy:
     """
     Calculates the consensus taxonomy for each cluster per split rank
@@ -434,16 +452,15 @@ rule consensus_taxonomy:
         countsfile="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/total_counts.tsv"
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/consensus_taxonomy.log",
-    params:
-        ranks = config["ranks"],
-        cons_ranks = config["consensus_ranks"],
-        thresh = config["consensus_threshold"],
-    group: "consensus_taxonomy"
+    params: 
+        ranks=get_rank_settings(config),
+        cons_ranks="--consensus_ranks " + " ".join(config["consensus_ranks"]),
+        thresh=config["consensus_threshold"],
     shell:
         """
         python workflow/scripts/consensus_taxonomy.py --countsfile {input.countsfile} \
-            --clustfile {input.clustfile} --ranks {params.ranks} --consensus_ranks {params.cons_ranks} \
-            --consensus_threshold {params.thresh} > {output} 2>{log}
+            --clustfile {input.clustfile} {params[ranks]} {params[cons_ranks]} \
+            --consensus_threshold {params[thresh]} > {output} 2>{log}
         """
 
 def get_consensus_taxonomy_files(wildcards):
