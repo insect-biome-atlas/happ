@@ -13,51 +13,103 @@
 default-resources: 
   slurm_account: <your_slurm_account>
   slurm_partition: <your_slurm_partition>
-  runtime: 1440
+  runtime: 240
+  tasks: f"{threads}"
+  cpus_per_task: 1
 
-# The settings below override the default-resources for specific rules. You can
-# specify the runtime, memory, and number of threads for individual rules.
+# The settings below override the default-resources for specific rules
 set-resources:
+  # chimeras.smk
+  sum_asvs:
+    runtime: 60
+    mem_mb: 8880
   sum_asvs:
     runtime: 60
     mem_mb: 60000
   chimera_samplewise:
     runtime: 60
-    mem_mb: 24000
+    tasks: 4
+    mem_mb: 3552
+  chimera_batchwise:
+    runtime: 240
+    mem_mb: 3552
+  split_counts_samplewise:
+    runtime: 30
+  # epang.smk
+  hmm_align:
+    runtime: 30
+  raxml_evaluate:
+    runtime: 240
+    tasks: 1
+    mem_mb: 1776
+  epa_ng:
+    runtime: 180
+    mem_mb: 56832
+    tasks: 64
+  gappa_assign:
+    runtime: 30
+    tasks: 4
+    mem_mb: 3552
+  # sintax.smk
+  sintax:
+    runtime: 30
+    mem_mb: 8880
+  # common.smk
   vsearch_align:
-    mem_mb: 60000
+    mem_mb: 8880
+  # qiime2.smk
+  qiime2_classify_vsearch:
+    runtime: 600
+    mem_mb: 88800
+    tasks: 20
+  qiime2_train:
+    runtime: 1440
+    mem_mb: 90000
+    tasks: 20
+  qiime2_classify_sklearn:
+    mem_mb: 17760
+    tasks: 20
+    runtime: 600
+  # dbotu3.smk
   run_dbotu3:
     runtime: 10080
-    mem_mb: 24000
+    slurm_partition: long
+    mem_mb: 17760
+  # neeat.smk
   mafft_align:
-    runtime: 120
-    mem_mb: 24000
+    runtime: 30
+    tasks: 4
+    mem_mb: 3552
   pal2nal:
-    runtime: 120
+    runtime: 60
+    mem_mb: 88800
+  generate_counts_files:
+    runtime: 240
+    mem_mb: 63936
+  generate_datasets:
+    runtime: 60
+    mem_mb: 63936
+  generate_evodistlists:
+    runtime: 600
+  generate_neeat_filtered:
+    runtime: 180
+    mem_mb: 3552
+  matchlist_vsearch:
+    runtime: 30
+    tasks: 4
+    mem_mb: 3552
+  # opticlust.smk
   run_opticlust:
-    mem_mb: 60000
-  split_counts:
-    mem_mb: 60000
+    mem_mb: 63936
+    tasks: 10
+  # swarm.smk
+  run_swarm:
+    tasks: 10
+    mem_mb: 8880
+    runtime: 60
+  # Snakefile
   consensus_taxonomy:
     runtime: 60
-  id_spikeins:
-    mem_mb: 60000
-  clean_asvs:
-    mem_mb: 60000
-
-# The settings below define the number of threads to use for specific rules.
-set-threads:
-  vsearch_align: 10
-  mafft_align: 10
-  mothur_align: 10
-  run_opticlust: 10
-  run_swarm: 10
-  sum_asvs: 10
-  split_counts: 10
-  chimera_samplewise: 10
-  id_spikeins: 10
-  clean_asvs: 10
-
 
 # The settings below define command line flags for Snakemake.
 keep-going: True
@@ -68,4 +120,3 @@ local-cores: 1
 jobs: 100
 latency-wait: 5
 executor: slurm
-software-deployment-method: "conda"
