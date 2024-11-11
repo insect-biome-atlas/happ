@@ -5,6 +5,7 @@
 - [Overview](#overview)
 - [Installation](#installation)
   - [Software requirements](#software-requirements)
+- [Software deployment method](#software-deployment-method)
 - [Configuration](#configuration)
   - [Taxonomic assignments](#taxonomic-assignments)
   - [Preprocessing](#preprocessing)
@@ -51,27 +52,11 @@ Follow the [instructions](https://pixi.sh/latest/#installation) to install pixi
 on your system, then run:
 
 ```bash
-pixi install -a && pixi shell
+pixi shell
 ```
 
-from within the root of the repository. This will install all required software
-environments, store them in subdirectories of `.pixi/` in the repository
-root and then activate an interactive shell ready to use with the workflow.
-
-> [!NOTE]
-> The `pixi install -a` part is only needed the first time you set up the workflow.
-> On subsequent runs you can just run `pixi shell` to activate the environment.
-
-> [!TIP]
-> You can also use `pixi` to install just the main `happ` environment and let 
-> Snakemake handle software requirements on the fly. This can be
-> done by running:
-> ```bash
-> pixi shell -e default
-> ```
-> then just run the workflow as described below, adding either
-> `--software-deployment-method conda` or `--software-deployment-method
-> apptainer` to the Snakemake command line call.
+from within the root of the repository. This will activate an interactive shell
+ready to use with the workflow.
 
 #### Installation with Conda
 
@@ -89,17 +74,51 @@ Then activate the environment with:
   ```
 
 > [!TIP]
-
 > If you are running the workflow on a high performance computing system with
 > the SLURM workload manager use the configuration profile under
-> `profiles/slurm`. If you're running on the Dardel HPC system
-> at PDC specifically, use the configuration profile under
-> `profiles/dardel`. See the README files each subdirectory for
-> more information.
+> `profiles/slurm`. If you're running on the Dardel HPC system at PDC
+> specifically, use the configuration profile under `profiles/dardel`. See the
+> README files in the respective subdirectory for more information.
+
+## How to run
+
+Once you have activated the software environment (either with `pixi shell` or `conda activate happ` as described above) the basic syntax to run the workflow is:
+
+```bash
+snakemake --configfile <path-to-your-configfile.yml> --profile <slurm/dardel/local> --sdm <apptainer/conda> <additional-arguments>
+```
+
+The `--configfile` argument specifies the path to a [configuration file](#configuration-file) in YAML format. The `--profile` argument specifies the [configuration profile](#configuration-file) to use. The `--sdm` flag is a short-hand for `--software-deployment-method` and specifies how Snakemake will handle [rule-specific dependencies](#software-deployment-method). See below for a description of each of these arguments.
+
+### Configuration file
+
+The workflow can be configured using a configuration file in YAML format. A
+default config file is available at [config/config.yml](config/config.yml). It's
+recommended that you copy this file and make your changes in the copy, then pass
+it on the command line with `--configfile <path-to-your-configfile>`.
+
+See the [Configuration](#configuration) section for more information on how to configure the workflow.
+
+### Configuration profile
+
+The workflow comes with three different configuration profiles. These are
+basically subdirectories containing a `config.yaml` file which sets various
+Snakemake command line arguments and define resources for running the workflow
+on different systems. The available profiles are:
+
+- `local`: For running the workflow on a local machine (_e.g._ your laptop)
+- `slurm`: For running the workflow on a system with the SLURM workload manager
+- `dardel`: For running the workflow on the [Dardel HPC system](https://www.pdc.kth.se/hpc-services/computing-systems/dardel-1.1043529) at PDC. 
+
+To use a profile, simply add `--profile <profile-name>` to the Snakemake command line call. For example, to run the workflow on a system with SLURM you would run:
+
+### Software deployment method
+
+Once you have installed the main software packages needed to run the workflow
+you also have to specify how Snakemake will handle rule-specific software
+dependencies. This is controlled by the `--sdm` command line argument (short-hand for `--software-deployment-method`). We recommend to use [Apptainer](https://apptainer.org/) if this is available on your system. To use apptainer, add `--sdm apptainer` to the Snakemake command line call. Alternatively you can use [Conda](https://docs.conda.io/en/latest/) in which case you would use `--sdm conda`.
 
 ## Configuration
-
-The workflow can be configured using a configuration file in YAML format. A default config file is available at [config/config.yml](config/config.yml). It's recommended that you copy this file and make your changes in the copy, then pass it on the command line with `--configfile <path-to-your-configfile>`.
 
 The most important parameters in the config file are the input files:
 
@@ -115,6 +134,15 @@ rundir: "test"
 ```
 
 and the input files are placed under `data/test/`.
+
+The `run_name:` parameter defines the name of the run and can be used to
+separate different runs of the workflow (_e.g._ with different settings on the
+same input data). The default is `run1`.
+
+The `split_rank:` parameter specifies the taxonomic rank to split the ASVs by
+before running the ASV clustering tools. Splitting the data means that ASVs that do not share the same `split_rank` are not compared for clustering which means that you should set this parameter to a relatively high rank in the taxonomy tree. The default is `Family`.
+
+The `ranks:` parameter 
 
 ### Taxonomic assignments
 
@@ -182,7 +210,18 @@ Gappa can be configured using the `gappa:` section under `epa-ng:`:
 
 #### VSEARCH assignments
 
-To run the `vsearch` taxonomic assignment method (implemented in QIIME2) you need to provide compatible files. However, if you downloaded the COIDB SINTAX reference above you can leave the `ref:` and `taxfile:` config parameters empty. HAPP will then generate the necessary files using the SINTAX reference.
+To run the `vsearch` taxonomic assignment method (implemented in QIIME2) you need to provide paths to files compatible with QIIME2 under the `qiime2:` config section. 
+
+- `ref:` This is the path to a fasta file containing reference sequences for the taxonomic assignment with the QIIME2 `feature-classifier` plugin.
+- `taxfile:` This is the path to a file containing the taxonomy for the reference sequences in the fasta file.
+- `ranks:` This is a list of taxonomic ranks present in the reference.
+
+See the [QIIME2 docs](https://docs.qiime2.org/2024.10/tutorials/feature-classifier/) for how to obtain and format these files.
+
+> [!TIP]
+>If you downloaded the COIDB SINTAX reference above you can leave the `ref:`,
+>`taxfile:` and `ranks:` config parameters empty. HAPP will then generate the
+>necessary files using the SINTAX reference.
 
 #### Combining SINTAX + EPA-NG assignments
 
@@ -234,6 +273,14 @@ taxtools: []
 #### Consensus taxonomy
 
 Once the ASVs have been clustered into OTU clusters, the workflow will attempt to assign a consensus taxonomy to each cluster. This is done by comparing the taxonomic assignments of the ASVs in the cluster starting from the lowest taxonomic rank and moving up until a consensus is reached. The consensus is reached when the sum of the abundance weighted assignments for a taxon is equal to or greater than a certain threshold (configurable by the `consensus_threshold` parameter in the config, default is 80%). The consensus taxonomy is then assigned to the cluster. The `consensus_ranks` parameter in the config file specifies the taxonomic ranks to use when assigning consensus taxonomy. The default is `["Family", "Genus", "Species"]` which means that the workflow will only attempt to assign a consensus using these ranks.
+
+> [!IMPORTANT]
+> The ranks specified with `consensus_ranks:` must be present in the taxonomic
+> assignments file used as input to the workflow. If a rank is missing from the
+> taxonomic assignments file, the workflow will not be able to assign a
+> consensus taxonomy at that rank. If you are using a custom taxonomic
+> assignments file, make sure that it contains the ranks specified in the
+> `consensus_ranks:` parameter.
 
 As an example, if a cluster contains 3 ASVs with the following taxonomic
 assignments and total sum of counts across samples:
