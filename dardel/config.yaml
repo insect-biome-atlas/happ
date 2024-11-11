@@ -1,6 +1,6 @@
 # Update <your-slurm-account> under default-resources to your own slurm compute account
 default-resources: 
-  slurm_account: naiss2024-5-207
+  slurm_account: <your-slurm-account>
   slurm_partition: shared
   runtime: 240
   tasks: f"{threads}"
