@@ -25,16 +25,6 @@ properties:
     default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
     items:
       type: string
-  codon_table:
-    type: integer
-    description: "codon table to use for translation"
-    default: 5
-    enum: [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]
-  codon_start:
-    type: integer
-    description: "reading frame start (1 based)"
-    default: 1
-    enum: [1, 2, 3]
   metadata:
     type: object
     default:
@@ -542,6 +532,8 @@ properties:
       dist_threshold_global: 4.0
       abundance_cutoff_type: "sum"
       abundance_cutoff: 3
+      codon_table: 5
+      codon_start: 1
     properties:
       split_rank:
         type: string
@@ -609,7 +601,17 @@ properties:
       abundance_cutoff:
         type: number
         description: "The minimum number of reads required for an OTU to pass the abundance filter"
-        default: 4
+        default: 3
+      codon_table:
+        type: integer
+        description: "codon table to use for translation"
+        default: 5
+        enum: [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]
+      codon_start:
+        type: integer
+        description: "reading frame start (1 based)"
+        default: 1
+        enum: [1, 2, 3]
   chimera:
     type: object
     default:
