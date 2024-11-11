@@ -58,9 +58,17 @@ def find_consensus_taxonomies(
 def main(args):
     sys.stderr.write("####\n" f"Reading ASV clusters from {args.clustfile}\n")
     clustdf = pd.read_csv(args.clustfile, sep="\t", index_col=0, header=0)
+    if args.ranks == []:
+        ranks = clustdf.loc[:, (clustdf.dtypes!=int)&(clustdf.dtypes!=float)&(clustdf.columns!=args.clust_column)].columns.tolist()
+    else:
+        ranks = args.ranks
+    if args.consensus_ranks == []:
+        consensus_ranks = ranks
+    else:
+        consensus_ranks = [x for x in args.consensus_ranks if x in ranks]
     sys.stderr.write("####\nSumming counts for ASVs\n")
     asv_sum = pd.read_csv(args.countsfile, sep="\t", index_col=0, header=0, names=["ASV", "ASV_sum"])
-    clustdf = clustdf.loc[:, [args.clust_column] + args.ranks]
+    clustdf = clustdf.loc[:, [args.clust_column] + ranks]
     clustdf = pd.merge(asv_sum, clustdf, left_index=True, right_index=True)
     sys.stderr.write(
         "####\n"
@@ -73,8 +81,8 @@ def main(args):
     resolved = find_consensus_taxonomies(
         clustdf=clustdf,
         clust_column=args.clust_column,
-        ranks=args.ranks,
-        consensus_ranks=args.consensus_ranks,
+        ranks=ranks,
+        consensus_ranks=consensus_ranks,
         consensus_threshold=args.consensus_threshold,
     )
     resolved.index.name = "cluster"
@@ -93,17 +101,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--ranks",
-        nargs="+",
-        default=[
-            "Kingdom",
-            "Phylum",
-            "Class",
-            "Order",
-            "Family",
-            "Genus",
-            "Species",
-            "BOLD_bin",
-        ],
+        nargs="*",
+        default=[],
         help="Ranks to include in the output (default: Kingdom Phylum Class Order Family Genus Species BOLD_bin))",
     )
     parser.add_argument(
@@ -120,9 +119,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--consensus_ranks",
-        nargs="+",
-        default=["Family", "Genus", "Species", "BOLD_bin"],
-        help="Ranks to use for calculating consensus. Must be present in the clustfile (default: Family Genus Species BOLD_bin))",
+        nargs="*",
+        default=[],
+        help="Ranks to use for calculating consensus. Must be present in the clustfile.",
     )
     parser.add_argument(
         "--chunksize",
