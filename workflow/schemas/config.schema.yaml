@@ -22,7 +22,7 @@ properties:
   ranks:
     type: array
     description: "ranks included in the asv_taxa.tsv taxonomy file"
-    default: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+    default: []
     items:
       type: string
   metadata:
