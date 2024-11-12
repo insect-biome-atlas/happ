@@ -85,7 +85,7 @@ Then activate the environment with:
 Once you have activated the software environment (either with `pixi shell` or `conda activate happ` as described above) the basic syntax to run the workflow is:
 
 ```bash
-snakemake --configfile <path-to-your-configfile.yml> --profile <slurm/dardel/local> --sdm <apptainer/conda> <additional-arguments>
+snakemake --sdm <apptainer/conda> --configfile <path-to-your-configfile.yml> --profile <slurm/dardel/local> <additional-arguments>
 ```
 
 The `--configfile` argument specifies the path to a [configuration file](#configuration-file) in YAML format. The `--profile` argument specifies the [configuration profile](#configuration-file) to use. The `--sdm` flag is a short-hand for `--software-deployment-method` and specifies how Snakemake will handle [rule-specific dependencies](#software-deployment-method). See below for a description of each of these arguments.
