@@ -1,7 +1,7 @@
 rerun-triggers: "mtime"
 keep-going: True
-software-deployment-method: "conda"
 printshellcmds: True
 local-cores: 4
 configfile: test/configfile.yml
 cores: 4
+apptainer-args: "-B $(pwd)"

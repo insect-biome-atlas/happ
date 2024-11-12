@@ -2,4 +2,4 @@ rerun-triggers: "mtime"
 keep-going: True
 printshellcmds: True
 cores: 1
-apptainer-args: "-B $TMPDIR -B $(pwd)"
+apptainer-args: "-B $(pwd)"

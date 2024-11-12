@@ -117,3 +117,4 @@ local-cores: 1
 jobs: 100
 latency-wait: 5
 executor: slurm
+apptainer-args: "-B $(pwd)"
