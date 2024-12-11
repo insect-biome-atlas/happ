@@ -14,7 +14,7 @@ def mem_allowed(wildcards, threads):
 
 
 
-def concat(files):
+def concat_files(files):
     """
     Concatenates multiple tab-separated value (TSV) files into a single DataFrame.
 
