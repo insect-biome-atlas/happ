@@ -13,6 +13,31 @@ def mem_allowed(wildcards, threads):
     return max(threads * 6400, 6400)
 
 
+
+def concat(files):
+    """
+    Concatenates multiple tab-separated value (TSV) files into a single DataFrame.
+
+    Args:
+        files (list of str): List of file paths to the TSV files to be concatenated.
+
+    Returns:
+        pandas.DataFrame: A DataFrame containing the concatenated data from all input files.
+
+    The function reads each file into a DataFrame, ensuring that all DataFrames have the same columns
+    by using the columns from the first file. It then concatenates all DataFrames along the row axis.
+    """
+    df = pd.DataFrame()
+    for i, f in enumerate(files):
+            _df = pd.read_csv(f, sep="\t", index_col=0)
+            if i==0:
+                cols = _df.columns
+            else:
+                _df = _df.loc[:, cols]
+            df = pd.concat([df, _df], axis=0)
+    return df
+
+
 def read_taxa(config):
     rundir = config["rundir"]
     split_rank = config["split_rank"]

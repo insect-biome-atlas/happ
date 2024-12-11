@@ -305,29 +305,6 @@ def aggregate_neeat(wc):
         run_name=wc.run_name, noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
     return retained
 
-def concat(files):
-    """
-    Concatenates multiple tab-separated value (TSV) files into a single DataFrame.
-
-    Args:
-        files (list of str): List of file paths to the TSV files to be concatenated.
-
-    Returns:
-        pandas.DataFrame: A DataFrame containing the concatenated data from all input files.
-
-    The function reads each file into a DataFrame, ensuring that all DataFrames have the same columns
-    by using the columns from the first file. It then concatenates all DataFrames along the row axis.
-    """
-    df = pd.DataFrame()
-    for i, f in enumerate(files):
-            _df = pd.read_csv(f, sep="\t", index_col=0)
-            if i==0:
-                cols = _df.columns
-            else:
-                _df = _df.loc[:, cols]
-            df = pd.concat([df, _df], axis=0)
-    return df
-
 rule neeat:
     output:
         counts = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/noise_filtered_cluster_counts.tsv",
