@@ -50,15 +50,17 @@ rule parse_sintax:
     Parses the sintax output file into a tsv file
     """
     output:
-        "results/taxonomy/sintax/{rundir}/taxonomy.tsv"
+        tsv="results/taxonomy/sintax/{rundir}/taxonomy.tsv",
+        conf="results/taxonomy/sintax/{rundir}/confidence.tsv",
     input:
         rules.aggregate_sintax.output
     log:
         "logs/sintax/{rundir}/parse_sintax.log"
     params:
-        src=workflow.source_path("../scripts/sintax_tsv.py"),
-        ranks=config["sintax"]["ranks"]
+        src=workflow.source_path("../scripts/sintax2tsv.py"),
+        ranks=config["sintax"]["ranks"],
+        cutoff=config["sintax"]["cutoff"]
     shell:
         """
-        python {params.src} -i {input} -o {output} -r {params.ranks} > {log} 2>&1
+        python {params.src} {input} {output.tsv} --conf_out {output.conf} -c {params.cutoff} -r {params.ranks} > {log} 2>&1
         """
