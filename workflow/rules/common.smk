@@ -119,7 +119,7 @@ checkpoint filter_seqs:
         # open counts file lazily
         counts = pl.scan_csv(input.counts, separator="\t")
         # get name of first column
-        first_col = counts.columns[0]
+        first_col = counts.collect_schema().names()[0]
         # read taxonomy file
         taxdf = pd.read_csv(input.tax, sep="\t", index_col=0)
         # index the fasta file
