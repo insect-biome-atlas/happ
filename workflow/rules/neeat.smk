@@ -322,7 +322,7 @@ rule neeat:
         # filter cluster taxonomy
         taxdf = pd.read_csv(input.taxonomy, sep="\t", index_col=0)
         counts = pd.read_csv(input.counts, sep="\t", index_col=0)
-        retained = concat(input.retained)
+        retained = concat_files(input.retained)
         singles = pd.read_csv(input.singles, sep="\t", index_col=0, header=0, names=["ASV","cluster"])
         if len(singles) > 0:
             singles = taxdf.loc[singles.index].reset_index().set_index("cluster")
