@@ -3,3 +3,4 @@ keep-going: True
 printshellcmds: True
 cores: 1
 apptainer-args: "-B $(pwd)"
+rerun-incomplete: True
