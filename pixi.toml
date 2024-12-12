@@ -7,7 +7,7 @@ channels = ["conda-forge", "bioconda", "main", "r", "msys2", "cduvallet"]
 platforms = ["linux-64", "osx-64", "linux-aarch64", "osx-arm64"]
 
 [feature.happ]
-dependencies = {python = "*", snakemake = "8.21.0", scikit-learn = "*", biopython = "*", tqdm = "*", polars = "*", pandas = "*", seqkit = "*", conda = "*", r-ape = "*", 'r-data.table' = "*", snakemake-executor-plugin-slurm = "*"}
+dependencies = {python = "*", snakemake = "8.21.0", scikit-learn = "*", biopython = "*", tqdm = "*", polars = "*", pandas = "*", seqkit = "*", conda = "*", r-ape = "*", 'r-data.table' = "*", snakemake-executor-plugin-slurm = "*", pigz = "*"}
 
 [feature.blastn]
 dependencies = {blast = "*"}

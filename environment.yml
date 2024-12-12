@@ -16,4 +16,5 @@ dependencies:
   - r-ape
   - r-data.table
   - snakemake-executor-plugin-slurm
+  - pigz
     
