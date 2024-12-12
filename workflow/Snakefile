@@ -1,10 +1,37 @@
 import pandas as pd
 from snakemake.utils import validate
+import re
 
 
 include: "scripts/common.py"
 
-validate(config, schema="schemas/config.schema.yaml", set_default=True)
+try:
+    validate(config, schema="schemas/config.schema.yaml", set_default=True)
+except Exception as e:
+    err = e.args[0]
+    items = err.split("\n")
+    sys.exit(f"""
+    ERROR in config file:
+    {items[-2]} {items[1]}
+
+    LIKELY CAUSE:
+    This error is likely due to a missing or incorrect value in the config file.
+    Make sure that no numeric values are quoted and that lists are set to [] when empty.
+
+    WHAT TO DO:
+    For example, to set a list parameter to empty, make sure to set it to [] in 
+    the config file instead of just commenting out the list items, e.g.:
+
+    This will raise an error
+    taxtools:
+        #- "sintax"
+        #- "vsearch"
+        #- "epa-ng"
+        #- "sintax+epa-ng"
+
+    Do this instead:
+    taxtools: []
+    """)
 
 for key in [x for x in config.keys() if x.endswith("-env")]:
     pixi_dir = f".pixi/envs/{key.replace('-env', '')}"
