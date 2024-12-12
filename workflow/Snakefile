@@ -39,8 +39,7 @@ for key in [x for x in config.keys() if x.endswith("-env")]:
         config[key] = pixi_dir
 
 if config["chimera"]["remove_chimeras"]:
-    # If config is set to remove chimeras, include the rules file and set
-    # additional config params
+    # If chimera removal is enabled this sets some internal variables
     method = config["chimera"]["method"]
     algorithm = config["chimera"]["algorithm"]
     # The 'chimdir' parameter is created from the method (either 'samplewise'
@@ -86,44 +85,21 @@ localrules:
     write_settings,
     aggregate_consensus_taxonomy,
 
-
-def cluster_files(wildcards):
-    input = []
+def eval_input(wildcards):
+    input = {"txt": [], "txt_o": [], "log": []}
     rundir = config["rundir"]
     for tool in config["software"]:
         run_name = config["run_name"]
         chimera_run = config["chimera"]["run_name"]
         chimdir = config["chimdir"]
         rank = config["split_rank"]
-        input.append(
+        input["txt"].append(
             f"results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.txt"
         )
-    return input
-
-
-def cluster_order_files(wildcards):
-    input = []
-    rundir = config["rundir"]
-    for tool in config["software"]:
-        run_name = config["run_name"]
-        chimera_run = config["chimera"]["run_name"]
-        chimdir = config["chimdir"]
-        rank = config["split_rank"]
-        input.append(
+        input["txt_o"].append(
             f"results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.order.txt"
         )
-    return input
-
-
-def log_files(wildcards):
-    input = []
-    rundir = config["rundir"]
-    for tool in config["software"]:
-        run_name = config["run_name"]
-        chimera_run = config["chimera"]["run_name"]
-        rank = config["split_rank"]
-        chimdir = config["chimdir"]
-        input.append(
+        input["log"].append(
             f"logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/precision_recall.log"
         )
     return input
@@ -213,9 +189,7 @@ rule assign_taxonomy:
 
 rule evaluate:
     input:
-        txt=cluster_files,
-        txt_o=cluster_order_files,
-        log=log_files,
+        unpack(eval_input)
     output:
         tsv=expand(
             "results/stats/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}.tsv",
