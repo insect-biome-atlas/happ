@@ -38,6 +38,10 @@ preprocessing:
 ###############################
 ##### TAXONOMY PARAMETERS #####
 ###############################
+# The split_size parameter specifies the number of sequences to include in each
+# split fasta file. This is used to reduce the size of the fasta files that are
+# input to the taxonomy assignment tools.
+split_size: 500
 # The taxonomy_source parameter specifies what taxonomy source to use for the
 # clustering. This is the primary source of taxonomy information and is used to
 # to partition the ASVs into smaller fasta files based on the split_rank

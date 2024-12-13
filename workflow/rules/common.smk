@@ -65,7 +65,7 @@ def get_input_taxa(wildcards):
 
 checkpoint split_input:
     """
-    Splits the input fasta file into chunks with at most 500 sequences
+    Splits the input fasta file into chunks
     """
     output:
         directory("results/common/{rundir}/splits")
@@ -75,7 +75,7 @@ checkpoint split_input:
         "logs/split_input/{rundir}.log"
     params:
         outdir=lambda wildcards, output: output[0],
-        size=500,
+        size=config["split_size"],
     resources:
         runtime = 60,
     threads: 1

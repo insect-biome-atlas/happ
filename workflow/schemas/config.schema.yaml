@@ -93,6 +93,11 @@ properties:
         default: 0
         description: Reading frame end (1 based), set to 0 to ignore
   ### TAXONOMY PARAMETERS
+  split_size:
+    type: integer
+    description: "When splitting the input file, the number of sequences to include in each split"
+    default: 500
+    minimum: 1
   taxonomy_source:
     type: string
     description: "source of taxonomic information"
