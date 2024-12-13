@@ -214,14 +214,7 @@ rule aggregate_qiime:
     input:
         get_classifier_files,
     run:
-        with open(output[0], "w") as out:
-            for i, f in enumerate(input):
-                with open(f, 'r') as infile:
-                    for j, line in enumerate(infile):
-                        if j == 0 and i == 0:
-                            out.write(line)
-                        elif j > 0:
-                            out.write(line)
+        concat_files(input).to_csv(output[0], sep="\t", index=False)
 
 
 rule parse_qiime:
@@ -233,7 +226,7 @@ rule parse_qiime:
         "logs/parse_qiime/{classifier}/{rundir}.log"
     params:
         src=workflow.source_path("../scripts/parse_qiime.py"),
-        ranks=config["qiime2"]["ranks"]
+        ranks=config["qiime2"]["ranks"] if len(config["qiime2"]["ranks"]) > 0 else config["sintax"]["ranks"]
     shell:
         """
         python {params.src} {input} {output} -r {params.ranks} > {log} 2>&1
