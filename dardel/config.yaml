@@ -23,6 +23,7 @@ set-resources:
     tasks: 4
   split_counts_samplewise:
     runtime: 30
+    mem_mb: 3552
   # epang.smk
   hmm_align:
     runtime: 30
