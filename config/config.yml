@@ -4,7 +4,6 @@
 # The rundir parameter is the name of a subdirectory under data/ that must contain
 # - asv_seqs.fasta (ASV sequences in FASTA format) 
 # - asv_counts.tsv (counts of ASVs (rows) in samples (columns)) 
-# - and asv_taxa.tsv (taxonomic assignments of each ASV)
 rundir: "test"
 # The run_name parameter is the name of the workflow run and is used to separate
 # runs with specific parameters of the clustering tools. 
@@ -51,7 +50,10 @@ taxonomy_source: "sintax+epa-ng"
 # The ranks parameter specifies what taxonomic ranks are included in the optional
 # ASV taxonomy file. If you don't have a taxonomy file, and instead want to assign 
 # taxonomy using the taxonomic tools specified under 'taxtools', do not modify this
-# parameter.
+# parameter. If you have a taxonomy file, set this parameter to the ranks that are 
+# included in the file, e.g. ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", 
+# "Species", "BOLD_bin"]. If you leave this parameter empty the pipeline will attempt to
+# guess which ranks are included in the taxonomy file.
 ranks: []
 # The taxtools parameter specifies what taxonomic tools to use for assigning taxonomy
 taxtools:
