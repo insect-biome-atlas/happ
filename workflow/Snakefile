@@ -343,6 +343,7 @@ rule write_asv_reps:
     output:
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_reps.fasta",
         taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_taxonomy.tsv",
+
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/write_asv_reps.log",
     input:
@@ -364,6 +365,7 @@ rule write_asv_reps:
             {input.taxa} {params.tmpdir}/counts.tsv {params.tmpdir}/seqs.fasta {output.fasta} 2>{log}
         rm -rf {params.tmpdir}
         """
+
 
 rule sum_cluster_counts:
     """
