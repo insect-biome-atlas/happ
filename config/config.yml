@@ -195,11 +195,10 @@ chimera:
 ##### CLUSTERING TOOLS TO RUN #####
 ###################################
 # Specify what clustering software to use. Choose from 'swarm', 'opticlust',
-# 'dbotu3' and 'lulu'.
+# 'dbotu3'.
 software:
   - "swarm"
   #- "opticlust"
-  #- "lulu"
   #- "dbotu3"
 
 ####################################
