@@ -53,7 +53,7 @@ def format_swarm(sm):
 def get_cluster_members(f):
     col1 = []
     col2 = []
-    regex = re.compile("_\d+$")
+    regex = re.compile(r"_\d+$")
     with open(f, "r") as fhin:
         for i, line in enumerate(fhin, start=1):
             items = line.rstrip().rsplit()
@@ -65,7 +65,7 @@ def get_cluster_members(f):
 
 def read_derep(f, dataf):
     derep = {}
-    regex = re.compile("_\d+$")
+    regex = re.compile(r"_\d+$")
     with open(f, "r") as fhin:
         for line in fhin:
             items = [regex.sub("", x) for x in line.rstrip().rsplit()]

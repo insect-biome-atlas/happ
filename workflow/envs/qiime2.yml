@@ -1,0 +1,10 @@
+name: qiime2
+channels:
+  - conda-forge
+  - bioconda
+  - qiime2
+dependencies:
+  - qiime2
+  - q2cli
+  - q2-feature-classifier
+  - q2-vsearch

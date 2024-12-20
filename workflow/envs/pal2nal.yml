@@ -1,0 +1,6 @@
+name: pal2nal
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - pal2nal

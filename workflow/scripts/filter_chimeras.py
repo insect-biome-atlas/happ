@@ -142,9 +142,10 @@ def write_seqs(f, d):
             fhout.write(text)
 
 
-def filter_samplewise_chimeras(files, minh, mindiff, mindiv, min_chimeric_samples, algorithm):
+def filter_samplewise_chimeras(files, minh, mindiff, mindiv, min_chimeric_samples, min_frac_chimeric_samples, algorithm):
     all_seqs = []
     asvs = defaultdict(lambda: 0)
+    asvs_sample_counts = defaultdict(lambda: 0)
     nonchims = []
     for uchimeout in tqdm(files, unit=" files", desc="Reading chimera results"):
         uchime_res = read_uchime(uchimeout)
@@ -152,20 +153,33 @@ def filter_samplewise_chimeras(files, minh, mindiff, mindiv, min_chimeric_sample
         if uchime_res.shape[0] == 0:
             continue
         all_asvs = set(uchime_res.index)
+        # Count number of samples in which ASVs were found
+        for asv in all_asvs:
+            asvs_sample_counts[asv] += 1
         all_seqs = list(set(all_seqs + list(uchime_res.index)))
         uchime_filtered = filter_uchime(uchime_res, minh, mindiff, mindiv, algorithm)
         chim_asvs = set(uchime_filtered.index)
         asv_diffs = all_asvs.difference(chim_asvs)
         # if there are asvs in all_asvs that are not in chim_asvs and
-        # min_chimeric_samples == 0, set these asvs to nonchims
-        if min_chimeric_samples == 0:
+        # min_chimeric_samples == 0 or min_frac_chimeric_samples == 0, 
+        # set these asvs to nonchims
+        # this means that as soon as an ASV is not identified as chimeric in a sample
+        # it should not be treated as chimeric in other samples
+        if min_chimeric_samples == 0 or min_frac_chimeric_samples == 0:
             nonchims += list(asv_diffs)
         # Keep track of number of times each ASV is marked as chimeric
         for asv in chim_asvs:
             asvs[asv] += 1
     chimcounts = pd.DataFrame(asvs, index=["n"]).T
-    # Set chimeras to ASVs identified as chimeric in at least <min_chimeric_samples>
-    chimeras = list(chimcounts.loc[chimcounts.n >= min_chimeric_samples].index)
+    sample_counts = pd.DataFrame(asvs_sample_counts, index=["in_n_samples"]).T
+    # Add column on fraction of samples in which an ASV was identified as chimeric
+    chimcounts = pd.merge(chimcounts, sample_counts, left_index=True, right_index=True)
+    chimcounts["frac"] = chimcounts["n"].div(chimcounts["in_n_samples"])
+    if min_frac_chimeric_samples:
+        chimeras = list(chimcounts.loc[chimcounts.frac >= min_frac_chimeric_samples].index)
+    else:
+        # Set chimeras to ASVs identified as chimeric in at least <min_chimeric_samples>
+        chimeras = list(chimcounts.loc[chimcounts.n >= min_chimeric_samples].index)
     # However, remove ASVs already marked as non-chimeric
     chimeras = list(set(chimeras).difference(nonchims))
     nonchimeras = list(set(all_seqs).difference(chimeras))
@@ -177,7 +191,7 @@ def main(args):
         # Run samplewise chimera detection
         sys.stderr.write(f"Found {len(args.uchimeout)} chimera result files\n")
         sys.stderr.write(
-            f"Running in samplewise mode using: minh={args.minh}, mindiff={args.mindiff}, mindiv={args.mindiv}, min_chimeric_samples={args.min_chimeric_samples}\n"
+            f"Running in samplewise mode using: minh={args.minh}, mindiff={args.mindiff}, mindiv={args.mindiv}, min_chimeric_samples={args.min_chimeric_samples}, min_frac_chimeric_samples={args.min_frac_chimeric_samples}\n"
         )
         chimeras, nonchimeras = filter_samplewise_chimeras(
             args.uchimeout,
@@ -185,6 +199,7 @@ def main(args):
             args.mindiff,
             args.mindiv,
             args.min_chimeric_samples,
+            args.min_frac_chimeric_samples,
             args.algorithm,
         )
     else:
@@ -281,6 +296,11 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="Minimum number of samples in which a sequence has to be marked as chimeric for it to be classified as a chimera",
+    )
+    parser.add_argument(
+        "--min_frac_chimeric_samples",
+        type=float,
+        help="Minimum fraction of samples in which a sequence has to be marked as chimeric for it to be classified as a chimera",
     )
     parser.add_argument(
         "--mindiff", type=int, default=3, help="Minimum number of diffs in a segment."

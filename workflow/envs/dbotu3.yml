@@ -1,8 +1,7 @@
 name: dbotu3
 channels:
-  - cduvallet
-  - bioconda
   - conda-forge
-  - defaults
+  - bioconda
+  - cduvallet
 dependencies:
-  - dbotu=1.5.3
+  - dbotu

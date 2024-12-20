@@ -3,12 +3,11 @@ import os
 
 
 localrules:
-    chimera_samplewise,
     add_sums,
     append_size,
-    split_counts,
     filter_samplewise_chimeras,
     filter_batchwise_chimeras,
+    filter_chimeras
 
 
 def fetch_samples(f):
@@ -29,24 +28,40 @@ def get_abskew(wildcards):
             abskew = 16.0
     return f"--abskew {abskew}"
 
+def get_preprocessed_files(wildcards):
+    if config["preprocessing"]["filter_codons"]:
+        fastafile = rules.filter_codons.output.fasta
+        countsfile = rules.filter_codons.output.counts
+    elif config["preprocessing"]["filter_length"]:
+        fastafile = rules.filter_length.output.fasta
+        countsfile = rules.filter_length.output.counts
+    else:
+        fastafile = f"data/{wildcards.rundir}/asv_seqs.fasta"
+        countsfile = f"data/{wildcards.rundir}/asv_counts.tsv"
+    return {"fasta": fastafile, "counts": countsfile}
 
+# TODO: Add checks for samples with zero sum counts after preprocessing?
 samples = fetch_samples(f=f"data/{config['rundir']}/asv_counts.tsv")
-
+wildcard_constraints:
+    sample=f"({'|'.join(samples)})",
+    
 ## CHIMERA DETECTION ##
 #######################
 
 ## Utilities ##
 
-
-rule chimera_filtering:
+rule filter_chimeras:
+    """
+    Pseudo-rule to act as a target for filtering chimeras
+    """
     input:
         expand(
-            "results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{f}.fasta",
+            "results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{f}",
             rundir=config["rundir"],
             chimera_run=config["chimera"]["run_name"],
             method=config["chimera"]["method"],
             algo=config["chimera"]["algorithm"],
-            f=["nonchimeras", "chimeras"],
+            f=["nonchimeras.fasta", "chimeras.fasta"]
         ),
         expand(
             "results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.{suff}",
@@ -57,49 +72,37 @@ rule chimera_filtering:
             suff=["json", "cmd"],
         ),
 
-
 rule sum_asvs:
     """
     Sums up counts for batchwise mode
     """
     input:
-        counts="data/{rundir}/asv_counts.tsv",
+        unpack(get_preprocessed_files)
     output:
-        sums="data/{rundir}/asv_sum.tsv",
+        sums="results/common/{rundir}/asv_sum.tsv",
     log:
         "logs/sum_asvs/{rundir}.log",
-    resources:
-        runtime=60,
-        mem_mb=mem_allowed,
-    threads: 10
     params:
-        src=srcdir("../scripts/sum_counts.py"),
+        src=workflow.source_path("../scripts/sum_counts.py"),
         tmpdir="$TMPDIR/{rundir}.sum_counts",
-    conda:
-        "../envs/polars.yml"
     shell:
         """
-        mkdir -p {params.tmpdir}
-        cp {input.counts} {params.tmpdir}/asv_counts.tsv
-        python {params.src} {params.tmpdir}/asv_counts.tsv > {params.tmpdir}/asv_sum.tsv 2>{log}
-        mv {params.tmpdir}/asv_sum.tsv {output.sums}
-        rm -rf {params.tmpdir}
+        python {params.src} {input.counts} > {output.sums} 2>{log}
         """
-
 
 rule append_size:
     """
     Adds size annotation for batchwise mode
     """
     input:
+        unpack(get_preprocessed_files),
         sums=rules.sum_asvs.output.sums,
-        fasta="data/{rundir}/asv_seqs.fasta",
     output:
-        fasta="data/{rundir}/asv_seqs_size.fasta",
+        fasta="results/common/{rundir}/asv_seqs_size.fasta",
     log:
         "logs/append_size/{rundir}.log",
     params:
-        src=srcdir("../scripts/add_size_to_fastaheader.py"),
+        src=workflow.source_path("../scripts/add_size_to_fastaheader.py"),
         tmpdir="$TMPDIR/{rundir}.addsums",
     shell:
         """
@@ -109,31 +112,6 @@ rule append_size:
         mv {params.tmpdir}/asv_seqs_size.fasta {output.fasta}
         rm -rf {params.tmpdir}
         """
-
-
-rule add_sums:
-    """
-    Adds size annotation to fasta headers for samplewise mode
-    """
-    output:
-        fasta="data/{rundir}/samplewise/{sample}.fasta",
-    input:
-        sums="data/{rundir}/samplewise/{sample}.sum.tsv",
-        fasta="data/{rundir}/asv_seqs.fasta",
-    log:
-        "logs/chimeras/{rundir}/{sample}.add-sums.log",
-    params:
-        src=srcdir("../scripts/add_size_to_fastaheader.py"),
-        tmpdir="$TMPDIR/{rundir}.{sample}.addsums",
-    shell:
-        """
-        mkdir -p {params.tmpdir}
-        cp {input.fasta} {params.tmpdir}/asv_seqs.fasta
-        python {params.src} {params.tmpdir}/asv_seqs.fasta {input.sums} > {params.tmpdir}/{wildcards.sample}.fasta 2>{log}
-        mv {params.tmpdir}/{wildcards.sample}.fasta {output.fasta}
-        rm -rf {params.tmpdir}
-        """
-
 
 ### BATCHWISE ###
 
@@ -153,12 +131,8 @@ rule chimera_batchwise:
         uchimealns="results/chimera/{rundir}/batchwise.{algo}/uchimealns.out",
     log:
         "logs/chimeras/{rundir}/batchwise/{algo}.log",
-    conda:
-        "../envs/vsearch.yml"
-    threads: 1
-    resources:
-        runtime=60 * 24,
-        mem_mb=mem_allowed,
+    conda: config["vsearch-env"]
+    container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     params:
         algorithm="--{algo}",
         abskew=get_abskew,
@@ -166,9 +140,12 @@ rule chimera_batchwise:
         mindiffs=config["chimera"]["mindiffs"],
         mindiv=config["chimera"]["mindiv"],
         minh=config["chimera"]["minh"],
+    threads: 4
+    resources:
+        tasks = 4
     shell:
         """
-        vsearch --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} \
+        vsearch --threads {resources.tasks} --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} \
             --minh {params.minh} {params.abskew} --chimeras {output.chim} \
             --borderline {output.border} --nonchimeras {output.nochim} \
             --uchimeout {output.uchimeout} --uchimealns {output.uchimealns} \
@@ -178,30 +155,44 @@ rule chimera_batchwise:
 
 ### SAMPLEWISE ###
 
-
-rule split_counts:
+rule split_counts_samplewise:
     output:
-        expand(
-            "data/{{rundir}}/samplewise/{sample}.sum.tsv",
-            sample=samples,
-        ),
+        temp("results/common/{rundir}/samplewise/{sample}.sum.tsv"),
     input:
-        counts="data/{rundir}/asv_counts.tsv",
+        unpack(get_preprocessed_files),
     log:
-        "logs/chimeras/{rundir}/split_counts.log",
+        "logs/chimeras/{rundir}/{sample}.split_counts.log"
     params:
-        src=srcdir("../scripts/split_counts.py"),
-        outdir=lambda wildcards, output: os.path.dirname(output[0]),
-        tmpdir="$TMPDIR/{rundir}.split",
-    conda:
-        "../envs/polars.yml"
+        src=workflow.source_path("../scripts/split_counts_samplewise.py"),
+        tmpdir="$TMPDIR/split.{rundir}.{sample}"
     shell:
         """
         mkdir -p {params.tmpdir}
         cp {input.counts} {params.tmpdir}/counts.tsv
-        python {params.src} {params.tmpdir}/counts.tsv {params.tmpdir} 2>{log}
-        rm {params.tmpdir}/counts.tsv
-        mv {params.tmpdir}/* {params.outdir}
+        python {params.src} {params.tmpdir}/counts.tsv {wildcards.sample} > {output[0]} 2>{log}
+        rm -rf {params.tmpdir}
+        """
+
+rule add_sums:
+    """
+    Adds size annotation to fasta headers for samplewise mode
+    """
+    output:
+        fasta=temp("results/common/{rundir}/samplewise/{sample}.fasta"),
+    input:
+        unpack(get_preprocessed_files),
+        sums=rules.split_counts_samplewise.output[0],
+    log:
+        "logs/chimeras/{rundir}/{sample}.add-sums.log",
+    params:
+        src=workflow.source_path("../scripts/add_size_to_fastaheader.py"),
+        tmpdir="$TMPDIR/{rundir}.{sample}.addsums",
+    shell:
+        """
+        mkdir -p {params.tmpdir}
+        cp {input.fasta} {params.tmpdir}/asv_seqs.fasta
+        python {params.src} {params.tmpdir}/asv_seqs.fasta {input.sums} > {params.tmpdir}/{wildcards.sample}.fasta 2>{log}
+        mv {params.tmpdir}/{wildcards.sample}.fasta {output.fasta}
         rm -rf {params.tmpdir}
         """
 
@@ -220,12 +211,11 @@ rule chimera_samplewise:
         fasta=rules.add_sums.output.fasta,
     log:
         "logs/chimeras/{rundir}/samplewise.{algo}/samples/{sample}.log",
-    conda:
-        "../envs/vsearch.yml"
+    conda: config["vsearch-env"]
+    container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     threads: 4
     resources:
-        runtime=60 * 4,
-        mem_mb=mem_allowed,
+        tasks = 4
     params:
         tmpdir="$TMPDIR/{rundir}.{algo}.{sample}.chim",
         outdir=lambda wildcards, output: os.path.dirname(output.chim),
@@ -241,7 +231,7 @@ rule chimera_samplewise:
             touch {output.nochim} {output.chim} {output.alns} {output.border} {output.uchimeout} {params.outdir}/NOSEQS
         else
             mkdir -p {params.tmpdir}
-            vsearch --threads {threads} --dn {params.dn} --mindiffs {params.mindiffs} \
+            vsearch --threads {resources.tasks} --dn {params.dn} --mindiffs {params.mindiffs} \
                 --mindiv {params.mindiv} --minh {params.minh} {params.abskew} \
                 --chimeras {params.tmpdir}/chimeras.fasta --borderline {params.tmpdir}/borderline.fasta \
                 --nonchimeras {params.tmpdir}/nonchimeras.fasta --uchimealns {params.tmpdir}/uchimealns.out \
@@ -255,6 +245,11 @@ rule chimera_samplewise:
 
 ### FILTERING ###
 
+def get_min_frac_chimeric_samples(config):
+    if "min_frac_chimeric_samples" in config["chimera"]:
+        return f"--min_frac_chimeric_samples {config['chimera']['min_frac_chimeric_samples']}"
+    else:
+        return ""
 
 rule filter_samplewise_chimeras:
     """
@@ -264,7 +259,7 @@ rule filter_samplewise_chimeras:
         nonchims="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/nonchimeras.fasta",
         chimeras="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/chimeras.fasta",
     input:
-        fasta="data/{rundir}/asv_seqs.fasta",
+        unpack(get_preprocessed_files),
         uchimeout=expand(
             "results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/uchimeout.txt.gz",
             rundir=config["rundir"],
@@ -275,8 +270,9 @@ rule filter_samplewise_chimeras:
         "logs/chimeras/{rundir}/filtered/{chimera_run}/samplewise.{algo}/filter_samplewise_chimeras.log",
     params:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_samplewise",
-        src=srcdir("../scripts/filter_chimeras.py"),
+        src=workflow.source_path("../scripts/filter_chimeras.py"),
         min_chimeric_samples=config["chimera"]["min_chimeric_samples"],
+        min_frac_chimeric_samples=get_min_frac_chimeric_samples(config),
         minh=config["chimera"]["minh"],
         mindiff=config["chimera"]["mindiffs"],
         mindiv=config["chimera"]["mindiv"],
@@ -286,7 +282,7 @@ rule filter_samplewise_chimeras:
         mkdir -p {params.tmpdir}
         cp {input.fasta} {params.tmpdir}/asv_seqs.fasta
         python {params.src} --uchimeout {input.uchimeout} --fasta {params.tmpdir}/asv_seqs.fasta \
-            --min_chimeric_samples {params.min_chimeric_samples} \
+            --min_chimeric_samples {params.min_chimeric_samples} {params.min_frac_chimeric_samples} \
             --chimfasta {params.tmpdir}/chimeras.fasta --nonchimfasta {params.tmpdir}/nonchimeras.fasta \
             --mindiff {params.mindiff} --mindiv {params.mindiv} --algorithm {params.algorithm} \
             --minh {params.minh} 2>{log}
@@ -307,14 +303,13 @@ rule filter_batchwise_chimeras:
         chims="results/chimera/{rundir}/filtered/{chimera_run}/batchwise.{algo}/chimeras.fasta",
         uchimeout="results/chimera/{rundir}/filtered/{chimera_run}/batchwise.{algo}/uchimeout.tsv",
     input:
-        fasta="data/{rundir}/asv_seqs.fasta",
+        unpack(get_preprocessed_files),
         uchimeout=rules.chimera_batchwise.output.uchimeout,
-        counts="data/{rundir}/asv_counts.tsv",
     log:
         "logs/chimeras/{rundir}/filtered/{chimera_run}/batchwise.{algo}/filter_batchwise_chimeras.log",
     params:
         tmpdir="$TMPDIR/{rundir}.{chimera_run}.{algo}.filterchims_batchwise",
-        src=srcdir("../scripts/filter_chimeras.py"),
+        src=workflow.source_path("../scripts/filter_chimeras.py"),
         min_samples_shared=config["chimera"]["min_samples_shared"],
         min_frac_samples_shared=config["chimera"]["min_frac_samples_shared"],
         minh=config["chimera"]["minh"],

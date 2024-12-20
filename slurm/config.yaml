@@ -1,32 +1,120 @@
-reason: "True"
-cluster-sidecar: "slurm-sidecar.py"
-cluster-cancel: "scancel"
-restart-times: "0"
-jobscript: "slurm-jobscript.sh"
-cluster: "slurm-submit.py"
-cluster-status: "slurm-status.py"
-max-jobs-per-second: "10"
-max-status-checks-per-second: "10"
-local-cores: 1
-latency-wait: "5"
-use-conda: "True"
-use-singularity: "False"
-jobs: "500"
-printshellcmds: "True"
-rerun-triggers: "mtime"
-rerun-incomplete: "True"
-conda-frontend: "mamba"
+# This is a general-purpose configuration file for the SLURM scheduler. It is
+# used to specify the default resources for the jobs, such as the account and
+# partition to use, as well as the runtime, memory, and number of threads for
+# specific rules. The configuration file also includes settings for the
+# Snakemake workflow management system, such as the number of jobs to run in
+# parallel and the latency wait time. The configuration file can be customized
+# to suit the specific requirements of the workflow and the HPC system.
 
-# Example resource configuration
-# default-resources:
-#   - runtime=100
-#   - mem_mb=6000
-#   - disk_mb=1000000
-# # set-threads: map rule names to threads
-# set-threads:
-#   - single_core_rule=1
-#   - multi_core_rule=10
-# # set-resources: map rule names to resources in general
-# set-resources:
-#   - high_memory_rule:mem_mb=12000
-#   - long_running_rule:runtime=1200
+# Update the settings under 'default-resources' to specify the SLURM account and
+# partition to use for the jobs. The 'runtime' setting specifies the maximum
+# runtime for the jobs in minutes.
+default-resources: 
+  slurm_account: <your_slurm_account>
+  slurm_partition: <your_slurm_partition>
+  runtime: 240
+  tasks: f"{threads}"
+  cpus_per_task: 1
+
+# The settings below override the default-resources for specific rules
+set-resources:
+  # chimeras.smk
+  sum_asvs:
+    runtime: 60
+    mem_mb: 8880
+  chimera_samplewise:
+    runtime: 60
+    tasks: 4
+    mem_mb: 3552
+  chimera_batchwise:
+    runtime: 600
+    mem_mb: 3552
+    tasks: 4
+  split_counts_samplewise:
+    runtime: 30
+  # epang.smk
+  hmm_align:
+    runtime: 30
+  raxml_evaluate:
+    runtime: 240
+    tasks: 1
+    mem_mb: 1776
+  epa_ng:
+    runtime: 180
+    mem_mb: 56832
+    tasks: 64
+  gappa_assign:
+    runtime: 30
+    tasks: 4
+    mem_mb: 3552
+  # sintax.smk
+  sintax:
+    runtime: 30
+    mem_mb: 8880
+  # common.smk
+  vsearch_align:
+    mem_mb: 8880
+  # qiime2.smk
+  qiime2_classify_vsearch:
+    runtime: 600
+    mem_mb: 88800
+    tasks: 20
+  qiime2_train:
+    runtime: 1440
+    mem_mb: 90000
+    tasks: 20
+  qiime2_classify_sklearn:
+    mem_mb: 17760
+    tasks: 20
+    runtime: 600
+  # dbotu3.smk
+  run_dbotu3:
+    runtime: 10080
+    #slurm_partition: <partition-for-long-jobs> # Uncomment and specify the partition for long jobs, if needed
+    mem_mb: 17760
+  # neeat.smk
+  mafft_align:
+    runtime: 30
+    tasks: 4
+    mem_mb: 3552
+  pal2nal:
+    runtime: 60
+    mem_mb: 88800
+  generate_counts_files:
+    runtime: 240
+    mem_mb: 63936
+  generate_datasets:
+    runtime: 60
+    mem_mb: 63936
+  generate_evodistlists:
+    runtime: 600
+  generate_neeat_filtered:
+    runtime: 180
+    mem_mb: 3552
+  matchlist_vsearch:
+    runtime: 30
+    tasks: 4
+    mem_mb: 3552
+  # opticlust.smk
+  run_opticlust:
+    mem_mb: 63936
+    tasks: 10
+  # swarm.smk
+  run_swarm:
+    tasks: 10
+    mem_mb: 8880
+    runtime: 60
+  # Snakefile
+  consensus_taxonomy:
+    runtime: 30
+
+# The settings below define command line flags for Snakemake.
+keep-going: True
+printshellcmds: True
+rerun-triggers: mtime
+rerun-incomplete: True
+local-cores: 1
+jobs: 100
+latency-wait: 5
+executor: slurm
+apptainer-args: "-B $(pwd)"

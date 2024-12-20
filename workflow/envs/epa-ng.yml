@@ -1,8 +1,6 @@
-name: polars
+name: epa-ng
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
-  - polars
-  - pandas
+  - epa-ng

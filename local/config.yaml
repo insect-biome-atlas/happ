@@ -1,7 +1,6 @@
-use-conda: True
-conda-frontend: "mamba"
 rerun-triggers: "mtime"
 keep-going: True
-rerun-incomplete: True
 printshellcmds: True
-reason: True
+cores: 1
+apptainer-args: "-B $(pwd)"
+rerun-incomplete: True

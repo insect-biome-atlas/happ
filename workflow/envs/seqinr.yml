@@ -1,0 +1,7 @@
+name: seqinr
+channels:
+  - conda-forge
+  - bioconda
+  - r
+dependencies:
+  - r-seqinr

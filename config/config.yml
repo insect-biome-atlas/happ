@@ -1,89 +1,352 @@
-# Update with the name of a subdirectory directory under data/ that contains
-# asv_seqs.fasta, asv_counts.tsv and asv_taxa.tsv
+############################
+##### INPUT PARAMETERS #####
+############################
+# The rundir parameter is the name of a subdirectory under data/ that must contain
+# - asv_seqs.fasta (ASV sequences in FASTA format) 
+# - asv_counts.tsv (counts of ASVs (rows) in samples (columns)) 
 rundir: "test"
-# Specify a name of the run. Using different run_name you can run clustering
-# with different parameters using the same vsearch output.
-run_name: "default"
-# At what rank should the data be split prior to aligning and clustering
+# The run_name parameter is the name of the workflow run and is used to separate
+# runs with specific parameters of the clustering tools. 
+# With different run_name parameters on the same rundir you can cluster the ASVs
+# while automatically using the same alignment output (from vsearch).
+run_name: "run1"
+# With the split_rank parameter you can split the ASVs by a certain taxonomic rank
+# prior to alignment and clustering, which parallellizes the workflow and can help
+# speed things up on large datasets. 
+# Note that the split_rank must exactly match one of the columns in the asv_taxa.tsv file
 split_rank: "Family"
-# Method to use for calculating representative sequences for clusters
-# select between "median", "mean" and "sum"
-rep_method: "median"
+  
+####################################
+##### PREPROCESSING PARAMETERS #####
+####################################
+preprocessing:
+  # Whether to perform length filtering of input seqs
+  filter_length: False
+  # Minimum and maximum length of input seqs
+  min_length: 403
+  max_length: 418
+  # Whether to perform codon filtering of input seqs
+  filter_codons: False
+  # Specific stop codons to look for. Specify multiple codons with in a comma separated list like: "TAA,TAG". By default TAA and TAG are being looked for.
+  stop_codons: "TAA,TAG"
+  # Specific position of the ASV where to start checking for codons.
+  start_position: 2
+  # Specific position of the ASV where to stop checking for codons. By default it checks until the end of the sequence
+  end_position: 0
 
+###############################
+##### TAXONOMY PARAMETERS #####
+###############################
+# The split_size parameter specifies the number of sequences to include in each
+# split fasta file. This is used to reduce the size of the fasta files that are
+# input to the taxonomy assignment tools.
+split_size: 500
+# The taxonomy_source parameter specifies what taxonomy source to use for the
+# clustering. This is the primary source of taxonomy information and is used to
+# to partition the ASVs into smaller fasta files based on the split_rank
+# parameter. If you already have a tab-separated file with taxonomic
+ # assignments, set taxonomy_source to the path of that file.
+taxonomy_source: "sintax+epa-ng"
+# The ranks parameter specifies what taxonomic ranks are included in the optional
+# ASV taxonomy file. If you don't have a taxonomy file, and instead want to assign 
+# taxonomy using the taxonomic tools specified under 'taxtools', do not modify this
+# parameter. If you have a taxonomy file, set this parameter to the ranks that are 
+# included in the file, e.g. ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", 
+# "Species", "BOLD_bin"]. If you leave this parameter empty the pipeline will attempt to
+# guess which ranks are included in the taxonomy file.
+ranks: []
+# The taxtools parameter specifies what taxonomic tools to use for assigning taxonomy
+taxtools:
+  - "sintax"
+  - "vsearch"
+  - "epa-ng"
+  - "sintax+epa-ng"
+# The sintax parameter specifies the parameters to use for the sintax taxonomy
+# assignment tool.
+sintax:
+  ref: ""
+  randseed: 15
+  cutoff: 0.8
+  ranks: 
+    - "Kingdom"
+    - "Phylum"
+    - "Class"
+    - "Order"
+    - "Family"
+    - "Genus"
+    - "Species"
+    - "BOLD_bin"
+# Below are the parameters for qiime2 (vsearch and sklearn) taxonomy assignment
+qiime2:
+  # ref is the path to the reference database to use for taxonomy assignment
+  ref: ""
+  # taxfile is the path to the taxonomy file that corresponds to the reference database
+  taxfile: ""
+  ranks: []
+# The epa-ng parameter specifies the parameters to use for the epa-ng taxonomy
+# assignment tool.
+epa-ng:
+  tree: ""
+  tree_format: "newick"
+  msa: ""
+  msa_format: "fasta"
+  model: "GTR+G+F"
+  heuristic: "dyn-heur"
+  ref_taxonomy: ""
+  chunk_size: 5000
+  tree_ranks: 
+    - "Kingdom"
+    - "Phylum"
+    - "Class"
+    - "Order"
+    - "Family"
+    - "Genus"
+    - "Species"
+  gappa:
+    distribution_ratio: -1
+    consensus_thresh: 1
+
+# Below are settings that control how ASVs that are unclassified by SINTAX will
+# be handled. The default is to use the EPA-NG results to reassign the SINTAX
+# taxonomy at high levels in the taxonomy tree.
+reassign:
+  # placeholder_rank is the taxonomic rank at which ASVs must be classified by EPA-NG, 
+  # but unclassified by SINTAX in order to be reclassified.
+  placeholder_rank: "Class"
+  # placeholder_taxa is a list of taxa that ASVs must be classified as by both EPA-NG,
+  # and SINTAX (at placeholder_rank) in order to be reassigned at lower levels.
+  placeholder_taxa: ["Collembola", "Diplura", "Protura", "Insecta"]
+  # reassign_rank is the taxonomic rank at which ASVs will be reassigned if they meet
+  # the criteria above.
+  reassign_ranks: ["Order"]
+  # downstream_ranks is a list of ranks which will be updated for ASVs with reassignments
+  downstream_ranks: ["Family", "Genus", "Species", "BOLD_bin"]
+
+
+# The evaluation rank parameter specifies what taxonomic rank to use for evaluating
+# the clustering results. This rank should correspond to the taxonomic rank that
+# you expect the clustering to represent, e.g. if you expect the clustering to
+# represent species, set this parameter to "Species".
+evaluation_rank: "Species"
+# Ranks to use for calculating consensus taxonomy for clusters
+consensus_ranks:
+  - "Family"
+  - "Genus"
+  - "Species"
+# % threshold to use for calculating consensus taxonomy for clusters
+# As an example, if a cluster has 10 sequences, and at least 8 of them are classified
+# as "Species X" at the Species level, the consensus taxonomy for the cluster
+# will be "Species X" if the threshold is set to 80, otherwise taxonomy will
+# be attempted to be resolved at Genus level etc.
+consensus_threshold: 80
+
+########################################
+##### CHIMERA FILTERING PARAMETERS #####
+########################################
 chimera:
-  run_name: "chimera1"
   # Should chimera detection and removal be performed on the input data?
   remove_chimeras: True
+
+  # Set a run name for the chimera detection and removal step
+  run_name: "chimera1"
+  
   # Select method for chimera filtering:
   #'batchwise' = run chimera detection on dataset as a whole.
   #'samplewise' = split input fasta into one file per sample and run chimera
   #               detection on each sample individually.
   method: "samplewise"
+  
   # Select algorithm to use, you can choose from 'uchime_denovo', 'uchime2_denovo'
   # and 'uchime3_denovo'.
   algorithm: "uchime_denovo"
+  
   # In batchwise method, require that a sequence marked as chimeric is present
   # with its parents in at least <min_samples_shared> samples
   min_samples_shared: 1
+  
   # In batchwise method, require that a sequence marked as chimeric is present
   # with its parents in at least <min_frac_samples_shared> fraction of samples
-  min_frac_samples_shared: 0.5
+  min_frac_samples_shared: 0
+  
   # In samplewise method, require that a sequence is marked as chimeric in at least
   # <min_chimeric_samples> in order for it to be removed from analysis. If this
   # value is set to 0, ASVs have to be marked as chimeric in all samples
   min_chimeric_samples: 0
-  # Chimera detection settings
-  # Note that these are not used for uchime2_denovo or uchime3_denovo. Instead these
-  # algorithms require 'perfect chimeras' (see the Uchime manual for more info)
+  
+  # In samplewise method, require that a sequence is marked as chimeric in at least
+  # <min_frac_chimeric_samples> fraction of samples in which the ASV is present in 
+  # order for it to be removed from analysis. If this value is set to 0, ASVs have 
+  # to be marked as chimeric in all samples
+  min_frac_chimeric_samples: 0
+  
+  # Thec parameters below are specific to how the chimeric score of sequences is
+  # calculated. Please see the Uchime
+  # [docs](https://www.drive5.com/usearch/manual6/UCHIME_score.html) for
+  # details. Note that these are not used for uchime2_denovo or uchime3_denovo.
+  # Instead these algorithms require 'perfect chimeras' (see the Uchime manual
+  # for more info)
   dn: 1.4
   mindiffs: 3
   mindiv: 0.8
   minh: 0.28
+  #abskew: 2.0
 
+###################################
+##### CLUSTERING TOOLS TO RUN #####
+###################################
 # Specify what clustering software to use. Choose from 'swarm', 'opticlust',
-# 'dbotu3' and 'lulu'.
+# 'dbotu3'.
 software:
   - "swarm"
-  - "opticlust"
-  #- "lulu"
+  #- "opticlust"
   #- "dbotu3"
-evaluation_rank: "Species"
 
-# Tool-specific settings
-vsearch:
-  threads: 10
+####################################
+##### TOOL-SPECIFIC PARAMETERS #####
+####################################
+vsearch:  
+  # minimum pairwise identity to report
   id: 0.84
+  
+  # pairwise identity definition (see vsearch manual for details and choices)
   iddef: "1"
+
+  # threshold for query coverage
+  # reject hits if fraction of query aligned is less than this value
   query_cov: 0.9
 
 opticlust:
   # For opticlust, choose whether pairwise alignments should be generated with
   # 'vsearch' or 'mothur'
   aligner: "vsearch"
+  
+  # The delta parameter sets the stable value for the metric in opticlust
   delta: 0.0001
-  cutoff: 0.03
+  
+  # at what similarity threshold clusters are generated. 
+  cutoff: 0.05
+
+  # The `initialize` parameter sets the initial randomization for opticlust.
+  # The default is `singleton` where each sequence is randomly assigned to its
+  # own OTU. The other accepted setting `oneotu` means that all sequences are
+  # assigned to one otu. 
   initialize: "singleton"
+
+  # the floating point precision for opticlust.
   precision: 1000
-  threads: 10
 
 swarm:
-  differences: 13
+  # number of differences allowed to cluster sequences
+  differences: 15
+
+  # setting 'no-otu-breaking' to True deactivates the built-in cluster
+  # refinement when d=1
   no-otu-breaking: False
+
+  # if 'fastidious' is set to True swarm performs a second clustering pass to
+  # reduce the number of small clusters when d=1
   fastidious: False
+
+  # when 'fastidious' is set to True 'boundary' defines the minimum abundance of
+  # what should be considered a large cluster.
   boundary: 0
-  threads: 10
+
+  # the settings below modify the pairwise global alignment scoring parameters
+  # when d>1
   match-reward: 5
   mismatch-penalty: 4
   gap-opening-penalty: 12
   gap-extension-penalty: 4
 
 dbotu3:
+  # dist sets the maximum allowed genetic dissimilarity between sequences
   dist: 0.1
+
+  # abund sets the minimum fold difference for comparing two OTUs
   abund: 10.0
+
+  # pval sets the minimum p-value for merging ASVs
   pval: 0.0005
 
-lulu:
-  minimum_ratio_type: "min"
-  minimum_ratio: 1
-  minimum_match: 84
-  minimum_relative_cooccurence: 0.95
+###########################
+##### NOISE FILTERING #####
+###########################
+noise_filtering:
+  # run_name sets the name of the run for the noise filtering step
+  run_name: "noise1"
+
+  # split_rank sets the taxonomic rank to split the ASVs by before running the
+  # noise filtering.
+  split_rank: "Order"
+
+  # assignment_rank sets the taxonomic rank to use for the noise filtering.
+  # ASVs unassigned or ambiguously assigned at this rank are considered noise and will be removed.
+  assignment_rank: "Order"
+
+  # maximum number of target sequences to return for aligner
+  max_target_seqs: 10
+
+  # min_match is the minimum threshold of sequence similarity for considering any
+  # OTU as an error of another
+  min_match: 84
+
+  # n_closest is the number of potential parent clusters to use in the comparison
+  # when identifying noise
+  n_closest: 10
+
+  # echo_min_overlap (numeric on the interval (0,1)): In the echo filter, the minimum fraction of
+  # the putative “noise” OTU samples that must also contain the putative
+  # authentic CO1 “parent” OTU
+  echo_min_overlap: 0.9
+
+  # echo_read_ratio_type (“max”/“mean”): In the echo filter, the type of read
+  # ratio considered by the echo_max_read_ratio criterion: “max” = maximum ratio
+  # between noise and parent reads across the samples where they co-occur;
+  # “mean” = mean ratio between noise and parent reads across the sample where
+  # they co-occur.
+  echo_read_ratio_type: mean
+
+  # echo_max_read_ratio (numeric, positive real): In the echo filter, the
+  # maximum value of the ratio between noise and parent reads
+  echo_max_read_ratio: 0.1
+
+  # echo_require_corr (TRUE/FALSE): In the echo filter, should a significant
+  # correlation between noise and parent read numbers be required before the
+  # putative OTU is removed? The significance is evaluated using a linear model,
+  # requiring that the regression coefficient is smaller than
+  # echo_max_read_ratio, and the p-value <=0.05.
+  echo_require_corr: False
+
+  # evo_local_min_overlap (numeric on the interval (0.1)): In the local evo
+  # filter, minimum fraction of the putative “noise” OTU samples that must also
+  # contain the putative authentic CO1 “parent” OTU.
+  evo_local_min_overlap: 0.95
+
+  # dist_type_local (“dadn”/“wdadn”): In the local evo filter, should distances
+  # between representative ASVs be based on unweighted amino acid distances
+  # (“dadn”) or amino acid distances weighted based on biochemical similarities
+  # (“wdadn”)?
+  dist_type_local: dadn
+
+  # dist_threshold_local (numeric, positive real): In the local evo filter, the
+  # distance value above which an OTU is considered to represent noise.
+  dist_threshold_local: 1.8
+
+  # dist_threshold_global (numeric, positive real): In the global evo filter,
+  # the distance value above which an OTU is considered to represent noise.
+  dist_threshold_global: 4.0
+
+  # abundance_cutoff_type (“sum”/“max”): Should the abundance cutoff be based on
+  # the sum of reads across samples in the dataset (“sum”), or the max number of
+  # reads (“max”)?
+  abundance_cutoff_type: sum
+
+  # abundance_cutoff (numeric, positive integer): The minimum number of reads
+  # required for an OTU to pass the abundance filter
+  abundance_cutoff: 3
+  
+  # codon table to use for translation when aligning sequences with pal2nal
+  codon_table: 5
+  
+  # reading frame start (1 based)
+  codon_start: 2
