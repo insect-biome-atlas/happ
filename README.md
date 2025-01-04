@@ -13,23 +13,6 @@
   - [ASV clustering tools](#asv-clustering-tools)
   - [Noise filtering](#noise-filtering)
 
-## Overview
-
-This repository contains a Snakemake workflow for taxonomic assignments, filtering and clustering of Amplicon
-Sequence Variants (ASVs). 
-
-Currently the following clustering tools are supported:
-
-| Software  | Reference                                                                                      | Code                                                                    |
-|-----------|------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| SWARM     | [Mahé et al 2014](https://peerj.com/articles/593/)                                             | [GitHub](https://github.com/torognes/swarm)                             |
-| OptiClust | [Westcott & Schloss 2017](https://journals.asm.org/doi/10.1128/mSphereDirect.00073-17)         | [GitHub](https://github.com/SchlossLab/Westcott_OptiClust_mSphere_2017) |
-| dbOTU3    | [Olesen et al 2017](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0176335) | [GitHub](https://github.com/swo/dbotu3)                                 |
-
-The idea with this workflow is to make it easy to run OTU clustering with many 
-different parameter settings then evaluate which settings you think works best
-for your data.
-
 ## Installation
 
 To install the workflow, either clone the repository by running:
