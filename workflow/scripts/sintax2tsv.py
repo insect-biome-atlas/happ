@@ -8,12 +8,11 @@ def parse_taxonomy(df, r, ranks=["kingdom", "phylum", "class", "order", "family"
     """
     Parse the taxonomy from the SINTAX output
 
-    This function should be used with the pandas g
-    roupby method, grouping by the ASV id.
+    This function should be used with the pandas groupby method, grouping by the
+    ASV id.
 
-    Taking a list of ranks and a cutoff value, 
-    it will parse the taxonomy string and return 
-    a dataframe with the parsed taxonomy.
+    Taking a list of ranks and a cutoff value, it will parse the taxonomy string
+    and return a dataframe with the parsed taxonomy.
     """
     asv_id = df.index[0]
     tax = df.iloc[0, 0]
@@ -22,7 +21,12 @@ def parse_taxonomy(df, r, ranks=["kingdom", "phylum", "class", "order", "family"
     d = {asv_id: {}}
     last_known = ""
     for i, rank in enumerate(ranks):
-        d[asv_id][f"{rank}_conf"] = conf_values[i]
+        try:
+            d[asv_id][f"{rank}_conf"] = conf_values[i]
+        except IndexError:
+            d[asv_id][f"{rank}_conf"] = None
+            d[asv_id][rank] = None
+            continue
         if float(conf_values[i]) >= cutoff:
             d[asv_id][rank] = tax_values[i]
             d[asv_id][f"{rank}_conf"] = conf_values[i]

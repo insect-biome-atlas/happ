@@ -31,9 +31,9 @@ def main(args):
     sys.stderr.write(f"Reading updated taxonomy from {args.update}\n")
     for i, update_file in enumerate(args.update):
         if i == 0:
-            update = pd.read_csv(update_file, sep="\t", index_col=0)
+            update = pd.read_csv(update_file, sep="\t", index_col=0, dtype=str)
         else:
-            update = pd.concat([update, pd.read_csv(update_file, sep="\t", index_col=0)])
+            update = pd.concat([update, pd.read_csv(update_file, sep="\t", index_col=0, dtype=str)])
     rename = {}
     if args.rename_file and os.path.exists(args.rename_file):
         sys.stderr.write(f"Mapping queries using {args.rename_file}\n")
@@ -44,6 +44,12 @@ def main(args):
         update.index.name=args.rename_col
     sys.stderr.write(f"Reading base taxonomy from {args.base}\n")
     base = pd.read_csv(args.base, sep="\t", index_col=0)
+    base.fillna("unclassified", inplace=True)
+    # check if update columns should be renamed
+    lc_cols = [x for x in base.columns if x.lower() in update.columns]
+    if len(lc_cols)>0:
+        rename_dict = dict(zip([x.lower() for x in lc_cols], lc_cols))
+        update = update.rename(columns=rename_dict)
     # find unclassified entries at update level
     for rank in args.update_ranks:
         unc = base.loc[base[rank].str.startswith("unclassified")].shape[0]

@@ -14,7 +14,7 @@ def mem_allowed(wildcards, threads):
 
 
 
-def concat_files(files):
+def concat_files(files, has_header=True):
     """
     Concatenates multiple tab-separated value (TSV) files into a single DataFrame.
 
@@ -28,12 +28,17 @@ def concat_files(files):
     by using the columns from the first file. It then concatenates all DataFrames along the row axis.
     """
     df = pd.DataFrame()
+    if has_header:
+        header = 0
+    else:
+        header = None
     for i, f in enumerate(files):
-            _df = pd.read_csv(f, sep="\t", index_col=0)
-            if i==0:
-                cols = _df.columns
-            else:
-                _df = _df.loc[:, cols]
+            _df = pd.read_csv(f, sep="\t", index_col=0, header=header)
+            if has_header:
+                if i==0:
+                    cols = _df.columns
+                else:
+                    _df = _df.loc[:, cols]
             df = pd.concat([df, _df], axis=0)
     return df
 
