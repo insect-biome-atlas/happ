@@ -58,7 +58,7 @@ pixi shell
 from within the root of the repository. This will activate an interactive shell
 ready to use with the workflow.
 
-#### Installation with Conda
+#### Install with Conda
 
 If you prefer to use Conda, you can create a new environment with the required
 software by running:
