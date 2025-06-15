@@ -48,6 +48,7 @@ The software required to run the workflow can either be installed via
 
 #### Installation with pixi (recommended)
 
+
 Follow the [instructions](https://pixi.sh/latest/#installation) to install pixi
 on your system, then run:
 

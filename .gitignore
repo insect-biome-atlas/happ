@@ -21,3 +21,6 @@ clipboard
 !test/config.yaml
 !test/config.yml
 !workflow/envs/*.yml
+data/*
+.snakemake/*
+.idea/*

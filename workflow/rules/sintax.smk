@@ -67,7 +67,7 @@ rule aggregate_sintax:
     input:
         unpack(get_sintax_files)
     run:
-        concat_files(input.tab).to_csv(output.tab, sep="\t")
+        concat_files(input.tab, has_header=False).to_csv(output.tab, sep="\t")
         concat_files(input.tsv).to_csv(output.tsv, sep="\t")
         concat_files(input.conf).to_csv(output.conf, sep="\t")
 
