@@ -1,6 +1,6 @@
 rerun-triggers: "mtime"
 keep-going: True
-printshellcmds: True
+printshellcmds: False
 local-cores: 4
 configfile: test/configfile.yml
 cores: 4
