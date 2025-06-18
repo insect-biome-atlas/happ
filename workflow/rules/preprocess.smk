@@ -6,6 +6,7 @@ rule filter_length:
     """
     Filter ASVs by length.
     """
+    message: f"Filtering input sequences to {config['preprocessing']['min_length']}-{config['preprocessing']['max_length']} bp"
     output:
         fasta=ensure("results/preprocess/{rundir}/ASV_length_filtered.fna", non_empty=True),
         counts=ensure("results/preprocess/{rundir}/ASV_length_filtered.table.tsv", non_empty=True)
@@ -31,6 +32,7 @@ rule filter_codons:
     """
     Filter ASVs with in-frame stop codons.
     """
+    message: "Removing sequences with in-frame stop codons"
     output:
         fasta=ensure("results/preprocess/{rundir}/ASV_codon_filtered.fna", non_empty=True),
         counts=ensure("results/preprocess/{rundir}/ASV_codon_filtered.table.tsv", non_empty=True),
