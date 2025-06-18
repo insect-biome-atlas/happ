@@ -124,14 +124,12 @@ rule matchlist_vsearch:
         tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{noise_rank}/{tax}/",
         maxhits = config["noise_filtering"]["max_target_seqs"]
     threads: 4
-    resources:
-        tasks = 4
     shell:
         """
         mkdir -p {params.tmpdir}
         cat {input} | sed 's/>.\\+ />/g' > {params.tmpdir}/cluster_reps.fasta
         vsearch --usearch_global {params.tmpdir}/cluster_reps.fasta --db {params.tmpdir}/cluster_reps.fasta --self --id .84 --iddef 1 \
-            --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits {params.maxhits} --threads {resources.tasks} > {log} 2>&1
+            --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits {params.maxhits} --threads {threads} > {log} 2>&1
         rm -rf {params.tmpdir}
         """
 
@@ -188,11 +186,8 @@ rule mafft_align:
     conda:  config["mafft-env"]
     container: "docker://quay.io/biocontainers/mafft:7.525--h031d066_0"
     threads: 4
-    resources:
-        tasks = 4,
-        cpus_per_task = 1
     shell:
-        "mafft --auto --thread {resources.tasks} {input} > {output} 2>{log}"
+        "mafft --auto --thread {threads} {input} > {output} 2>{log}"
 
 rule trim_align:
     output:
@@ -213,7 +208,7 @@ rule pal2nal:
     Generate the corresponding nucleotide alignments with pal2nal
     """
     output:
-        "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/pal2nal/{tax}.fasta"
+        ensure("results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/pal2nal/{tax}.fasta", non_empty=True)
     input:
         pep=rules.mafft_align.output[0],
         nuc=rules.trim_align.output.nuc
