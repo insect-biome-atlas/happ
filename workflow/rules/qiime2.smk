@@ -151,11 +151,9 @@ rule qiime2_classify_sklearn:
     container: "docker://quay.io/qiime2/amplicon:2024.10"
     resources:
         runtime = 60 * 10,
-        tasks = 20,
-        cpus_per_task = 1
     shell:
         """
-        qiime feature-classifier classify-sklearn --p-n-jobs {resources.tasks} --i-classifier {input.classifier} --i-reads {input.qry} --o-classification {output} > {log} 2>&1
+        qiime feature-classifier classify-sklearn --p-n-jobs {threads} --i-classifier {input.classifier} --i-reads {input.qry} --o-classification {output} > {log} 2>&1
         """
 
 rule qiime2_classify_vsearch:
@@ -176,13 +174,11 @@ rule qiime2_classify_vsearch:
     container: "docker://quay.io/qiime2/amplicon:2024.10"
     resources:
         runtime = 60 * 10,
-        tasks = 20,
-        cpus_per_task = 1
     shell:
         """
         qiime feature-classifier classify-consensus-vsearch --i-reference-reads {input.ref} --i-query {input.qry} \
             --i-reference-taxonomy {input.ref_tax} --o-classification {output.vsearch} --o-search-results {output.hits} \
-            --p-threads {resources.tasks} --verbose > {log} 2>&1
+            --p-threads {threads} --verbose > {log} 2>&1
         """
 
 rule qiime2_export:
@@ -214,7 +210,7 @@ rule aggregate_qiime:
     input:
         get_classifier_files,
     run:
-        concat_files(input).to_csv(output[0], sep="\t", index=False)
+        concat_files(input).to_csv(output[0], sep="\t", index=True)
 
 
 rule parse_qiime:
