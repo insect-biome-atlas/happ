@@ -17,6 +17,8 @@ software:
   - "swarm"
   - "dbotu3"
 
+split_size: 50
+
 noise_filtering:
   codon_start: 2
 
