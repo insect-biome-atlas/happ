@@ -1,4 +1,4 @@
-$schema: "http://json-schema.org/draft-07/schema#"
+$schema: "https://json-schema.org/draft/2020-12/schema"
 
 description: snakemake configuration file
 
@@ -108,7 +108,7 @@ properties:
     default: ["sintax"]
     items:
       type: string
-      enum: ["sintax", "epa-ng", "vsearch", "sintax+epa-ng"]
+      enum: ["sintax", "epa-ng", "vsearch", "sklearn", "sintax+epa-ng"]
   epa-ng:
     type: object
     default:
@@ -538,7 +538,7 @@ properties:
       abundance_cutoff_type: "sum"
       abundance_cutoff: 3
       codon_table: 5
-      codon_start: 1
+      codon_start: 2
     properties:
       split_rank:
         type: string
@@ -615,7 +615,7 @@ properties:
       codon_start:
         type: integer
         description: "reading frame start (1 based)"
-        default: 1
+        default: 2
         enum: [1, 2, 3]
   chimera:
     type: object
