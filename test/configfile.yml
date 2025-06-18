@@ -2,6 +2,10 @@ rundir: "test"
 run_name: "testrun"
 split_rank: "Family"
 
+preprocessing:
+  filter_length: True
+  filter_codons: True
+
 taxtools:
   - vsearch
   - sintax
