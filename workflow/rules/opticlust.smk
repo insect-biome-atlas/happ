@@ -19,13 +19,11 @@ rule mothur_align:
         tmpdir="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}",
         fasta="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta",
     threads: 10
-    resources:
-        tasks = 10
     shell:
         """
         mkdir -p {params.tmpdir}
         gunzip -c {input.fasta} > {params.fasta}
-        mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log}); pairwise.seqs(fasta={params.fasta}, processors={resources.tasks})" >{log.err} 2>&1
+        mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log}); pairwise.seqs(fasta={params.fasta}, processors={threads})" >{log.err} 2>&1
         gzip {params.tmpdir}/asv_seqs.dist
         mv {params.tmpdir}/asv_seqs.dist.gz {output.dist}
         rm -rf {params.tmpdir}

@@ -176,11 +176,9 @@ rule raxml_evaluate:
         model=lambda wildcards: config["epa-ng"]["model"],
         prefix=lambda wildcards, output: os.path.dirname(output[0]) + "/info",
     threads: 1
-    resources:
-        tasks=1
     shell:
         """
-        raxml-ng --extra thread-pin --redo --threads {resources.tasks} --evaluate --msa {input.msa} --tree {input.tree} --prefix {params.prefix} --model {params.model} >{log} 2>&1
+        raxml-ng --extra thread-pin --redo --threads {threads} --evaluate --msa {input.msa} --tree {input.tree} --prefix {params.prefix} --model {params.model} >{log} 2>&1
         """
 
 ## epa-ng
@@ -210,11 +208,9 @@ rule epa_ng:
     conda: config["epang-env"]
     container: "docker://quay.io/biocontainers/epa-ng:0.3.8--hd03093a_3"
     threads: 20
-    resources:
-        tasks=20
     shell:
         """
-        epa-ng --chunk-size {params.chunksize} --redo -T {resources.tasks} --tree {input.ref_tree} --ref-msa {input.ref_msa} \
+        epa-ng --chunk-size {params.chunksize} --redo -T {threads} --tree {input.ref_tree} --ref-msa {input.ref_msa} \
             --query {input.qry} --out-dir {params.outdir} {params.heur} --model {input.info} >{log} 2>&1
         mv {params.outdir}/epa_result.jplace {output[0]}
         """
@@ -256,11 +252,9 @@ rule gappa_assign:
     conda: config["gappa-env"]
     container: "docker://quay.io/biocontainers/gappa:0.8.5--hdcf5f25_2"   
     threads: 4
-    resources:
-        tasks=4
     shell:
         """
-        gappa examine assign --threads {resources.tasks} --out-dir {params.outdir} \
+        gappa examine assign --threads {threads} --out-dir {params.outdir} \
             --jplace-path {input.jplace} --taxon-file {input.taxonfile} \
             --ranks-string '{params.ranks_string}' --per-query-results \
             --consensus-thresh {params.consensus_thresh} {params.distribution_ratio} \

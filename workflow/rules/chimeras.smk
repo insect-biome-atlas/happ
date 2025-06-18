@@ -141,11 +141,9 @@ rule chimera_batchwise:
         mindiv=config["chimera"]["mindiv"],
         minh=config["chimera"]["minh"],
     threads: 4
-    resources:
-        tasks = 4
     shell:
         """
-        vsearch --threads {resources.tasks} --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} \
+        vsearch --threads {threads} --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} \
             --minh {params.minh} {params.abskew} --chimeras {output.chim} \
             --borderline {output.border} --nonchimeras {output.nochim} \
             --uchimeout {output.uchimeout} --uchimealns {output.uchimealns} \
@@ -214,8 +212,6 @@ rule chimera_samplewise:
     conda: config["vsearch-env"]
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     threads: 4
-    resources:
-        tasks = 4
     params:
         tmpdir="$TMPDIR/{rundir}.{algo}.{sample}.chim",
         outdir=lambda wildcards, output: os.path.dirname(output.chim),
@@ -231,7 +227,7 @@ rule chimera_samplewise:
             touch {output.nochim} {output.chim} {output.alns} {output.border} {output.uchimeout} {params.outdir}/NOSEQS
         else
             mkdir -p {params.tmpdir}
-            vsearch --threads {resources.tasks} --dn {params.dn} --mindiffs {params.mindiffs} \
+            vsearch --threads {threads} --dn {params.dn} --mindiffs {params.mindiffs} \
                 --mindiv {params.mindiv} --minh {params.minh} {params.abskew} \
                 --chimeras {params.tmpdir}/chimeras.fasta --borderline {params.tmpdir}/borderline.fasta \
                 --nonchimeras {params.tmpdir}/nonchimeras.fasta --uchimealns {params.tmpdir}/uchimealns.out \

@@ -181,15 +181,13 @@ rule vsearch_align:
     threads: config["vsearch"]["threads"]
     conda: config["vsearch-env"]
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
-    resources:
-        tasks = 10
     shell:
         """
         mkdir -p {params.tmpdir}
         gunzip -c {input.fasta} > {params.fasta}
         vsearch --usearch_global {params.fasta} --db {params.fasta} --self \
             --userout {params.dist} -userfields query+target+id --maxaccepts 0 --maxrejects 0 \
-            --id {params.id} --iddef {params.iddef}  --query_cov {params.query_cov} --threads {resources.tasks} > {log} 2>&1
+            --id {params.id} --iddef {params.iddef}  --query_cov {params.query_cov} --threads {threads} > {log} 2>&1
         gzip {params.dist}
         mv {params.dist}.gz {output.dist} 
         """

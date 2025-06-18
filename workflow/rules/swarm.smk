@@ -67,7 +67,6 @@ rule run_swarm:
     container: "docker://quay.io/biocontainers/swarm:3.1.5--h4ac6f70_1"
     resources:
         runtime=60 * 24,
-        tasks = 10
     shell:
         """
         exec &>{log}
@@ -75,7 +74,7 @@ rule run_swarm:
         gunzip -c {input} > {params.fasta}
         swarm {params.fastidious} {params.no_otu_breaking} -d {params.differences} {params.boundary} \
             {params.match_reward} {params.mismatch_penalty} {params.gap_opening_penalty} {params.gap_extension_penalty} \
-            {params.fasta} -o {params.txt} -i {params.tsv} -t {resources.tasks}
+            {params.fasta} -o {params.txt} -i {params.tsv} -t {threads}
         mv {params.txt} {params.outdir}
         mv {params.tsv} {params.outdir}
         rm -rf {params.tmpdir}
