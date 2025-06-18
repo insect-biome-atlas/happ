@@ -5,13 +5,19 @@
 - [Overview](#overview)
 - [Installation](#installation)
   - [Software requirements](#software-requirements)
-- [Software deployment method](#software-deployment-method)
+- [How to run the workflow](#how-to-run-the-workflow)
+  - [Software deployment method](#software-deployment-method)
+  - [Testrun](#testrun)
+  - [Configuration file](#configuration-file)
+  - [Configuration profile](#configuration-profile)
+  - [Running parts of the workflow](#running-parts-of-the-workflow)
 - [Configuration](#configuration)
   - [Taxonomic assignments](#taxonomic-assignments)
   - [Preprocessing](#preprocessing)
   - [Chimera filtering](#chimera-filtering)
   - [ASV clustering tools](#asv-clustering-tools)
   - [Noise filtering](#noise-filtering)
+- [Workflow output](#workflow-output)
 
 ## Overview
 
@@ -48,7 +54,6 @@ The software required to run the workflow can either be installed via
 
 #### Installation with pixi (recommended)
 
-
 Follow the [instructions](https://pixi.sh/latest/#installation) to install pixi
 on your system, then run:
 
@@ -81,7 +86,7 @@ Then activate the environment with:
 > specifically, use the configuration profile under `profiles/dardel`. See the
 > README files in the respective subdirectory for more information.
 
-## How to run
+## How to run the workflow
 
 Once you have activated the software environment (either with `pixi shell` or `conda activate happ` as described above) the basic syntax to run the workflow is:
 
@@ -89,7 +94,35 @@ Once you have activated the software environment (either with `pixi shell` or `c
 snakemake --sdm <apptainer/conda> --configfile <path-to-your-configfile.yml> --profile <slurm/dardel/local> <additional-arguments>
 ```
 
+### Software deployment method
+
+Once you have installed the main software packages needed to run the workflow
+you also have to specify how Snakemake will handle rule-specific software
+dependencies. This is controlled by the `--sdm` command line argument (short-hand for `--software-deployment-method`). We recommend to use [Apptainer](https://apptainer.org/) if this is available on your system. To use apptainer, add `--sdm apptainer` to the Snakemake command line call. Alternatively you can use [Conda](https://docs.conda.io/en/latest/) in which case you would use `--sdm conda`.
+
 The `--configfile` argument specifies the path to a [configuration file](#configuration-file) in YAML format. The `--profile` argument specifies the [configuration profile](#configuration-file) to use. The `--sdm` flag is a short-hand for `--software-deployment-method` and specifies how Snakemake will handle [rule-specific dependencies](#software-deployment-method). See below for a description of each of these arguments.
+
+### Testrun
+
+The workflow comes with a relatively small test dataset of 100 sequences in 100 samples which can be used to try the workflow on your system. To use it with default settings you need to obtain a Sintax reference file and set the corresponding path in the `sintax:` configuration entry. For ease of use you can run the `test/setup-ref.sh` script which downloads a reference from [Figshare](https://doi.org/10.17044/scilifelab.20514192) and updates the `test/configfile.yml` configuration file:
+
+```bash
+bash test/setup-ref.sh
+```
+
+Once the above command completes you can run:
+
+```bash
+snakemake --profile test --sdm conda
+```
+
+to run the workflow with software dependencies handled by Conda, or:
+
+```bash
+snakemake --profile test --sdm apptainer
+```
+
+to use Apptainer to run jobs in containers where needed.
 
 ### Configuration file
 
@@ -113,11 +146,32 @@ on different systems. The available profiles are:
 
 To use a profile, simply add `--profile <profile-name>` to the Snakemake command line call. For example, to run the workflow on a system with SLURM you would run:
 
-### Software deployment method
+### Running parts of the workflow
 
-Once you have installed the main software packages needed to run the workflow
-you also have to specify how Snakemake will handle rule-specific software
-dependencies. This is controlled by the `--sdm` command line argument (short-hand for `--software-deployment-method`). We recommend to use [Apptainer](https://apptainer.org/) if this is available on your system. To use apptainer, add `--sdm apptainer` to the Snakemake command line call. Alternatively you can use [Conda](https://docs.conda.io/en/latest/) in which case you would use `--sdm conda`.
+Instead of running the workflow all the way through you can also target specific steps such as taxonomic assignments, chimera filtering _etc._. Currently the supported steps are shown in the table below. The general syntax to run up to a certain step is:
+
+```bash
+snakemake --configfile <your-configfile.yml> --profile <test/local/dardel/slurm> --sdm=<conda/apptainer> <step>
+```
+
+So to only run up to and including taxonomic assignments for your input sequences, using the default `config/config.yml` configuration file, the `local/` profile and Conda to handle software dependencies you would run:
+
+```bash
+snakemake --configfile config/config.yml --profile local --sdm=conda assign_taxonomy
+```
+
+> [!NOTE]
+> Note the `=` sign in `--sdm=conda`. This is important here in order for Snakemake to properly parse the command line arguments when specific targets are passed.
+
+| Step | Snakemake target | Description |
+| ---- | ---------------- | ------- |
+| Assign taxonomy | `assign_taxonomy` | Assigns taxonomy to the input sequences using tools defined by `taxtools` parameter.
+| Filter chimeras | `filter_chimeras` | Filters chimeras using settings defined under `chimera` section in config file. |
+| dbotu3 clustering | `dbotu3` | Runs clustering of input sequences using dbotu3. |
+| opticlust clustering | `opticlust` | Runs clustering of input sequences using opticlust. |
+| swarm clustering | `swarm` | Runs clustering of input sequences using swarm. |
+| clustering | `clustering` | Runs clustering of input sequences using all tools defined by `software` parameter in config file. |
+
 
 ## Configuration
 
@@ -508,3 +562,14 @@ parameters specific to the noise filtering step:
 - `codon_table:` sets the codon table to use for translation when aligning
   sequences with pal2nal.
 - `codon_start:` sets the reading frame start (1 based).
+
+## Workflow output
+
+### Taxonomic assignments
+
+The output from taxonomic assignments is found in `results/taxonomy` with
+sub-directories for each tool used, _e.g._:
+
+```
+- 
+```
