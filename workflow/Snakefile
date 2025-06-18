@@ -183,6 +183,10 @@ rule all:
     input:
         get_all_input
 
+rule preprocess:
+    input:
+        unpack(get_preprocessed_files)
+
 rule assign_taxonomy:
     input:
         get_all_taxinput
