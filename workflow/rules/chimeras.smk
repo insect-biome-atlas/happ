@@ -29,15 +29,16 @@ def get_abskew(wildcards):
     return f"--abskew {abskew}"
 
 def get_preprocessed_files(wildcards):
+    rundir = config["rundir"]
     if config["preprocessing"]["filter_codons"]:
-        fastafile = rules.filter_codons.output.fasta
-        countsfile = rules.filter_codons.output.counts
+        fastafile = f"results/preprocess/{rundir}/ASV_codon_filtered.fna"
+        countsfile = f"results/preprocess/{rundir}/ASV_codon_filtered.table.tsv"
     elif config["preprocessing"]["filter_length"]:
-        fastafile = rules.filter_length.output.fasta
-        countsfile = rules.filter_length.output.counts
+        fastafile = f"results/preprocess/{rundir}/ASV_length_filtered.fna"
+        countsfile = f"results/preprocess/{rundir}/ASV_length_filtered.table.tsv"
     else:
-        fastafile = f"data/{wildcards.rundir}/asv_seqs.fasta"
-        countsfile = f"data/{wildcards.rundir}/asv_counts.tsv"
+        fastafile = f"data/{rundir}/asv_seqs.fasta"
+        countsfile = f"data/{rundir}/asv_counts.tsv"
     return {"fasta": fastafile, "counts": countsfile}
 
 # TODO: Add checks for samples with zero sum counts after preprocessing?
