@@ -213,6 +213,7 @@ The workflow supports taxonomic assignment using the following tools:
 - EPA-NG (including assignments with GAPPA)
 - SINTAX + EPA-NG (reassigning SINTAX assignments with EPA-NG)
 - vsearch (implemented in QIIME2)
+- sklearn (implemented in QIIME2)
 
 To assign taxonomy to your input ASVs you need to provide a reference database
 that works with SINTAX and/or with EPA-NG and GAPPA, depending on the tools you
@@ -264,15 +265,15 @@ Gappa can be configured using the `gappa:` section under `epa-ng:`:
 - `distribution_ration:` Determines how gappa handles edges with two possible annotations. If set to `-1` (default) the program will determine the ratio automatically from the 'distal length' specified per placement.
 - `consensus_thresh:` When assigning taxonomy to missing labels in the reference, require this consensus threshold to assign a label. The default is `1`.
 
-#### VSEARCH assignments
+#### VSEARCH/sklearn assignments
 
-To run the `vsearch` taxonomic assignment method (implemented in QIIME2) you need to provide paths to files compatible with QIIME2 under the `qiime2:` config section. 
+To run the `vsearch` or `sklearn` taxonomic assignment methods (implemented in QIIME2) you need to provide paths to files compatible with QIIME2 under the `qiime2:` config section. 
 
 - `ref:` This is the path to a fasta file containing reference sequences for the taxonomic assignment with the QIIME2 `feature-classifier` plugin.
 - `taxfile:` This is the path to a file containing the taxonomy for the reference sequences in the fasta file.
 - `ranks:` This is a list of taxonomic ranks present in the reference.
 
-See the [QIIME2 docs](https://docs.qiime2.org/2024.10/tutorials/feature-classifier/) for how to obtain and format these files.
+See the [QIIME2 docs](https://amplicon-docs.qiime2.org/en/latest/references/plugins/feature-classifier.html) for how to obtain and format these files.
 
 > [!TIP]
 >If you downloaded the COIDB SINTAX reference above you can leave the `ref:`,
