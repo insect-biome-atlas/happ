@@ -160,11 +160,12 @@ So to only run up to and including taxonomic assignments for your input sequence
 snakemake --configfile config/config.yml --profile local --sdm=conda assign_taxonomy
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > Note the `=` sign in `--sdm=conda`. This is important here in order for Snakemake to properly parse the command line arguments when specific targets are passed.
 
 | Step | Snakemake target | Description |
 | ---- | ---------------- | ------- |
+| Preprocess | `preprocess` | Performs preprocessing of input sequences as configured under the `preprocessing` section in the config file. |
 | Assign taxonomy | `assign_taxonomy` | Assigns taxonomy to the input sequences using tools defined by `taxtools` parameter.
 | Filter chimeras | `filter_chimeras` | Filters chimeras using settings defined under `chimera` section in config file. |
 | dbotu3 clustering | `dbotu3` | Runs clustering of input sequences using dbotu3. |
