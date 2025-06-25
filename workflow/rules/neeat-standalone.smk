@@ -1,4 +1,5 @@
 from snakemake.utils import validate
+import os
 
 try:
     validate(config, schema="../schemas/config.schema.yaml", set_default=True)
@@ -27,6 +28,13 @@ except Exception as e:
     Do this instead:
     taxtools: []
     """)
+
+rule all:
+    input:
+        expand("results/neeat/{noise_rank}/{f}",
+            noise_rank = config["noise_filtering"]["split_rank"],
+            f = ["noise_filtered_cluster_counts.tsv","noise_filtered_cluster_taxonomy.tsv","discarded_cluster_taxonomy.tsv"]
+        )
 
 rule taxonomy_filter:
     output:
@@ -215,8 +223,77 @@ def get_checkpoint_files(wildcards):
         noise_rank=wildcards.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
     return files
 
-rule collect_files:
+def agg_evodist(wc):
+    """
+    Aggregate the evodistlists for all taxa
+    """
+    checkpoint_dir = checkpoints.generate_taxa_seqs.get(**wc).output[0]
+    return expand("results/neeat/{noise_rank}/evodist/{tax}_evodistlist.tsv",
+        noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
+
+rule aggregate_evodist:
     input:
-        get_checkpoint_files
+        agg_evodist
     output:
-        touch("results/neeat/{noise_rank}/evodist.txt")
+        touch("results/neeat/{noise_rank}/evodist.done")
+
+rule generate_neeat_filtered:
+    output:
+        retained="results/neeat/{noise_rank}/filtered/{tax}_retained.tsv",
+        discarded="results/neeat/{noise_rank}/filtered/{tax}_discarded.tsv",
+        counts="results/neeat/{noise_rank}/filtered/{tax}_counts.tsv",
+    input:
+        counts=rules.generate_datasets.output.counts,
+        distlist=rules.generate_evodistlists.output[0],
+        taxonomy=rules.generate_datasets.output.taxonomy,
+    log:
+        "logs/neeat/neeat_filter/{noise_rank}/{tax}.log"
+    params:
+        neeat_filter=workflow.source_path("../scripts/neeat/neeat_filter.R"),
+        echo_filter=workflow.source_path("../scripts/neeat/echo_filter.R"),
+        evo_filter=workflow.source_path("../scripts/neeat/evo_filter.R"),
+        abundance_filter=workflow.source_path("../scripts/neeat/abundance_filter.R"),
+        min_match=config["noise_filtering"]["min_match"],
+        n_closest=config["noise_filtering"]["n_closest"],
+        echo_min_overlap=config["noise_filtering"]["echo_min_overlap"],
+        echo_read_ratio_type=config["noise_filtering"]["echo_read_ratio_type"],
+        echo_max_read_ratio=config["noise_filtering"]["echo_max_read_ratio"],
+        echo_require_corr=config["noise_filtering"]["echo_require_corr"],
+        evo_local_min_overlap=config["noise_filtering"]["evo_local_min_overlap"],
+        dist_type_local=config["noise_filtering"]["dist_type_local"],
+        dist_threshold_local=config["noise_filtering"]["dist_threshold_local"],
+        dist_threshold_global=config["noise_filtering"]["dist_threshold_global"],
+        abundance_cutoff_type=config["noise_filtering"]["abundance_cutoff_type"],
+        abundance_cutoff=config["noise_filtering"]["abundance_cutoff"],
+        assignment_rank=config["noise_filtering"]["assignment_rank"]
+    script:
+        "../scripts/neeat/generate_neeat_filtered.R"
+
+def aggregate_neeat(wc):
+    """
+    Aggregate the evodistlists for all taxa
+    """
+    checkpoint_dir = checkpoints.generate_taxa_seqs.get(**wc).output[0]
+    retained = expand("results/neeat/{noise_rank}/filtered/{tax}_retained.tsv",
+        noise_rank=wc.noise_rank, tax=glob_wildcards(os.path.join(checkpoint_dir, "{tax}.fasta")).tax)
+    return retained
+
+rule neeat:
+    output:
+        counts = "results/neeat/{noise_rank}/noise_filtered_cluster_counts.tsv",
+        retained = "results/neeat/{noise_rank}/noise_filtered_cluster_taxonomy.tsv",
+        discarded = "results/neeat/{noise_rank}/discarded_cluster_taxonomy.tsv"
+    input:
+        retained=aggregate_neeat,
+        counts = config["neeat"]["countsfile"],
+        taxonomy=config["neeat"]["taxfile"],
+        singles = "results/neeat/{noise_rank}/single_otus.tsv"
+    log:
+        "logs/neeat/{noise_rank}/neeat.log"
+    params:
+        src=workflow.source_path("../scripts/neeat/neeat.py"),
+        outdir = lambda wildcards, output: os.path.dirname(output.counts)
+    shell:
+        """
+        python {params.src} -r {input.retained} -c {input.counts} -t {input.taxonomy} -s {input.singles} -o {params.outdir} > {log} 2>&1
+        """
