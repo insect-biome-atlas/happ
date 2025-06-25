@@ -37,3 +37,14 @@ opticlust:
   cutoff: 0.025
   initialize: "singleton"
   precision: 1000
+
+neeat:
+  fastafile: "data/neeat_test/cluster_reps.fasta"
+  countsfile: "data/neeat_test/cluster_counts.tsv"
+  taxfile: "data/neeat_test/cluster_taxonomy.tsv"
+
+metadata:
+  metadata_file: "data/neeat_test/metadata.tsv"
+  sample_id_col: "sample_id"
+  sample_type_col: "sample_type"
+  sample_val: "sample"

@@ -14,12 +14,12 @@ rule taxonomy_filter:
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv"
     log:
         "logs/taxonomy_filter/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{assignment_rank}.log"
-    run:
-        import pandas as pd
-        assignment_rank = wildcards.assignment_rank
-        taxdf = pd.read_csv(input.taxonomy, sep="\t", index_col=0)
-        taxdf = taxdf.loc[(~taxdf[assignment_rank].str.contains("_X+$"))&(~taxdf[assignment_rank].str.startswith("unclassified"))]
-        taxdf.to_csv(output.taxonomy, sep="\t")
+    params:
+        src=workflow.source_path("../scripts/neeat/taxonomy_filter.py")
+    shell:
+        """
+        python {params.src} -t {input.taxonomy} -r {wildcards.assignment_rank} -o {output.taxonomy} >{log} 2>&1
+        """
 
 # This function `get_taxonomy` generates the file paths for taxonomy results based on the provided wildcards and configuration.
 # It checks the `assignment_rank` in the configuration under `noise_filtering`.
@@ -67,44 +67,12 @@ checkpoint generate_taxa_seqs:
         counts=rules.generate_counts_files.output.cluster_counts
     log:
         "logs/generate_taxa_seqs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}.log"
-    run:
-        import subprocess
-        import pandas as pd
-        rank = wildcards.noise_rank
-        outdir=output[0]
-        os.makedirs(outdir, exist_ok=True)
-        # read in the taxonomy file
-        taxdf = pd.read_csv(input.taxonomy[0], sep="\t", index_col=0)
-        # extract representative ASVs
-        taxdf = taxdf.loc[taxdf["representative"]==1]
-        # also make sure that only clusters that remain in the counts file are used
-        clusters_w_counts = []
-        with open(input.counts, 'r') as fhin:
-            for line in fhin:
-                clusters_w_counts.append(line.split("\t")[0])
-        taxdf = taxdf.loc[taxdf["cluster"].isin(clusters_w_counts)]
-        # taxa is the unique set of values for split_rank
-        taxa = taxdf[rank].unique()
-        singles = pd.DataFrame()
-        # iterate over taxa
-        for tax in taxa:
-            # get asvs and cluster designation
-            asvs = taxdf.loc[taxdf[rank]==tax, "cluster"]
-            # skip taxa with fewer than 2 ASVs
-            if len(asvs) < 2:
-                singles = pd.concat([singles, asvs])
-                continue
-            # generate strings with '<asv> <cluster>' format to match fasta headers
-            asvs = [f"{x[0]} {x[1]}" for x in list(zip(asvs.index, asvs))]
-            # write asvs to file
-            with open(f"{output[0]}/{tax}.ids", "w") as f:
-                _ = f.write("\n".join(asvs))
-            # use seqkit to extract sequences
-            with open(f"{outdir}/{tax}.fasta", 'w') as fhout:
-                cmd = ["seqkit", "grep", "-f",f"{output[0]}/{tax}.ids","-n", "--quiet", input.fasta]
-                _ = subprocess.run(cmd, stdout=fhout)
-                os.remove(f"{output[0]}/{tax}.ids")
-        singles.to_csv(output[1], sep="\t")
+    params:
+        src=workflow.source_path("../scripts/neeat/generate_taxa_seqs.py")
+    shell:
+        """
+        python {params.src} -t {input.taxonomy} -f {input.fasta} -c {input.counts} -r {wildcards.noise_rank} -o {output[0]} >{log} 2>&1
+        """
 
 
 
@@ -124,14 +92,8 @@ rule matchlist_vsearch:
         tmpdir = "$TMPDIR/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/{noise_rank}/{tax}/",
         maxhits = config["noise_filtering"]["max_target_seqs"]
     threads: 4
-    shell:
-        """
-        mkdir -p {params.tmpdir}
-        cat {input} | sed 's/>.\\+ />/g' > {params.tmpdir}/cluster_reps.fasta
-        vsearch --usearch_global {params.tmpdir}/cluster_reps.fasta --db {params.tmpdir}/cluster_reps.fasta --self --id .84 --iddef 1 \
-            --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits {params.maxhits} --threads {threads} > {log} 2>&1
-        rm -rf {params.tmpdir}
-        """
+    wrapper:
+        "file:workflow/wrappers/matchlist_vsearch"
 
 rule generate_datasets:
     """
@@ -140,14 +102,8 @@ rule generate_datasets:
     output:
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_taxonomy.tsv",
         counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_counts.tsv",
-        #cal_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_cal_counts.tsv",
-        #tot_prop_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_tot_prop_counts.tsv",
-        #sample_prop_counts="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/data/{tax}_sample_prop_counts.tsv",
     input:
         counts=rules.generate_counts_files.output.cluster_counts,
-        #cal_counts=rules.generate_counts_files.output.calibrated_counts,
-        #tot_prop_counts=rules.generate_counts_files.output.tot_proportional_counts,
-        #sample_prop_counts=rules.generate_counts_files.output.sample_proportional_counts,
         taxonomy=get_taxonomy,
     log:
         "logs/generate_datasets/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
@@ -186,8 +142,8 @@ rule mafft_align:
     conda:  config["mafft-env"]
     container: "docker://quay.io/biocontainers/mafft:7.525--h031d066_0"
     threads: 4
-    shell:
-        "mafft --auto --thread {threads} {input} > {output} 2>{log}"
+    wrapper:
+        "file:workflow/wrappers/mafft_align"
 
 rule trim_align:
     output:
@@ -198,10 +154,8 @@ rule trim_align:
         "logs/trim_align/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     params:
         codon_start = config["noise_filtering"]["codon_start"],
-    shell:
-        """
-        seqkit subseq --region {params.codon_start}:-1 {input.nuc} > {output.nuc} 2>{log}
-        """
+    wrapper:
+        "file:workflow/wrappers/trim_align"
 
 rule pal2nal:
     """
@@ -218,10 +172,8 @@ rule pal2nal:
     container: "docker://biocontainers/pal2nal:v14.1-2-deb_cv1"
     params:
         codon_table = config["noise_filtering"]["codon_table"],
-    shell:
-        """
-        pal2nal.pl {input.pep} {input.nuc} -output fasta -codontable {params.codon_table} > {output} 2>{log}
-        """
+    wrapper:
+        "file:workflow/wrappers/pal2nal"
 
 rule generate_evodistlists:
     """
@@ -312,26 +264,15 @@ rule neeat:
         taxonomy="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv",
         consensus="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv",
         singles = "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/neeat/{noise_rank}/single_otus.tsv"
-    run:
-        import pandas as pd
-        # filter cluster taxonomy
-        taxdf = pd.read_csv(input.taxonomy, sep="\t", index_col=0)
-        counts = pd.read_csv(input.counts, sep="\t", index_col=0)
-        retained = concat_files(input.retained)
-        singles = pd.read_csv(input.singles, sep="\t", index_col=0, header=0, names=["ASV","cluster"])
-        if len(singles) > 0:
-            singles = taxdf.loc[singles.index].reset_index().set_index("cluster")
-            singles = singles.loc[:, retained.columns]
-            retained = pd.concat([retained, singles])
-        # write discarded
-        taxdf.loc[~taxdf["cluster"].isin(retained.index)].to_csv(output.discarded, sep="\t")
-        # write retained
-        taxdf.loc[taxdf["cluster"].isin(retained.index)].to_csv(output.retained, sep="\t")
-        # filter consensus taxonomy
-        cons_tax = pd.read_csv(input.consensus, sep="\t", index_col=0)
-        cons_tax.loc[retained.index].to_csv(output.cons_retained, sep="\t")
-        # filter counts
-        counts.loc[retained.index].to_csv(output.counts, sep="\t")
+    log:
+        "logs/neeat/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}.log"
+    params:
+        src=workflow.source_path("../scripts/neeat/neeat.py"),
+        outdir = lambda wildcards, output: os.path.dirname(output.counts)
+    shell:
+        """
+        python {params.src} -r {input.retained} -c {input.counts} -t {input.taxonomy} --consensus_taxonomy {input.consensus} -s {input.singles} -o {params.outdir} > {log} 2>&1
+        """
 
 rule noise_filtered_precision_recall:
     """
