@@ -86,7 +86,10 @@ Once you have activated the software environment (either with `pixi shell` or
 is:
 
 ```bash
-snakemake --sdm <apptainer/conda> --configfile <path-to-your-configfile.yml> --profile <slurm/dardel/local> <additional-arguments>
+snakemake --sdm <apptainer/conda> \
+  --configfile <path-to-your-configfile.yml> \
+  --profile <slurm/dardel/local> \
+  <additional-arguments>
 ```
 
 Below is a description of the different command line flags:
@@ -191,7 +194,9 @@ on different systems. The available profiles are:
 To use a profile, simply add `--profile <profile-name>` to the Snakemake command line call. For example, to run the workflow on a system with SLURM you would run:
 
 ```bash
-snakemake --configfile <path-to-your-configfile.yml> --profile slurm --sdm <conda/apptainer>
+snakemake --configfile <path-to-your-configfile.yml> \
+  --profile slurm \
+  --sdm <conda/apptainer>
 ```
 
 ### Running parts of the workflow
@@ -199,13 +204,17 @@ snakemake --configfile <path-to-your-configfile.yml> --profile slurm --sdm <cond
 Instead of running the workflow all the way through you can also target specific steps such as taxonomic assignments, chimera filtering _etc._. Currently the supported steps are shown in the table below. The general syntax to run up to a certain step is:
 
 ```bash
-snakemake --configfile <your-configfile.yml> --profile <local/dardel/slurm> --sdm=<conda/apptainer> <step>
+snakemake --configfile <your-configfile.yml> \
+  --profile <local/dardel/slurm> \
+  --sdm=<conda/apptainer> <step>
 ```
 
 So to only run up to and including taxonomic assignments for your input sequences, using the default `config/config.yml` configuration file, the `local/` profile and Conda to handle software dependencies you would run:
 
 ```bash
-snakemake --configfile config/config.yml --profile local --sdm=conda assign_taxonomy
+snakemake --configfile config/config.yml \
+  --profile local \
+  --sdm=conda assign_taxonomy
 ```
 
 > [!IMPORTANT]
@@ -247,7 +256,10 @@ See the `test/configfile.yml` file supplied with the workflow for an example.
 Once you have got your files and added the parameters to the configuration file you can run NEEAT directly on your data with:
 
 ```bash
-snakemake --configfile <your-configfile.yml> --profile <local/dardel/slurm> --sdm conda -s workflow/rules/neeat-standalone.smk
+snakemake --configfile <your-configfile.yml> \
+  --profile <local/dardel/slurm> \
+  --sdm conda \
+  -s workflow/rules/neeat-standalone.smk
 ```
 
 The output will be placed under `results/neeat/` and the main results files will be in a subdirectory with the name of the taxonomic rank used to partition the data. So by default there will be a directory `results/neeat/Order`. This directory contains results from intermediate steps in different subdirectories and the files:
@@ -259,7 +271,9 @@ The output will be placed under `results/neeat/` and the main results files will
 To test NEEAT on a small dataset supplied with the workflow you may run:
 
 ```bash
-snakemake --profile test --sdm conda -s workflow/rules/neeat-standalone.smk
+snakemake --profile test \
+  --sdm conda \
+  -s workflow/rules/neeat-standalone.smk
 ```
 
 
