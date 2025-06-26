@@ -181,7 +181,18 @@ on different systems. The available profiles are:
 - `slurm`: For running the workflow on a system with the SLURM workload manager
 - `dardel`: For running the workflow on the [Dardel HPC system](https://www.pdc.kth.se/hpc-services/computing-systems/dardel-1.1043529) at PDC. 
 
+> [!IMPORTANT]
+> You will have to modify the `slurm_account:` setting in the
+> `dardel/config.yaml` or `slurm/config.yaml` file in order to use your compute
+> account when running on a cluster. For the generic `slurm` profile you will
+> also have to change the `slurm_partition:` to match the default partition on
+> your cluster.
+
 To use a profile, simply add `--profile <profile-name>` to the Snakemake command line call. For example, to run the workflow on a system with SLURM you would run:
+
+```bash
+snakemake --configfile <path-to-your-configfile.yml> --profile slurm --sdm <conda/apptainer>
+```
 
 ### Running parts of the workflow
 
