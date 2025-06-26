@@ -272,9 +272,6 @@ dbotu3:
 ##### NOISE FILTERING #####
 ###########################
 noise_filtering:
-  # run_name sets the name of the run for the noise filtering step
-  run_name: "noise1"
-
   # split_rank sets the taxonomic rank to split the ASVs by before running the
   # noise filtering.
   split_rank: "Order"
