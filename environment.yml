@@ -4,14 +4,13 @@ channels:
   - bioconda
   - r
 dependencies:
-  - python<3.12
-  - snakemake>=8.21.0
+  - python
+  - snakemake
   - scikit-learn
   - biopython
   - tqdm
   - polars
   - pandas
-  - pip
   - seqkit
   - r-ape
   - r-data.table
