@@ -6,7 +6,6 @@
 - [Installation](#installation)
   - [Software requirements](#software-requirements)
 - [How to run the workflow](#how-to-run-the-workflow)
-  - [Software deployment method](#software-deployment-method)
   - [Testrun](#testrun)
   - [Configuration file](#configuration-file)
   - [Configuration profile](#configuration-profile)
@@ -45,7 +44,8 @@ git clone git@github.com:insect-biome-atlas/happ.git
 cd happ
 ```
 
-or visit the [release page](https://github.com/insect-biome-atlas/happ/releases) and download the latest release.
+or visit the [release page](https://github.com/insect-biome-atlas/happ/releases)
+and download the latest release.
 
 ### Software requirements
 
@@ -79,6 +79,49 @@ Then activate the environment with:
   conda activate happ
   ```
 
+## How to run the workflow
+
+Once you have activated the software environment (either with `pixi shell` or
+`conda activate happ` as described above) the basic syntax to run the workflow
+is:
+
+```bash
+snakemake --sdm <apptainer/conda> --configfile <path-to-your-configfile.yml> --profile <slurm/dardel/local> <additional-arguments>
+```
+
+Below is a description of the different command line flags:
+
+- `--sdm <apptainer/conda>`
+
+The `--sdm` flag (short-hand for `--software-deployment-method`) specifies if
+rule-specific software dependencies should be handled with
+[Apptainer](https://apptainer.org/) (`--sdm apptainer`) or with
+[Conda](https://docs.conda.io/en/latest/) (`--sdm conda`). 
+
+> [!NOTE]
+> We recommend to use Apptainer if it is available on your system.
+
+- `--configfile <path-to-your-configfile.yml>`
+
+The `--configfile` flag specifies the path to a [configuration
+file](#configuration-file) in YAML format. The workflow is preconfigured with
+default settings for most parameters (see the `config/config.yml` file for
+default settings) but there are a few parameters that you will have to modify in
+order to run HAPP on your data. Read more on this in the
+[Configuration](#configuration) section.
+
+> [!TIP] 
+> We recommend that you make a copy of the `config/config.yml` file,
+> modify the copy to fit your data and then supply this file when running HAPP.
+
+- `--profile <slurm/dardel/local/test>`
+
+The `--profile` flag specifies the [configuration
+profile](#configuration-profile) to use. These profiles modify the behaviour of
+Snakemake itself (such as compute resources etc), in contrast to configuration
+files (specified with `--configfile`) which set parameters for HAPP (such as
+input files etc).
+
 > [!TIP]
 > If you are running the workflow on a high performance computing system with
 > the SLURM workload manager use the configuration profile under
@@ -86,25 +129,19 @@ Then activate the environment with:
 > specifically, use the configuration profile under `profiles/dardel`. See the
 > README files in the respective subdirectory for more information.
 
-## How to run the workflow
+- `<additional-arguments>`
 
-Once you have activated the software environment (either with `pixi shell` or `conda activate happ` as described above) the basic syntax to run the workflow is:
-
-```bash
-snakemake --sdm <apptainer/conda> --configfile <path-to-your-configfile.yml> --profile <slurm/dardel/local> <additional-arguments>
-```
-
-### Software deployment method
-
-Once you have installed the main software packages needed to run the workflow
-you also have to specify how Snakemake will handle rule-specific software
-dependencies. This is controlled by the `--sdm` command line argument (short-hand for `--software-deployment-method`). We recommend to use [Apptainer](https://apptainer.org/) if this is available on your system. To use apptainer, add `--sdm apptainer` to the Snakemake command line call. Alternatively you can use [Conda](https://docs.conda.io/en/latest/) in which case you would use `--sdm conda`.
-
-The `--configfile` argument specifies the path to a [configuration file](#configuration-file) in YAML format. The `--profile` argument specifies the [configuration profile](#configuration-file) to use. The `--sdm` flag is a short-hand for `--software-deployment-method` and specifies how Snakemake will handle [rule-specific dependencies](#software-deployment-method). See below for a description of each of these arguments.
+You can append additional Snakemake arguments to the command line call when running HAPP if you wish. These can include number of cores to use (_e.g._ `--cores 4` to run with 4 cores) or performing a dry-run with `-n`. Read about all available Snakemake command line arguments [here](https://snakemake.readthedocs.io/en/stable/executing/cli.html#).
 
 ### Testrun
 
-The workflow comes with a relatively small test dataset of 100 sequences in 100 samples which can be used to try the workflow on your system. To use it with default settings you need to obtain a Sintax reference file and set the corresponding path in the `sintax:` configuration entry. For ease of use you can run the `test/setup-ref.sh` script which downloads a reference from [Figshare](https://doi.org/10.17044/scilifelab.20514192) and updates the `test/configfile.yml` configuration file:
+The workflow comes with a relatively small test dataset of 100 sequences in 100
+samples which can be used to try the workflow on your system. To use it with
+default settings you need to obtain a Sintax reference file and set the
+corresponding path in the `sintax:` configuration entry. For ease of use you can
+run the `test/setup-ref.sh` script which downloads a reference from
+[Figshare](https://doi.org/10.17044/scilifelab.20514192) and updates the
+`test/configfile.yml` configuration file:
 
 ```bash
 bash test/setup-ref.sh
@@ -151,7 +188,7 @@ To use a profile, simply add `--profile <profile-name>` to the Snakemake command
 Instead of running the workflow all the way through you can also target specific steps such as taxonomic assignments, chimera filtering _etc._. Currently the supported steps are shown in the table below. The general syntax to run up to a certain step is:
 
 ```bash
-snakemake --configfile <your-configfile.yml> --profile <test/local/dardel/slurm> --sdm=<conda/apptainer> <step>
+snakemake --configfile <your-configfile.yml> --profile <local/dardel/slurm> --sdm=<conda/apptainer> <step>
 ```
 
 So to only run up to and including taxonomic assignments for your input sequences, using the default `config/config.yml` configuration file, the `local/` profile and Conda to handle software dependencies you would run:
@@ -172,6 +209,47 @@ snakemake --configfile config/config.yml --profile local --sdm=conda assign_taxo
 | opticlust clustering | `opticlust` | Runs clustering of input sequences using opticlust. |
 | swarm clustering | `swarm` | Runs clustering of input sequences using swarm. |
 | clustering | `clustering` | Runs clustering of input sequences using all tools defined by `software` parameter in config file. |
+
+### Running the NEEAT algorithm directly
+
+One of the final parts of HAPP is a new noise filtering algorithm called NEEAT
+(**N**oise reduction using **E**chos, **E**volutionary signals and **A**bundance
+**T**hresholds) which runs on the sequence clusters generated by the workflow. If you want to bypass the other steps of HAPP and run the NEEAT algorithm directly on your sequences you can do so by supplying three required files:
+
+1. A FASTA file containing your sequences. Because HAPP expects the NEEAT algorithm to run on clustered sequences the FASTA headers must be formatted in the pattern `>SEQUENCE_ID CLUSTER_ID` where `SEQUENCE_ID` is the original name of the sequence and `CLUSTER_ID` is the name of the cluster for which the sequence is a representative. When plugging in your data you can use the same name for both `SEQUENCE_ID` and `CLUSTER_ID`, _e.g._ `>sequence1 sequence1`.
+2. A tab-separated file with taxonomic information about each sequence. This file must have the sequence ids in the first column and must contain the columns `cluster` and `representative` where the `cluster` column contains the name of the cluster to which the sequence was assigned and `representative` contains a `1` if the sequence is a representative of the cluster, otherwise it contains a `0`. Again, you may simply set the `cluster` column to the same name as the first column and set the `representative` column to `1` for all your sequences when plugging your data into NEEAT this way. By default the workflow partitions the sequences by taxonomy and runs NEEAT in parallell on each partition for better efficiency. The default rank at which this partition occurs is `Order` and is configured via the `split_rank` parameter under the `noise_filtering` [section](#noise-filtering) in the configuration file. You can modify this parameter but make sure that the value you set for `split_rank` matches with a column in this tab-separated file.
+3. A tab-separated file with counts of sequences (rows) in each sample (columns). The names in the first column must match with the `CLUSTER_ID` in the headers of the FASTA file (see point 1), and with the `cluster` column in the tab-separated information file (see point 2).
+
+To see an example of these three files take a look at the `cluster_reps.fasta`, `cluster_taxonomy.tsv` and `cluster_counts.tsv` files in the [data/neeat_test/](https://github.com/insect-biome-atlas/happ/tree/main/data/neeat_test) directory supplied with the repository.
+
+These files are specified as input to the standalone version of NEEAT by adding a `neeat:` section to your configuration file, like so:
+
+```yaml
+neeat:
+  fastafile: <path-to-point1-fastafile>
+  taxfile: <path-to-point2-TSVfile>
+  countsfile: <path-to-point3-TSVfile>
+```
+
+See the `test/configfile.yml` file supplied with the workflow for an example.
+
+Once you have got your files and added the parameters to the configuration file you can run NEEAT directly on your data with:
+
+```bash
+snakemake --configfile <your-configfile.yml> --profile <local/dardel/slurm> --sdm conda -s workflow/rules/neeat-standalone.smk
+```
+
+The output will be placed under `results/neeat/` and the main results files will be in a subdirectory with the name of the taxonomic rank used to partition the data. So by default there will be a directory `results/neeat/Order`. This directory contains results from intermediate steps in different subdirectories and the files:
+
+- `discarded_cluster_taxonomy.tsv`: Information about sequences discarded as noise by NEEAT.
+- `noise_filtered_cluster_taxonomy.tsv`: Information about sequences retained after NEEAT filtering.
+- `noise_filtered_cluster_counts.tsv`: Counts of sequences retained after NEEAT filtering.
+
+To test NEEAT on a small dataset supplied with the workflow you may run:
+
+```bash
+snakemake --profile test --sdm conda -s workflow/rules/neeat-standalone.smk
+```
 
 
 ## Configuration
@@ -196,7 +274,10 @@ separate different runs of the workflow (_e.g._ with different settings on the
 same input data). The default is `run1`.
 
 The `split_rank:` parameter specifies the taxonomic rank to split the ASVs by
-before running the ASV clustering tools. Splitting the data means that ASVs that do not share the same `split_rank` are not compared for clustering which means that you should set this parameter to a relatively high rank in the taxonomy tree. The default is `Family`.
+before running the ASV clustering tools. Splitting the data means that ASVs that
+do not share the same `split_rank` are not compared for clustering which means
+that you should set this parameter to a relatively high rank in the taxonomy
+tree. The default is `Family`.
 
 The `ranks:` parameter 
 
