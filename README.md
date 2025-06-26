@@ -719,7 +719,7 @@ results/taxonomy
 
 ### Chimera filtering
 
-If chimera filtering is enabled results from filtering are placed under `results/chimera/<rundir>` with additional sub-directories depending on the `run_name`, `method` and `algorithm` parameter settings under the `chimera` section in the configuration file. For example:
+If chimera filtering is enabled results from filtering are placed under `results/chimera/<rundir>` with additional sub-directories depending on the `run_name`, `method` and `algorithm` parameter settings under the `chimera` section in the configuration file. For example if running chimera filtering with the `samplewise` method (default):
 
 ```
 results/chimera/
@@ -729,4 +729,71 @@ results/chimera/
             └── samplewise.uchime_denovo # <- chimera method.algorithm settings
                 ├── chimeras.fasta # <- fasta file with chimeric sequences
                 └── nonchimeras.fasta # <- fasta file with non-chimeric sequences
+```
+
+If chimera filtering is run with the `samplewise` method then each sample will also have a sub-directory under `results/chimera/<rundir>/samplewise.<algorithm>/samples/<sample>` with intermediate files from the chimera filtering steps. For example:
+
+```
+results/chimera/
+└── test # name of rundir
+    └── samplewise.uchime_denovo # method.algorithm chimera settings
+        └── samples
+            └── sample1 # output for sample1
+                ├── borderline.fasta.gz # sequences marked as 'borderline' chimeras
+                ├── chimeras.fasta.gz # chimeric sequences
+                ├── nonchimeras.fasta.gz # non-chimeric sequences
+                ├── uchimealns.out.gz # alignment output file
+                └── uchimeout.txt.gz # chimera results file
+```
+
+If instead the chimera filtering is run with the `batchwise` method, there will be:
+
+```
+results/chimera/
+└── test
+    ├── batchwise.uchime_denovo
+    │   ├── borderline.fasta
+    │   ├── chimeras.fasta
+    │   ├── nonchimeras.fasta
+    │   ├── uchimealns.out
+    │   └── uchimeout.txt
+    └── filtered
+        └── chimera1
+            └── batchwise.uchime_denovo
+                ├── chimeras.fasta
+                ├── nonchimeras.fasta
+                └── uchimeout.tsv
+```
+
+### Output from clustering tools
+
+Each clustering tool specified by the `software` config parameter gets a separate sub-directory under `results/`, _e.g._ `results/swarm`, which is further structured by the following parameters:
+
+```yaml
+rundir: <name of rundir>
+split_rank: <taxonomic rank at which to partition input>
+run_name: <main name of the workflow run>
+chimera:
+  run_name: <name of chimera run>
+  method: <samplewise/batchwise>
+  algorithm: <uchime_denovo/uchime_denovo2/uchime_denovo3>
+```
+
+For example, using the `test/configfile.yml` configuration file the results from clustering with `swarm` would be:
+
+```
+results/swarm
+└── test # rundir
+    └── chimera1 # chimera run_name
+        └── samplewise.uchime_denovo # chimera method.algorithm
+            └── Family # split_rank
+                └── runs
+                    └── testrun # run_name
+                        ├── cluster_consensus_taxonomy.tsv # consensus taxonomy of clusters
+                        ├── cluster_counts.tsv # summed counts of clusters
+                        ├── cluster_reps.fasta # representative sequences for clusters
+                        ├── cluster_taxonomy.tsv # taxonomic info and cluster ass
+                        ├── neeat # output from noise filtering with NEEAT
+                        ├── precision_recall.order.txt # precision/recall values per Order
+                        └── precision_recall.txt # precision/recall values for clustering results
 ```
