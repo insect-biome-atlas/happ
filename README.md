@@ -679,5 +679,17 @@ The output from taxonomic assignments is found in `results/taxonomy` with
 sub-directories for each tool used, _e.g._:
 
 ```
-- 
+results
+  └── taxonomy
+      ├── epa-ng
+      │   └── test # <- name of rundir
+      │       └── assignments
+      │           └── dyn-heur # <- heuristic method used by epa-ng
+      │               └── taxonomy.tsv # <- file with taxonomic assignments
+      ├── sintax # <- output from sintax
+      │   └── test # <- name of rundir
+      │       └── taxonomy.tsv
+      └── vsearch # <- output from vsearch
+          └── test # <- name of rundir
+              └── taxonomy.tsv
 ```
