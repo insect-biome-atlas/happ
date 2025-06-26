@@ -633,6 +633,10 @@ properties:
       min_chimeric_samples: 0
       min_frac_chimeric_samples: 0
     properties:
+      remove_chimeras:
+        type: boolean
+        description: "Whether to run chimera filtering"
+        default: True
       run_name:
         type: string
         description: "Name of chimera run settings"
