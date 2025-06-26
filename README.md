@@ -673,23 +673,60 @@ parameters specific to the noise filtering step:
 
 ## Workflow output
 
+HAPP generates results in a directory `results/` with sub-directories organised by several of the parameters set in the configuration used. This allows you to run HAPP with several configurations in the same root directory without overwriting results.
+
+### Preprocessing
+
+The output from preprocessing, if configured to run in your configuration file, is found in `results/preprocess/<rundir>`. If using the test dataset (`data/test/`) and configuration file (`test/configfile.yml`) the output will be:
+
+```
+results/preprocess
+└── test # <- rundir parameter
+    ├── ASV_codon_filtered.fna # <- fasta file after filtering by stop codons
+    ├── ASV_codon_filtered.list # <- list of sequences removed by stop codon filtering
+    ├── ASV_codon_filtered.table.tsv # <- counts file after filtering by stop codons
+    ├── ASV_length_filtered.fna # <- fasta file after filtering by length
+    └── ASV_length_filtered.table.tsv # <- counts file after filtering by length
+```
+
+If both `filter_length` and `filter_codons` are set to `True`, length filtering happens before stop codon filtering.
+
 ### Taxonomic assignments
 
 The output from taxonomic assignments is found in `results/taxonomy` with
 sub-directories for each tool used, _e.g._:
 
 ```
-results
-  └── taxonomy
-      ├── epa-ng
-      │   └── test # <- name of rundir
-      │       └── assignments
-      │           └── dyn-heur # <- heuristic method used by epa-ng
-      │               └── taxonomy.tsv # <- file with taxonomic assignments
-      ├── sintax # <- output from sintax
-      │   └── test # <- name of rundir
-      │       └── taxonomy.tsv
-      └── vsearch # <- output from vsearch
-          └── test # <- name of rundir
-              └── taxonomy.tsv
+results/taxonomy
+├── epa-ng # output from epa-ng tool
+│   └── test # name of rundir
+│       └── assignments
+│           └── dyn-heur # epa-ng placement heuristic
+│               └── taxonomy.tsv # taxonomic assignments
+├── sintax # output from sintax tool
+│   └── test # name of rundir
+│       ├── confidence.tsv # TSV file with sintax confidence values per sequence/rank
+│       └── taxonomy.tsv # taxonomic assignments
+├── sintax_epang # output from combining sintax + epa-ng
+│   └── test # name of rundir
+│       └── dyn-heur # epa-ng placement heuristic
+│           └── taxonomy.tsv # taxonomic assignments
+└── vsearch # output from vsearch tool
+    └── test # name of rundir
+        ├── taxonomy.raw.tsv # raw output from vsearch, incl. confidence values
+        └── taxonomy.tsv # taxonomic assignments
+```
+
+### Chimera filtering
+
+If chimera filtering is enabled results from filtering are placed under `results/chimera/<rundir>` with additional sub-directories depending on the `run_name`, `method` and `algorithm` parameter settings under the `chimera` section in the configuration file. For example:
+
+```
+results/chimera/
+└── test # <- rundir
+    └── filtered
+        └── chimera1 # <- run_name under chimera config section
+            └── samplewise.uchime_denovo # <- chimera method.algorithm settings
+                ├── chimeras.fasta # <- fasta file with chimeric sequences
+                └── nonchimeras.fasta # <- fasta file with non-chimeric sequences
 ```
