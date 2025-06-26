@@ -45,7 +45,7 @@ def main(args):
             ]
             _ = subprocess.run(cmd, stdout=fhout)
             os.remove(f"{args.outdir}/{tax}.ids")
-    singles.to_csv(f"{args.outdir}/single_otus.tsv", sep="\t")
+    singles.to_csv(f"{args.outdir}/singles.tsv", sep="\t")
 
 
 if __name__ == "__main__":
