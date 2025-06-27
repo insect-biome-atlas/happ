@@ -22,16 +22,19 @@ def read_asv_clusters(files):
     return res
 
 
-def merge_cluster_df(clustdf, taxdf):
+def merge_cluster_df(clustdf, taxdf, cluster_prefix_col=None):
     """
     Merge cluster dataframe with taxonomy
     """
     try:
-        clustdf = clustdf.drop(list(set(clustdf.columns).intersection(taxdf.columns)),axis=1)
+        clustdf = clustdf.drop(
+            list(set(clustdf.columns).intersection(taxdf.columns)), axis=1
+        )
     except AttributeError:
         pass
     dataf = pd.merge(clustdf, taxdf, left_index=True, right_index=True, how="inner")
-    dataf["cluster_Family"] = dataf["cluster"] + dataf["Family"]
+    if cluster_prefix_col:
+        dataf["cluster"] = dataf["cluster"] + "_" + dataf[cluster_prefix_col]
     return dataf
 
 
@@ -83,9 +86,18 @@ def precision_recall(df, cluster_col, rank, silent=False):
     totalTaxa = len(df[rank].unique())
     totalPositives = sum(df.groupby(cluster_col).apply(pairs, include_groups=False))
     if totalTaxa == 1:
-        TP = df.groupby(cluster_col).apply(truepos, include_groups=False, rank=rank).sum().values[0]
+        TP = (
+            df.groupby(cluster_col)
+            .apply(truepos, include_groups=False, rank=rank)
+            .sum()
+            .values[0]
+        )
     else:
-        TP = df.groupby(cluster_col).apply(truepos,include_groups=False, rank=rank).sum()
+        TP = (
+            df.groupby(cluster_col)
+            .apply(truepos, include_groups=False, rank=rank)
+            .sum()
+        )
     if type(TP) == pd.Series:
         TP = TP.sum()
     FP = totalPositives - TP
@@ -129,11 +141,11 @@ def calc_order_level(clustdf, rank):
         unit=f" Order",
     ):
         _dataf = clustdf.loc[clustdf.Order == o]
-        totalClusters = len(_dataf["cluster_Family"].unique())
+        totalClusters = len(_dataf["cluster"].unique())
         n_rank = len(_dataf[rank].unique())
         n_asv = _dataf.shape[0]
-        p, r = precision_recall(_dataf, "cluster_Family", rank, silent=True)
-        h, c = homcom(_dataf, "cluster_Family", rank)
+        p, r = precision_recall(_dataf, "cluster", rank, silent=True)
+        h, c = homcom(_dataf, "cluster", rank)
         order_level[o] = {
             "precision": p,
             "recall": r,
@@ -174,9 +186,9 @@ def main(args):
         clustdf = clustdf.loc[:, "cluster"]
         asv_taxa.drop("cluster", axis=1, inplace=True)
     sys.stderr.write("#Merging with taxonomic assignments\n")
-    clustdf = merge_cluster_df(clustdf, asv_taxa)
-    if args.skip_family_prefix:
-        clustdf["cluster_Family"] = clustdf["cluster"]
+    clustdf = merge_cluster_df(
+        clustdf=clustdf, taxdf=asv_taxa, cluster_prefix_col=args.cluster_prefix_col
+    )
     clustdf = clustdf.loc[
         (~clustdf["cluster"].str.contains("_X+$"))
         & (~clustdf["cluster"].str.startswith("unclassified"))
@@ -192,8 +204,8 @@ def main(args):
         order_leveldf = calc_order_level(clustdf, args.rank)
         sys.stderr.write(f"Writing order-level results to {args.order_level}\n")
         order_leveldf.to_csv(args.order_level, sep="\t")
-    precision, recall = precision_recall(clustdf, "cluster_Family", rank)
-    homogeneity, completeness = homcom(clustdf, "cluster_Family", args.rank)
+    precision, recall = precision_recall(clustdf, "cluster", rank)
+    homogeneity, completeness = homcom(clustdf, "cluster", args.rank)
     sys.stdout.write(f"precision\t{precision}\nrecall\t{recall}\n")
     sys.stdout.write(f"homogeneity\t{homogeneity}\ncompleteness\t{completeness}\n")
 
@@ -228,6 +240,10 @@ if __name__ == "__main__":
         type=str,
         help="Calculate order-level stats and write to this file",
     )
-    parser.add_argument("--skip_family_prefix", action="store_true", help="Skip family prefix in cluster names")
+    parser.add_argument(
+        "--cluster_prefix_col",
+        type=str,
+        help="Prefix cluster names with values in a specific column. Used mainly when combining clustfiles from different taxa.",
+    )
     args = parser.parse_args()
     main(args)
