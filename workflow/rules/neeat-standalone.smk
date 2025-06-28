@@ -37,6 +37,7 @@ rule all:
         )
 
 rule taxonomy_filter:
+    message: "Removing clusters unassigned at {wildcards.assignment_rank}"
     output:
         taxonomy="results/neeat/taxonomy_filter/{assignment_rank}/cluster_taxonomy.tsv",
     input:
@@ -60,6 +61,7 @@ rule generate_counts_files:
     """
     Generate the counts files for use with neeat filtering
     """
+    message: "Generating countsfile for NEEAT"
     output:
         cluster_counts="results/neeat/counts/cluster_counts.tsv",
     input:
@@ -80,6 +82,7 @@ checkpoint generate_taxa_seqs:
     Outputs a fasta file for each taxon (e.g. order) in the dataset. Skips taxa with 
     fewer than 2 ASVs.
     """
+    message: "Generating fasta files for taxa at {wildcards.noise_rank}"
     output:
         directory("results/neeat/{noise_rank}/fasta"),
         touch("results/neeat/{noise_rank}/fasta/singles.tsv")
@@ -96,12 +99,11 @@ checkpoint generate_taxa_seqs:
         python {params.src} -t {input.taxonomy} -f {input.fasta} -c {input.counts} -r {wildcards.noise_rank} -o {output[0]} >{log} 2>&1
         """
 
-#TODO: Make it clear that the cluster_reps.fasta file needs to have headers as:
-# '>ASV_id cluster-id'
 rule matchlist_vsearch:
     """
     Create a matchlist for sequences in an order using vsearch
     """
+    message: "Comparing sequences for {wildcards.tax}"
     output:
         "results/neeat/{noise_rank}/vsearch/{tax}.matchlist.tsv"
     input:
@@ -121,6 +123,7 @@ rule generate_datasets:
     """
     Output taxonomy and counts files for a certain taxon
     """
+    message: "Generating files for {wildcards.tax}"
     output:
         taxonomy="results/neeat/{noise_rank}/data/{tax}_taxonomy.tsv",
         counts="results/neeat/{noise_rank}/data/{tax}_counts.tsv",
@@ -139,6 +142,7 @@ rule generate_aa_seqs:
     """
     Translate nucleotide sequences to amino acid sequences
     """
+    message: "Translating sequences for {wildcards.tax} using codon table {params.codon_table}"
     output:
         faa="results/neeat/{noise_rank}/faa/{tax}.faa"
     input:
@@ -155,6 +159,7 @@ rule mafft_align:
     """
     Align protein sequences using MAFFT
     """
+    message: "Aligning translated sequences with MAFFT for {wildcards.tax}"
     output:
         "results/neeat/{noise_rank}/mafft/{tax}.aligned.faa"
     input:
@@ -168,6 +173,7 @@ rule mafft_align:
         "file:workflow/wrappers/mafft_align"
 
 rule trim_align:
+    message: "Trimming alignments for {wildcards.tax}"
     output:
         nuc="results/neeat/{noise_rank}/trimmed/{tax}.aligned.fasta"
     input:
@@ -183,6 +189,7 @@ rule pal2nal:
     """
     Generate the corresponding nucleotide alignments with pal2nal
     """
+    message: "Generating nucleotide alignments with pal2nal for {wildcards.tax}"
     output:
         ensure("results/neeat/{noise_rank}/pal2nal/{tax}.fasta", non_empty=True)
     input:
@@ -199,8 +206,9 @@ rule pal2nal:
 
 rule generate_evodistlists:
     """
-    generates evolutionary distance files for the evo_filter function of neeat
+    Generates evolutionary distance files for the evo_filter function of neeat
     """
+    message: "Generating evolutionary distances for {wildcards.tax}"
     output:
         tsv="results/neeat/{noise_rank}/evodist/{tax}_evodistlist.tsv"
     input:
@@ -238,6 +246,7 @@ rule aggregate_evodist:
         touch("results/neeat/{noise_rank}/evodist.done")
 
 rule generate_neeat_filtered:
+    message: "NEEAT filtering sequences for {wildcards.tax}"
     output:
         retained="results/neeat/{noise_rank}/filtered/{tax}_retained.tsv",
         discarded="results/neeat/{noise_rank}/filtered/{tax}_discarded.tsv",
@@ -279,6 +288,7 @@ def aggregate_neeat(wc):
     return retained
 
 rule neeat:
+    message: "Aggregating NEEAT filtered files"
     output:
         counts = "results/neeat/{noise_rank}/noise_filtered_cluster_counts.tsv",
         retained = "results/neeat/{noise_rank}/noise_filtered_cluster_taxonomy.tsv",

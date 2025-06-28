@@ -5,6 +5,7 @@ localrules:
 
 
 rule mothur_align:
+    message: "Aligning sequences for {wildcards.tax} with mothur"
     input:
         fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     output:
@@ -38,6 +39,7 @@ def opticlust_input(wildcards):
 
 
 rule reformat_distmat:
+    message: "Reformatting distance matrix for {wildcards.tax}"
     input:
         rules.vsearch_align.output.dist,
     output:
@@ -53,6 +55,7 @@ rule run_opticlust:
     """
     opticlust requires that all sequences in the counts file have abundance > 0
     """
+    message: "Running opticlust clustering on sequences in {wildcards.tax}"
     input:
         dist=opticlust_input,
         counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/total_counts.tsv",
@@ -87,6 +90,7 @@ rule opticlust2tab:
     """
     Generate a membership style table of clusters
     """
+    message: "Generating opticlust cluster file for {wildcards.tax}"
     input:
         rules.run_opticlust.output.list,
     output:

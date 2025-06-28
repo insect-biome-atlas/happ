@@ -67,6 +67,7 @@ checkpoint split_input:
     """
     Splits the input fasta file into chunks
     """
+    message: "Splitting input fasta for {wildcards.rundir}"
     output:
         directory("results/common/{rundir}/splits")
     input:
@@ -90,6 +91,7 @@ checkpoint filter_seqs:
     if chimera filtering is activated. Ensures that all ASVs are present in both the counts file
     and the sequence file.
     """
+    message: "Generating fasta files per taxa at rank {wildcards.rank}"
     input:
         counts="data/{rundir}/asv_counts.tsv",
         fasta=get_input_fasta,
@@ -165,6 +167,7 @@ checkpoint filter_seqs:
 
 ## VSEARCH ALIGNMENTS ##
 rule vsearch_align:
+    message: "Aligning sequences for {wildcards.tax}"
     input:
         fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     output:

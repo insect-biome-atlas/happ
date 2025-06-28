@@ -31,6 +31,7 @@ rule sintax2qiime_input:
     >seqid1
     ATGCGGGCTAGAGTAGCGAT...
     """
+    message: "Converting SINTAX reference to QIIME2 format"
     input:
         fasta=config["sintax"]["ref"]
     output:
@@ -58,6 +59,7 @@ rule qiime2_import_ref_seqs:
     """
     Imports the reference sequences into a QIIME2 artifact
     """
+    message: "Importing QIIME2 reference"
     output:
         "resources/qiime2/seqs.qza"
     input:
@@ -75,6 +77,7 @@ rule qiime2_import_qry_seqs:
     """
     Imports the query sequences into a QIIME2 artifact
     """
+    message: "Importing query sequences for {wildcards.split} splitfile"
     output:
         temp("results/taxonomy/qiime2/{rundir}/splits/{split}/{split}.qza")
     input:
@@ -102,6 +105,7 @@ rule qiime2_import_taxonomy:
     """
     Imports the taxonomy file into a QIIME2 artifact
     """
+    message: "Importing taxonomy file"
     output:
         "resources/qiime2/taxonomy.qza"
     input:
@@ -120,6 +124,7 @@ rule qiime2_train:
     """
     Trains a naive bayes classifier on the reference sequences and taxonomy
     """
+    message: "Training classifier"
     output:
         "resources/qiime2/classifier.qza"
     input:
@@ -139,6 +144,7 @@ rule qiime2_classify_sklearn:
     """
     Classifies the query sequences using a naive bayes classifier
     """
+    message: "Classifying sequences for {wildcards.split} splitfile"
     output:
         "results/taxonomy/sklearn/{rundir}/splits/{split}/taxonomy.qza"
     input:
@@ -160,6 +166,7 @@ rule qiime2_classify_vsearch:
     """
     Classifies the query sequences using vsearch
     """
+    message: "Classifying sequences with vsearch for {wildcards.split} splitfile"
     output:
         vsearch="results/taxonomy/vsearch/{rundir}/splits/{split}/taxonomy.qza",
         hits="results/taxonomy/vsearch/{rundir}/splits/{split}/hits.qza",
@@ -182,6 +189,7 @@ rule qiime2_classify_vsearch:
         """
 
 rule qiime2_export:
+    message: "Exporting {wildcards.classifier} classifications for {wildcards.split} splitfile"
     output:
         "results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.tsv"
     input:
@@ -205,6 +213,7 @@ rule aggregate_qiime:
     """
     Concatenates the qiime output files into a single file
     """
+    message: "Aggregating {wildcards.classifier} classificiations"
     output:
         "results/taxonomy/{classifier}/{rundir}/taxonomy.raw.tsv"
     input:
@@ -214,6 +223,7 @@ rule aggregate_qiime:
 
 
 rule parse_qiime:
+    message: "Parsing {wildcards.classifier} classifications"
     output:
         "results/taxonomy/{classifier}/{rundir}/taxonomy.tsv"
     input:

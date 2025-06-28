@@ -9,6 +9,7 @@ rule run_dbotu3:
     and vice versa. However there's no requirement that total counts for 
     sequences are > 0
     """
+    message: "Running dbotu3 clustering on sequences in {wildcards.tax}"
     input:
         fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
         counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_counts.tsv.gz",
@@ -42,6 +43,7 @@ rule run_dbotu3:
 
 
 rule dbotu32tab:
+    message: "Generating dbotu3 cluster file for {wildcards.tax}"
     input:
         rules.run_dbotu3.output.memb,
     output:

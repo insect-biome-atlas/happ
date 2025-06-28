@@ -6,6 +6,7 @@ rule sintax:
     """
     Runs sintax on one split of the query fasta file
     """
+    message: "Running SINTAX on {wildcards.split} splitfile"
     output:
         temp("results/taxonomy/sintax/{rundir}/splits/{split}.tab")
     input:
@@ -30,6 +31,7 @@ rule parse_sintax:
     """
     Parses the sintax output file into a tsv file
     """
+    message: "Parsing SINTAX results for {wildcards.split} splitfile"
     output:
         tsv=temp("results/taxonomy/sintax/{rundir}/splits/{split}.tsv"),
         conf=temp("results/taxonomy/sintax/{rundir}/splits/{split}_conf.tsv"),
@@ -60,6 +62,7 @@ rule aggregate_sintax:
     """
     Concatenates the sintax output files
     """
+    message: "Aggregating SINTAX results"
     output:
         tab="results/taxonomy/sintax/{rundir}/sintax.tab",
         tsv="results/taxonomy/sintax/{rundir}/taxonomy.tsv",

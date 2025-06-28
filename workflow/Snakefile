@@ -192,6 +192,7 @@ rule assign_taxonomy:
         get_all_taxinput
 
 rule evaluate:
+    message: "Aggregating evaluations from clustering tools"
     input:
         unpack(eval_input)
     output:
@@ -272,6 +273,7 @@ rule clustering:
         rules.evaluate.output
 
 rule write_settings:
+    message: "Writing configuration parameters to file"
     output:
         json="results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.json",
         cmd="results/settings/{rundir}/{chimera_run}/{chimdir}/{run_name}.cmd",
@@ -279,7 +281,6 @@ rule write_settings:
         get_input_fasta,
     run:
         import json, sys
-
         with open(output.json, "w") as fhout:
             json.dump(config, fhout, indent=4)
         with open(output.cmd, "w") as fhout:
@@ -304,6 +305,7 @@ rule precision_recall:
     """
     Calculate precision and recall for the clusters
     """
+    message: "Calculating precision/recall"
     input:
         clust_files=get_asv_clusters,
         tax=get_input_taxa
@@ -325,6 +327,7 @@ rule calc_colsums:
     """
     Calculate the column sums of the ASVs
     """
+    message: "Summing counts per sequence"
     output:
         "results/common/{rundir}/colsums.tsv",
     log:
@@ -345,10 +348,10 @@ rule write_asv_reps:
     """
     Writes the representative sequences for each cluster
     """
+    message: "Generating representative files for clusters"
     output:
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_reps.fasta",
         taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_taxonomy.tsv",
-
     log:
         "logs/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/write_asv_reps.log",
     input:
@@ -376,6 +379,7 @@ rule sum_cluster_counts:
     """
     Sums counts for each cluster
     """
+    message: "Summing counts for clusters"
     output:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_counts.tsv",
     input:
@@ -418,6 +422,7 @@ rule aggregate_clusters:
     """
     Aggregates the cluster files from each taxa
     """
+    message: "Aggregating cluster files for {wildcards.tool}"
     output:
         taxinfo="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_taxonomy.tsv", # file with cluster membership and taxonomy
         fasta="results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_reps.fasta",
@@ -453,6 +458,7 @@ rule consensus_taxonomy:
     """
     Calculates the consensus taxonomy for each cluster per split rank
     """
+    message: "Calculating consensus taxonomy for {wildcards.tool} clusters"
     output:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/{run_name}/cluster_consensus_taxonomy.tsv",
     input:
@@ -464,9 +470,10 @@ rule consensus_taxonomy:
         ranks=get_rank_settings(config),
         cons_ranks="--consensus_ranks " + " ".join(config["consensus_ranks"]),
         thresh=config["consensus_threshold"],
+        src=workflow.source_path("scripts/consensus_taxonomy.py")
     shell:
         """
-        python workflow/scripts/consensus_taxonomy.py --countsfile {input.countsfile} \
+        python {params.src} --countsfile {input.countsfile} \
             --clustfile {input.clustfile} {params[ranks]} {params[cons_ranks]} \
             --consensus_threshold {params[thresh]} > {output} 2>{log}
         """
@@ -485,6 +492,7 @@ def get_consensus_taxonomy_files(wildcards):
     return files
 
 rule aggregate_consensus_taxonomy:
+    message: "Aggregating consensus taxonomies"
     output:
         "results/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/runs/{run_name}/cluster_consensus_taxonomy.tsv",
     input:

@@ -77,6 +77,7 @@ rule sum_asvs:
     """
     Sums up counts for batchwise mode
     """
+    message: "Summing counts for sequences"
     input:
         unpack(get_preprocessed_files)
     output:
@@ -95,6 +96,7 @@ rule append_size:
     """
     Adds size annotation for batchwise mode
     """
+    message: "Adding sizes to sequence headers"
     input:
         unpack(get_preprocessed_files),
         sums=rules.sum_asvs.output.sums,
@@ -122,6 +124,7 @@ rule chimera_batchwise:
     Run uchime algorithm with vsearch on the full dataset directly
     The wildcard 'algo' can be 'uchime_denovo', 'uchime2_denovo' or 'uchime3_denovo'
     """
+    message: "Running chimera detection using {wildcards.algo} algorithm"
     input:
         fasta=rules.append_size.output.fasta,
     output:
@@ -155,6 +158,7 @@ rule chimera_batchwise:
 ### SAMPLEWISE ###
 
 rule split_counts_samplewise:
+    message: "Generating counts file for {wildcards.sample}"
     output:
         temp("results/common/{rundir}/samplewise/{sample}.sum.tsv"),
     input:
@@ -176,6 +180,7 @@ rule add_sums:
     """
     Adds size annotation to fasta headers for samplewise mode
     """
+    message: "Adding sizes to fasta headers for {wildcards.sample}"
     output:
         fasta=temp("results/common/{rundir}/samplewise/{sample}.fasta"),
     input:
@@ -200,6 +205,7 @@ rule chimera_samplewise:
     """
     Run chimera detection on each sample
     """
+    message: "Running chimera detection on {wildcards.sample} using {wildcards.algo} algorithm"
     output:
         chim="results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/chimeras.fasta.gz",
         nochim="results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/nonchimeras.fasta.gz",
@@ -252,6 +258,7 @@ rule filter_samplewise_chimeras:
     """
     Filter samplewise chimera results
     """
+    message: "Filtering chimeras using samplewise method"
     output:
         nonchims="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/nonchimeras.fasta",
         chimeras="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/chimeras.fasta",
@@ -295,6 +302,7 @@ rule filter_batchwise_chimeras:
     detection using the algorithm specified in the config and outputs nonchimeras
     under criteria matching 'min_samples_shared' or 'min_frac_samples_shared'
     """
+    message: "Filtering chimeras using batchwise method"
     output:
         nonchims="results/chimera/{rundir}/filtered/{chimera_run}/batchwise.{algo}/nonchimeras.fasta",
         chims="results/chimera/{rundir}/filtered/{chimera_run}/batchwise.{algo}/chimeras.fasta",
