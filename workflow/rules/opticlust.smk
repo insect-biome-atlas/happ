@@ -70,7 +70,7 @@ rule run_opticlust:
         precision=config["opticlust"]["precision"],
     conda: config["opticlust-env"]
     container: "docker://biocontainers/mothur:v1.41.21-1-deb_cv1"
-    shadow: "minimal"
+    shadow: "full"
     shell:
         """
         gunzip -c {input.dist} > asv_seqs.dist
