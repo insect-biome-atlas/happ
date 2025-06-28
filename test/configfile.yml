@@ -7,15 +7,17 @@ preprocessing:
   filter_codons: True
 
 taxtools:
-  - vsearch
+  #- vsearch
   - sintax
-  - epa-ng
-  - sintax+epa-ng
+  #- epa-ng
+  #- sintax+epa-ng
+
+taxonomy_source: sintax
 
 software:
   - "opticlust"
   - "swarm"
-  - "dbotu3"
+  #- "dbotu3"
 
 split_size: 50
 
