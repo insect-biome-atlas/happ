@@ -82,7 +82,7 @@ checkpoint generate_taxa_seqs:
     """
     output:
         directory("results/neeat/{noise_rank}/fasta"),
-        touch("results/neeat/{noise_rank}/singles.tsv")
+        touch("results/neeat/{noise_rank}/fasta/singles.tsv")
     input:
         taxonomy=get_taxonomy,
         fasta=config["neeat"]["fastafile"],
@@ -287,7 +287,7 @@ rule neeat:
         retained=aggregate_neeat,
         counts = config["neeat"]["countsfile"],
         taxonomy=config["neeat"]["taxfile"],
-        singles = "results/neeat/{noise_rank}/singles.tsv"
+        singles = "results/neeat/{noise_rank}/fasta/singles.tsv"
     log:
         "logs/neeat/{noise_rank}/neeat.log"
     params:
