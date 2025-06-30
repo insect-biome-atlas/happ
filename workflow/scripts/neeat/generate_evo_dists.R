@@ -27,10 +27,6 @@ rownames(T) <- T$cluster
 tax_asvs <- T$ASV
 seqs <- read.alignment(fasta_file,format="fasta")
 
-# map from cluster name to ASV name
-matchlist$V1 <- T[matchlist$V1,"ASV"]
-matchlist$V2 <- T[matchlist$V2,"ASV"]
-
 evodistlist <- matchlist[(matchlist$V1 %in% seqs$nam) & (matchlist$V2 %in% seqs$nam),]
 colnames(evodistlist) <- c("asv1","asv2","idty")
 evodistlist$pdist <- 1.0 - (evodistlist$idty / 100.0)
