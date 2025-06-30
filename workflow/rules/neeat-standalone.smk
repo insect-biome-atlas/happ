@@ -116,8 +116,11 @@ rule matchlist_vsearch:
         tmpdir = "$TMPDIR/{noise_rank}/{tax}/",
         maxhits = config["noise_filtering"]["max_target_seqs"]
     threads: 4
-    wrapper:
-        "file:workflow/wrappers/matchlist_vsearch"
+    shell:
+        """
+        vsearch --usearch_global {input} --db {input} --self --id .84 --iddef 1 \
+            --userout {output} -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits {params.maxhits} --threads {threads} > {log} 2>&1
+        """
 
 rule generate_datasets:
     """
@@ -169,8 +172,10 @@ rule mafft_align:
     conda:  config["mafft-env"]
     container: "docker://quay.io/biocontainers/mafft:7.525--h031d066_0"
     threads: 4
-    wrapper:
-        "file:workflow/wrappers/mafft_align"
+    shell:
+        """
+        mafft --auto --thread {threads} {input} > {output} 2>{log}
+        """
 
 rule trim_align:
     message: "Trimming alignments for {wildcards.tax}"
@@ -182,8 +187,10 @@ rule trim_align:
         "logs/neeat/trim_align/{noise_rank}/{tax}.log"
     params:
         codon_start = config["noise_filtering"]["codon_start"],
-    wrapper:
-        "file:workflow/wrappers/trim_align"
+    shell:
+        """
+        seqkit subseq --region {params.codon_start}:-1 {input.nuc} > {output.nuc} 2>{log}
+        """
 
 rule pal2nal:
     """
@@ -201,8 +208,10 @@ rule pal2nal:
     container: "docker://biocontainers/pal2nal:v14.1-2-deb_cv1"
     params:
         codon_table = config["noise_filtering"]["codon_table"],
-    wrapper:
-        "file:workflow/wrappers/pal2nal"
+    shell:
+        """
+        pal2nal.pl {input.pep} {input.nuc} -output fasta -codontable {params.codon_table} > {output} 2>{log}
+        """
 
 rule generate_evodistlists:
     """
