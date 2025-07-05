@@ -29,6 +29,11 @@ except Exception as e:
     taxtools: []
     """)
 
+for key in [x for x in config.keys() if x.endswith("-env")]:
+    pixi_dir = f".pixi/envs/{key.replace('-env', '')}"
+    if os.path.exists(pixi_dir) and os.path.isdir(pixi_dir):
+        config[key] = pixi_dir
+
 rule all:
     input:
         expand("results/neeat/{noise_rank}/{f}",
@@ -136,10 +141,15 @@ rule generate_datasets:
     log:
         "logs/neeat/generate_datasets/{noise_rank}/{tax}.log"
     params:
-        split_rank = config["noise_filtering"]["split_rank"]
+        split_rank = config["noise_filtering"]["split_rank"],
+        src=workflow.source_path("../scripts/neeat/generate_datasets.py"),
+        outdir=lambda wildcards, output: os.path.dirname(output.taxonomy)
     threads: 1
-    script:
-        "../scripts/neeat/generate_datasets.R"
+    shell:
+        """
+        python {params.src} {input.taxonomy} {input.counts} \
+            -r {wildcards.noise_rank} -t {wildcards.tax} -o {params.outdir}
+        """
 
 rule generate_aa_seqs:
     """
