@@ -29,9 +29,7 @@ counts_file <- snakemake@input$counts
 dist_file <- snakemake@input$distlist
 taxonomy_file <- snakemake@input$taxonomy
 
-counts <- read.delim(counts_file, sep="\t")
-rownames(counts) <- counts[, 1]
-counts <- counts[, 2:ncol(counts)]
+counts <- read.delim(counts_file, sep="\t", row.names=1)
 distlist_lines <- length(readLines(dist_file, n=1))
 if (distlist_lines == 0) {
      distlist <- data.frame()
@@ -39,7 +37,6 @@ if (distlist_lines == 0) {
      distlist <- read.delim(dist_file, sep="\t", header=TRUE)
 }
 taxonomy <- read.delim(taxonomy_file, sep="\t", header=TRUE, row.names=1)
-taxonomy$ASV <- rownames(taxonomy)
 results <- neeat_filter(
      counts=counts,
      distlist=distlist,
@@ -57,19 +54,19 @@ results <- neeat_filter(
      abundance_cutoff_type=abundance_cutoff_type,
      abundance_cutoff=abundance_cutoff,
      assignment_rank=assignment_rank
-     )
+)
 
 # output retained taxonomy df
 taxonomy_retained <- taxonomy[results$retained_clusters,]
-write.table(taxonomy_retained, snakemake@output$retained, sep="\t", row.names=FALSE, quote=FALSE)
+write.table(taxonomy_retained, snakemake@output$retained, sep="\t", row.names=TRUE, quote=FALSE)
 
 # output discarded taxonomy df
 taxonomy_discarded <- taxonomy[results$discarded_clusters,]
-write.table(taxonomy_discarded, snakemake@output$discarded, sep="\t", row.names=FALSE, quote=FALSE)
+write.table(taxonomy_discarded, snakemake@output$discarded, sep="\t", row.names=TRUE, quote=FALSE)
 
 # output filtered counts
 filtered_counts <- results$filtered_counts
-filtered_counts <- cbind("ASV"=rownames(filtered_counts), filtered_counts)
-write.table(filtered_counts, snakemake@output$counts, sep="\t", row.names=TRUE, quote=FALSE)
+filtered_counts <- cbind("seq_id"=rownames(filtered_counts), filtered_counts)
+write.table(filtered_counts, snakemake@output$counts, sep="\t", row.names=FALSE, quote=FALSE)
 
 sink()
