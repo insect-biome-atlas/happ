@@ -34,35 +34,47 @@ def concat_files(files, has_header=True):
 def main(args):
     # filter cluster taxonomy
     taxdf = pd.read_csv(args.taxonomy, sep="\t", index_col=0)
+    clust_col = False
+    if "cluster" in taxdf.columns:
+        clust_col = True
+        index_name = taxdf.index.name
+        taxdf = taxdf.reset_index().set_index("cluster")
     retained = concat_files(args.retained)
+    if retained.index.name == None:
+        retained.index.name = "cluster"
     if args.singles:
         singles = pd.read_csv(
-            args.singles, sep="\t", index_col=0, header=0, names=["ASV", "cluster"]
+            args.singles, sep="\t", index_col=0, header=0, 
         )
     if len(singles) > 0:
-        singles = taxdf.loc[singles.index].reset_index().set_index("cluster")
         singles = singles.loc[:, retained.columns]
         retained = pd.concat([retained, singles])
-    # write discarded
-    taxdf.loc[~taxdf["cluster"].isin(retained.index)].to_csv(
-        f"{args.outdir}/discarded_cluster_taxonomy.tsv", sep="\t"
-    )
-    # write retained
-    taxdf.loc[taxdf["cluster"].isin(retained.index)].to_csv(
-        f"{args.outdir}/noise_filtered_cluster_taxonomy.tsv", sep="\t"
-    )
+    retained = taxdf.loc[retained.index]
+    discarded_seqs = list(set(taxdf.index).difference(retained.index))
+    discarded = taxdf.loc[discarded_seqs]
     # filter consensus taxonomy
     if args.consensus_taxonomy:
         cons_tax = pd.read_csv(args.consensus_taxonomy, sep="\t", index_col=0)
-        cons_tax.loc[retained.index].to_csv(
+        cons_tax.loc[retained.index.unique()].to_csv(
             f"{args.outdir}/noise_filtered_cluster_consensus_taxonomy.tsv", sep="\t"
         )
     # filter counts
     if args.counts:
         counts = pd.read_csv(args.counts, sep="\t", index_col=0)
-        counts.loc[retained.index].to_csv(
+        counts.loc[retained.index.unique()].to_csv(
             f"{args.outdir}/noise_filtered_cluster_counts.tsv", sep="\t"
         )
+    if clust_col:
+        retained = retained.reset_index().set_index(index_name)
+        discarded = discarded.reset_index().set_index(index_name)
+    # write discarded
+    discarded.to_csv(
+        f"{args.outdir}/discarded_cluster_taxonomy.tsv", sep="\t"
+    )
+    # write retained    
+    retained.to_csv(
+        f"{args.outdir}/noise_filtered_cluster_taxonomy.tsv", sep="\t"
+    )
 
 
 if __name__ == "__main__":
