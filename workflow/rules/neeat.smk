@@ -114,10 +114,15 @@ rule generate_datasets:
     log:
         "logs/generate_datasets/{tool}/{rundir}/{chimera_run}/{chimdir}/{rank}/{run_name}/{noise_rank}/{tax}.log"
     params:
-        split_rank = config["noise_filtering"]["split_rank"]
+        split_rank = config["noise_filtering"]["split_rank"],
+        src=workflow.source_path("../scripts/neeat/generate_datasets.py"),
+        outdir=lambda wildcards, output: os.path.dirname(output.taxonomy)
     threads: 1
-    script:
-        "../scripts/neeat/generate_datasets.R"
+    shell:
+        """
+        python {params.src} {input.taxonomy} {input.counts} \
+            -r {wildcards.noise_rank} -t {wildcards.tax} -o {params.outdir}
+        """
 
 rule generate_aa_seqs:
     """
