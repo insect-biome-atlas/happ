@@ -15,7 +15,7 @@ echo_filter <- function(counts, matchlist,
     return(list(retained_clusters=rownames(counts)[1], discarded_clusters=character()))
   
   # Fix colnames if matchlist is "raw"
-  colnames(matchlist)[1:3] <- c("asv1","asv2","idty")
+  colnames(matchlist)[1:3] <- c("seq1","seq2","idty")
 
   # Get total number of reads of each cluster
   cat("Getting total number of samples and reads for each cluster\n")
@@ -30,20 +30,12 @@ echo_filter <- function(counts, matchlist,
   tot_reads <- tot_reads[ix]
 
   # Cycle over clusters
-
   cat (paste0("Processing ", nrow(counts), " clusters...\n"))
-  #cat ("0%                                                100%\n")
-  #cat ("|")
-  print_interval <- ceiling(nrow(counts) / 50)
 
   retained_clusters <- rownames(counts)[1]
   discarded_clusters <- character()
   pb <- txtProgressBar(min = 0, max = nrow(counts)-1, style = 3, width = 50)
   for (i in 2:nrow(counts)) {
-
-    # Print progress
-    #if (i %% print_interval == 0)
-    #  cat("-")
     setTxtProgressBar(pb, i)
     # Find cluster name
     cluster <- rownames(counts)[i]
@@ -54,7 +46,7 @@ echo_filter <- function(counts, matchlist,
     n_samples <- sum(reads>0)
 
     # Find potential parents within distance
-    pot_parent_clusters <- matchlist$asv2[(matchlist$asv1==cluster) & (matchlist$idty>=min_match)]
+    pot_parent_clusters <- matchlist$seq2[(matchlist$seq1==cluster) & (matchlist$idty>=min_match)]
 
     # Only keep those that have already been processed
     pot_parent_clusters <- pot_parent_clusters[pot_parent_clusters %in% rownames(counts)[1:(i-1)]]
@@ -97,9 +89,6 @@ echo_filter <- function(counts, matchlist,
     else        
       retained_clusters <- c(retained_clusters, cluster)
   }
-  
-  #cat ("|\n") # Done processing all clusters
 
   list(retained_clusters=retained_clusters, discarded_clusters=discarded_clusters)
 }
-
