@@ -10,7 +10,7 @@ def main(args):
     if "representative" in taxdf.columns:
         taxdf = taxdf.loc[taxdf.representative==1]
     else:
-        taxdf["representative"] = [1]*taxdf.shape[0]
+        taxdf = taxdf.assign(representative=pd.Series([1]*taxdf.shape[0], index=taxdf.index))
     if "cluster" in taxdf.columns:
         seqs = list(set(taxdf["cluster"]).intersection(counts.index))
         taxdf = taxdf.set_index("cluster")
