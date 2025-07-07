@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.errors import EmptyDataError
 from argparse import ArgumentParser
 
 
@@ -34,21 +35,24 @@ def concat_files(files, has_header=True):
 def main(args):
     # filter cluster taxonomy
     taxdf = pd.read_csv(args.taxonomy, sep="\t", index_col=0)
+    retained = concat_files(args.retained)
+    if retained.index.name == None:
+        retained.index.name = taxdf.index.name
     clust_col = False
     if "cluster" in taxdf.columns:
         clust_col = True
         index_name = taxdf.index.name
         taxdf = taxdf.reset_index().set_index("cluster")
-    retained = concat_files(args.retained)
-    if retained.index.name == None:
         retained.index.name = "cluster"
     if args.singles:
-        singles = pd.read_csv(
-            args.singles, sep="\t", index_col=0, header=0, 
-        )
-    if len(singles) > 0:
-        singles = singles.loc[:, retained.columns]
-        retained = pd.concat([retained, singles])
+        try:
+            singles = pd.read_csv(
+                args.singles, sep="\t", index_col=0, header=0, 
+            )
+            singles = singles.loc[:, retained.columns]
+            retained = pd.concat([retained, singles])
+        except EmptyDataError:
+            pass
     retained = taxdf.loc[retained.index]
     discarded_seqs = list(set(taxdf.index).difference(retained.index))
     discarded = taxdf.loc[discarded_seqs]
