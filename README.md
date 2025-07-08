@@ -19,6 +19,7 @@
   - [Noise filtering](#noise-filtering)
 - [Workflow output](#workflow-output)
 
+
 ## Overview
 
 This repository contains a Snakemake workflow for taxonomic assignments,
