@@ -103,7 +103,11 @@ rule-specific software dependencies should be handled with
 [Conda](https://docs.conda.io/en/latest/) (`--sdm conda`). 
 
 > [!NOTE]
-> We recommend to use Apptainer if it is available on your system.
+> We recommend to use Apptainer if it is available on your system. If Apptainer
+> is not available and you want to use Conda instead we recommend to first
+> install the conda environments with pixi by running `pixi install -a` from the
+> root of the repository. When the installation has finished, run `pixi shell`
+> to activate a shell ready to run the workflow.
 
 - `--configfile <path-to-your-configfile.yml>`
 
@@ -155,19 +159,21 @@ run the `test/setup-ref.sh` script which downloads a reference from
 bash test/setup-ref.sh
 ```
 
-Once the above command completes you can run:
+Once the above command completes you can execute the testrun with:
 
 ```bash
 snakemake --profile test --sdm conda
 ```
 
-to run the workflow with software dependencies handled by Conda, or:
+to handled software dependencies by Conda, or:
 
 ```bash
 snakemake --profile test --sdm apptainer
 ```
 
 to use Apptainer to run jobs in containers where needed.
+
+The testrun takes approximately 30 minutes on a MacBook Pro laptop using 4 cores (excluding potential Apptainer downloads/Conda environment creations).
 
 ### Configuration file
 
@@ -253,37 +259,26 @@ One of the final parts of HAPP is a new noise filtering algorithm called NEEAT
 If you want to bypass the other steps of HAPP and run the NEEAT algorithm
 directly on your sequences you can do so by supplying three required files:
 
-1. A FASTA file containing your sequences. Because HAPP expects the NEEAT
-   algorithm to run on clustered sequences the FASTA headers must be formatted
-   in the pattern `>SEQUENCE_ID CLUSTER_ID` where `SEQUENCE_ID` is the original
-   name of the sequence and `CLUSTER_ID` is the name of the cluster for which
-   the sequence is a representative. When plugging in your data you can use the
-   same name for both `SEQUENCE_ID` and `CLUSTER_ID`, _e.g._ `>sequence1
-   sequence1`.
-2. A tab-separated file with taxonomic information about each sequence. This
-   file must have the sequence ids in the first column and must contain the
-   columns `cluster` and `representative` where the `cluster` column contains
-   the name of the cluster to which the sequence was assigned and
-   `representative` contains a `1` if the sequence is a representative of the
-   cluster, otherwise it contains a `0`. Again, you may simply set the `cluster`
-   column to the same name as the first column and set the `representative`
-   column to `1` for all your sequences when plugging your data into NEEAT this
-   way. By default the workflow partitions the sequences by taxonomy and runs
-   NEEAT in parallell on each partition for better efficiency. The default rank
-   at which this partition occurs is `Order` and is configured via the
-   `split_rank` parameter under the `noise_filtering`
-   [section](#noise-filtering) in the configuration file. You can modify this
-   parameter but make sure that the value you set for `split_rank` matches with
-   a column in this tab-separated file.
+1. A tab-separated file with taxonomic information about each sequence. This
+   file must have the sequence ids in the first column with subsequent columns
+   giving the taxonomic labels at different ranks. By default the workflow
+   partitions the sequences by taxonomy and runs NEEAT in parallell on each
+   partition for increased efficiency. The default rank at which this partition
+   occurs is `Order` and is configured via the `split_rank` parameter under the
+   `noise_filtering` [section](#noise-filtering) in the configuration file. You
+   can modify this parameter but make sure that the value you set for
+   `split_rank` matches with a column in this tab-separated file.
+2. A FASTA file containing your sequences. The FASTA headers must have sequence
+   ids matching the ids in the first column of the file in 1) above. 
 3. A tab-separated file with counts of sequences (rows) in each sample
-   (columns). The names in the first column must match with the `CLUSTER_ID` in
-   the headers of the FASTA file (see point 1), and with the `cluster` column in
-   the tab-separated information file (see point 2).
+   (columns). The sequence ids must match the ids in the fasta file from 2) and
+   the taxonomy file from 1).
 
-To see an example of these three files take a look at the `cluster_reps.fasta`,
-`cluster_taxonomy.tsv` and `cluster_counts.tsv` files in the
-[data/neeat_test/](https://github.com/insect-biome-atlas/happ/tree/main/data/neeat_test)
-directory supplied with the repository.
+> ![TIP]
+> To see an example of these three files take a look at the `taxonomy.tsv`,
+> `sequences.fasta`, `counts.tsv` files in the
+> [data/neeat_test/](https://github.com/insect-biome-atlas/happ/tree/main/data/neeat_test)
+> directory supplied with the repository.
 
 These files are specified as input to the standalone version of NEEAT by adding
 a `neeat:` section to your configuration file, like so:
@@ -324,7 +319,6 @@ snakemake --profile test \
   --sdm conda \
   -s workflow/rules/neeat-standalone.smk
 ```
-
 
 ## Configuration
 
