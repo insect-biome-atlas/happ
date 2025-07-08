@@ -15,7 +15,7 @@ taxtools:
 taxonomy_source: sintax
 
 software:
-  - "opticlust"
+  #- "opticlust"
   - "swarm"
   #- "dbotu3"
 
@@ -23,7 +23,7 @@ split_size: 50
 
 noise_filtering:
   codon_start: 2
-
+  
 swarm:
   differences: 15
   no-otu-breaking: False
@@ -41,9 +41,9 @@ opticlust:
   precision: 1000
 
 neeat:
-  fastafile: "data/neeat_test/cluster_reps.fasta"
-  countsfile: "data/neeat_test/cluster_counts.tsv"
-  taxfile: "data/neeat_test/cluster_taxonomy.tsv"
+  fastafile: "data/neeat_test/sequences.fasta"
+  countsfile: "data/neeat_test/counts.tsv"
+  taxfile: "data/neeat_test/taxonomy.tsv"
 
 metadata:
   metadata_file: "data/neeat_test/metadata.tsv"
