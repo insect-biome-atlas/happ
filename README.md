@@ -274,7 +274,7 @@ directly on your sequences you can do so by supplying three required files:
    (columns). The sequence ids must match the ids in the fasta file from 2) and
    the taxonomy file from 1).
 
-> ![TIP]
+> [!TIP] 
 > To see an example of these three files take a look at the `taxonomy.tsv`,
 > `sequences.fasta`, `counts.tsv` files in the
 > [data/neeat_test/](https://github.com/insect-biome-atlas/happ/tree/main/data/neeat_test)
