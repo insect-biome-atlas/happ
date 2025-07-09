@@ -1,7 +1,7 @@
 rerun-triggers: "mtime"
 keep-going: True
-printshellcmds: True
+printshellcmds: False
 local-cores: 4
 configfile: test/configfile.yml
 cores: 4
-apptainer-args: "-B $(pwd)"
+apptainer-args: "-B $(pwd),$TMPDIR/qiime2:/home/qiime2 --env TMPDIR=tmp/"

@@ -20,19 +20,15 @@ if (matchlist_lines == 0) {
 }
 matchlist <- read.delim(matchlist_file,header=FALSE)
 
-T <- read.delim(taxonomy_file)
-T <- T[T$representative==1,]
-rownames(T) <- T$cluster
+T <- read.delim(taxonomy_file, row.names = 1)
+if (is.null(T$cluster) == FALSE) {
+    row.names(T) <- T$cluster
+}
 
-tax_asvs <- T$ASV
 seqs <- read.alignment(fasta_file,format="fasta")
 
-# map from cluster name to ASV name
-matchlist$V1 <- T[matchlist$V1,"ASV"]
-matchlist$V2 <- T[matchlist$V2,"ASV"]
-
 evodistlist <- matchlist[(matchlist$V1 %in% seqs$nam) & (matchlist$V2 %in% seqs$nam),]
-colnames(evodistlist) <- c("asv1","asv2","idty")
+colnames(evodistlist) <- c("seq1","seq2","idty")
 evodistlist$pdist <- 1.0 - (evodistlist$idty / 100.0)
 evodistlist$dadn <- rep(NA,nrow(evodistlist))
 evodistlist$wdadn <- rep(NA,nrow(evodistlist))
@@ -42,14 +38,12 @@ if (nrow(evodistlist>0)) {
     for (i in 1:nrow(evodistlist)) {
         if (i%%print_interval==0)
             cat("-")
-        s1_name <- evodistlist$asv1[i]
-        s2_name <- evodistlist$asv2[i]
-        if ((s1_name %in% tax_asvs) && (s2_name %in% tax_asvs)) {
-            seq1 <- seqs$seq[[which(seqs$nam==s1_name)]]
-            seq2 <- seqs$seq[[which(seqs$nam==s2_name)]]
-            evodistlist$dadn[i] <- dadn_dist(seq1, seq2)
-            evodistlist$wdadn[i] <- wdadn_dist(seq1, seq2)
-        }
+        s1_name <- evodistlist$seq1[i]
+        s2_name <- evodistlist$seq2[i]
+        seq1 <- seqs$seq[[which(seqs$nam==s1_name)]]
+        seq2 <- seqs$seq[[which(seqs$nam==s2_name)]]
+        evodistlist$dadn[i] <- dadn_dist(seq1, seq2)
+        evodistlist$wdadn[i] <- wdadn_dist(seq1, seq2)
     }
     cat("|\n")
 }

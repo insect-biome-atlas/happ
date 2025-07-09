@@ -113,7 +113,7 @@ neeat_filter <- function(counts,
     # Step 5: The taxonomy filter
     if (grepl("taxonomy",steps)) {
 
-        unclassified_clusters <- taxonomy$ASV[grepl("_X",taxonomy[,assignment_rank]) | grepl("unclassified",taxonomy[,assignment_rank])]
+        unclassified_clusters <- taxonomy[grepl("_X",taxonomy[,assignment_rank]) | grepl("unclassified",taxonomy[,assignment_rank])]
 
         retained_clusters <- retained_clusters[!(retained_clusters %in% unclassified_clusters)]
         discarded_clusters <- c(discarded_clusters,retained_clusters[retained_clusters %in% unclassified_clusters])

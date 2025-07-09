@@ -29,18 +29,11 @@ evo_filter <- function(counts, evodistlist,
   # Cycle over clusters
 
   cat (paste0("Processing ", nrow(counts), " clusters...\n"))
-  #cat ("0%                                                100%\n")
-  #cat ("|")
-  print_interval <- ceiling(nrow(counts) / 50)
 
   retained_clusters <- rownames(counts)[1]
   discarded_clusters <- character()
   pb <- txtProgressBar(min = 0, max = nrow(counts)-1, style = 3, width = 50)
   for (i in 2:nrow(counts)) {
-
-    # Print progress
-    #if (i %% print_interval == 0)
-    #  cat("-")
     setTxtProgressBar(pb, i)
     # Find cluster name
     cluster <- rownames(counts)[i]
@@ -51,7 +44,7 @@ evo_filter <- function(counts, evodistlist,
     n_samples <- sum(reads>0)
 
     # Find potential parents within distance
-    pot_parent_clusters <- evodistlist$asv2[(evodistlist$asv1==cluster) & (evodistlist$idty>=min_match)]
+    pot_parent_clusters <- evodistlist$seq2[(evodistlist$seq1==cluster) & (evodistlist$idty>=min_match)]
     if (remove_exotics && length(pot_parent_clusters)==0)
       exotic <- TRUE
     else
@@ -65,7 +58,7 @@ evo_filter <- function(counts, evodistlist,
       pot_parent_clusters <- pot_parent_clusters[1:n_closest]
 
     # Find match values
-    local_evodistlist <- evodistlist[(evodistlist$asv1==cluster) & (evodistlist$asv2 %in% pot_parent_clusters),]
+    local_evodistlist <- evodistlist[(evodistlist$seq1==cluster) & (evodistlist$seq2 %in% pot_parent_clusters),]
 
     # Cycle over potential parent clusters  
     for (p_clust in pot_parent_clusters) {
@@ -78,13 +71,13 @@ evo_filter <- function(counts, evodistlist,
           next
       }
 
-      p_dist <- local_evodistlist$pdist[match(p_clust,local_evodistlist$asv2)]
+      p_dist <- local_evodistlist$pdist[match(p_clust,local_evodistlist$seq2)]
       if (dist_type=="dadn") {
-        e_dist <- local_evodistlist$dadn[match(p_clust,local_evodistlist$asv2)]
+        e_dist <- local_evodistlist$dadn[match(p_clust,local_evodistlist$seq2)]
       } else {
-        e_dist <- local_evodistlist$wdadn[match(p_clust,local_evodistlist$asv2)]
+        e_dist <- local_evodistlist$wdadn[match(p_clust,local_evodistlist$seq2)]
       }
-      # p_dist > 0 by definition (ASVs are uniqe)
+      # p_dist > 0 by definition (seqs are uniqe)
       # we need not worry about division with zero here
       if (e_dist/p_dist > dist_threshold) {
         discard <- TRUE
@@ -96,8 +89,6 @@ evo_filter <- function(counts, evodistlist,
     else        
       retained_clusters <- c(retained_clusters, cluster)
   }
-  
-  #cat ("|\n") # Done processing all clusters
 
   list(retained_clusters=retained_clusters, discarded_clusters=discarded_clusters)
 }

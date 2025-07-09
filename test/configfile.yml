@@ -2,14 +2,30 @@ rundir: "test"
 run_name: "testrun"
 split_rank: "Family"
 
-software:
-  - "opticlust"
-  - "swarm"
-  - "dbotu3"
+preprocessing:
+  filter_length: True
+  filter_codons: True
 
+taxtools:
+  #- vsearch
+  - sintax
+  #- epa-ng
+  #- sintax+epa-ng
+
+taxonomy_source: sintax
+
+software:
+  #- "opticlust"
+  - "swarm"
+  #- "dbotu3"
+
+split_size: 50
+
+noise_filtering:
+  codon_start: 2
+  
 swarm:
-  threads: 4
-  differences: 13
+  differences: 15
   no-otu-breaking: False
   fastidious: False
   boundary: 0
@@ -18,9 +34,19 @@ dbotu3:
   abund: 10.0
   pval: 0.0005
 opticlust:
-  threads: 4
   aligner: "vsearch"
   delta: 0.0001
   cutoff: 0.025
   initialize: "singleton"
   precision: 1000
+
+neeat:
+  fastafile: "data/neeat_test/sequences.fasta"
+  countsfile: "data/neeat_test/counts.tsv"
+  taxfile: "data/neeat_test/taxonomy.tsv"
+
+metadata:
+  metadata_file: "data/neeat_test/metadata.tsv"
+  sample_id_col: "sample_id"
+  sample_type_col: "sample_type"
+  sample_val: "sample"

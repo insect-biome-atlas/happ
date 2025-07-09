@@ -5,6 +5,7 @@ localrules:
 
 
 rule format_swarm:
+    message: "Formatting files for SWARM for sequences in {wildcards.tax}"
     input:
         fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
         counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/total_counts.tsv",
@@ -19,18 +20,17 @@ rule format_swarm:
     script:
         "../scripts/swarm_utils.py"
 
-
 def check_swarm_options(opt):
     if config["swarm"][opt]:
         return f"--{opt}"
     return ""
-
 
 rule run_swarm:
     """
     swarm only requires that ASVs abundances are appended to fasta headers and
     that only ASVs with total abundances >0 are included
     """
+    message: "Running SWARM clustering on {wildcards.tax} sequences"
     input:
         rules.format_swarm.output.fasta,
     output:
@@ -67,7 +67,6 @@ rule run_swarm:
     container: "docker://quay.io/biocontainers/swarm:3.1.5--h4ac6f70_1"
     resources:
         runtime=60 * 24,
-        tasks = 10
     shell:
         """
         exec &>{log}
@@ -75,7 +74,7 @@ rule run_swarm:
         gunzip -c {input} > {params.fasta}
         swarm {params.fastidious} {params.no_otu_breaking} -d {params.differences} {params.boundary} \
             {params.match_reward} {params.mismatch_penalty} {params.gap_opening_penalty} {params.gap_extension_penalty} \
-            {params.fasta} -o {params.txt} -i {params.tsv} -t {resources.tasks}
+            {params.fasta} -o {params.txt} -i {params.tsv} -t {threads}
         mv {params.txt} {params.outdir}
         mv {params.tsv} {params.outdir}
         rm -rf {params.tmpdir}
@@ -83,6 +82,7 @@ rule run_swarm:
 
 
 rule swarm2tab:
+    message: "Generating SWARM cluster file for {wildcards.tax}"
     input:
         rules.run_swarm.output.txt,
         rules.format_swarm.output.derep,
@@ -110,7 +110,6 @@ def get_swarm_files(wildcards):
         run_name=config["run_name"]
         )
     return files
-
 
 rule swarm:
     input:

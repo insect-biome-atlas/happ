@@ -7,6 +7,17 @@ default-resources:
   cpus_per_task: 1
   mem_mb: 888
 
+set-threads:
+  raxml_evaluate: 1
+  epa_ng: 64
+  gappa_assign: 2
+  qiime2_classify_vsearch: 20
+  qiime2_classify_sklearn: 20
+  mafft_align: 4
+  matchlist_vsearch: 4
+  run_opticlust: 10
+  run_swarm: 10
+
 # The settings below override the default-resources for specific rules
 set-resources:
   # chimeras.smk
@@ -15,12 +26,10 @@ set-resources:
     mem_mb: 8880
   chimera_samplewise:
     runtime: 60
-    tasks: 4
     mem_mb: 3552
   chimera_batchwise:
     runtime: 600
     mem_mb: 3552
-    tasks: 4
   split_counts_samplewise:
     runtime: 30
     mem_mb: 3552
@@ -29,15 +38,12 @@ set-resources:
     runtime: 30
   raxml_evaluate:
     runtime: 240
-    tasks: 1
     mem_mb: 1776
   epa_ng:
     runtime: 180
     mem_mb: 56832
-    tasks: 64
   gappa_assign:
     runtime: 30
-    tasks: 4
     mem_mb: 3552
   # sintax.smk
   sintax:
@@ -50,14 +56,11 @@ set-resources:
   qiime2_classify_vsearch:
     runtime: 600
     mem_mb: 88800
-    tasks: 20
   qiime2_train:
     runtime: 1440
     mem_mb: 90000
-    tasks: 20
   qiime2_classify_sklearn:
     mem_mb: 17760
-    tasks: 20
     runtime: 600
   # dbotu3.smk
   run_dbotu3:
@@ -67,7 +70,6 @@ set-resources:
   # neeat.smk
   mafft_align:
     runtime: 30
-    tasks: 4
     mem_mb: 3552
   pal2nal:
     runtime: 60
@@ -85,15 +87,12 @@ set-resources:
     mem_mb: 3552
   matchlist_vsearch:
     runtime: 30
-    tasks: 4
     mem_mb: 3552
   # opticlust.smk
   run_opticlust:
     mem_mb: 63936
-    tasks: 10
   # swarm.smk
   run_swarm:
-    tasks: 10
     mem_mb: 8880
     runtime: 60
   # Snakefile
@@ -109,4 +108,4 @@ local-cores: 1
 jobs: 100
 latency-wait: 5
 executor: slurm
-apptainer-args: "-B /cfs/klemming"
+apptainer-args: "-B /cfs/klemming,$PDC_TMP/qiime2:/home/qiime2"

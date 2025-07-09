@@ -5,13 +5,37 @@
 - [Overview](#overview)
 - [Installation](#installation)
   - [Software requirements](#software-requirements)
-- [Software deployment method](#software-deployment-method)
+- [How to run the workflow](#how-to-run-the-workflow)
+  - [Testrun](#testrun)
+  - [Configuration file](#configuration-file)
+  - [Configuration profile](#configuration-profile)
+  - [Running parts of the workflow](#running-parts-of-the-workflow)
+  - [Running the NEEAT algorithm directly](#running-the-neeat-algorithm-directly)
 - [Configuration](#configuration)
   - [Taxonomic assignments](#taxonomic-assignments)
   - [Preprocessing](#preprocessing)
   - [Chimera filtering](#chimera-filtering)
   - [ASV clustering tools](#asv-clustering-tools)
   - [Noise filtering](#noise-filtering)
+- [Workflow output](#workflow-output)
+
+
+## Overview
+
+This repository contains a Snakemake workflow for taxonomic assignments,
+filtering and clustering of Amplicon Sequence Variants (ASVs). 
+
+Currently the following clustering tools are supported:
+
+| Software  | Reference                                                                                      | Code                                                                    |
+|-----------|------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| SWARM     | [Mahé et al 2014](https://peerj.com/articles/593/)                                             | [GitHub](https://github.com/torognes/swarm)                             |
+| OptiClust | [Westcott & Schloss 2017](https://journals.asm.org/doi/10.1128/mSphereDirect.00073-17)         | [GitHub](https://github.com/SchlossLab/Westcott_OptiClust_mSphere_2017) |
+| dbOTU3    | [Olesen et al 2017](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0176335) | [GitHub](https://github.com/swo/dbotu3)                                 |
+
+The idea with this workflow is to make it easy to run OTU clustering with many 
+different parameter settings then evaluate which settings you think works best
+for your data.
 
 ## Installation
 
@@ -22,7 +46,8 @@ git clone git@github.com:insect-biome-atlas/happ.git
 cd happ
 ```
 
-or visit the [release page](https://github.com/insect-biome-atlas/happ/releases) and download the latest release.
+or visit the [release page](https://github.com/insect-biome-atlas/happ/releases)
+and download the latest release.
 
 ### Software requirements
 
@@ -30,7 +55,6 @@ The software required to run the workflow can either be installed via
 [pixi](https://pixi.sh) or with [Conda](https://docs.conda.io/en/latest/).
 
 #### Installation with pixi (recommended)
-
 
 Follow the [instructions](https://pixi.sh/latest/#installation) to install pixi
 on your system, then run:
@@ -42,7 +66,7 @@ pixi shell
 from within the root of the repository. This will activate an interactive shell
 ready to use with the workflow.
 
-#### Installation with Conda
+#### Install with Conda
 
 If you prefer to use Conda, you can create a new environment with the required
 software by running:
@@ -57,6 +81,56 @@ Then activate the environment with:
   conda activate happ
   ```
 
+## How to run the workflow
+
+Once you have activated the software environment (either with `pixi shell` or
+`conda activate happ` as described above) the basic syntax to run the workflow
+is:
+
+```bash
+snakemake --sdm <apptainer/conda> \
+  --configfile <path-to-your-configfile.yml> \
+  --profile <slurm/dardel/local> \
+  <additional-arguments>
+```
+
+Below is a description of the different command line flags:
+
+- `--sdm <apptainer/conda>`
+
+The `--sdm` flag (short-hand for `--software-deployment-method`) specifies if
+rule-specific software dependencies should be handled with
+[Apptainer](https://apptainer.org/) (`--sdm apptainer`) or with
+[Conda](https://docs.conda.io/en/latest/) (`--sdm conda`). 
+
+> [!NOTE]
+> We recommend to use Apptainer if it is available on your system. If Apptainer
+> is not available and you want to use Conda instead we recommend to first
+> install the conda environments with pixi by running `pixi install -a` from the
+> root of the repository. When the installation has finished, run `pixi shell`
+> to activate a shell ready to run the workflow.
+
+- `--configfile <path-to-your-configfile.yml>`
+
+The `--configfile` flag specifies the path to a [configuration
+file](#configuration-file) in YAML format. The workflow is preconfigured with
+default settings for most parameters (see the `config/config.yml` file for
+default settings) but there are a few parameters that you will have to modify in
+order to run HAPP on your data. Read more on this in the
+[Configuration](#configuration) section.
+
+> [!TIP] 
+> We recommend that you make a copy of the `config/config.yml` file,
+> modify the copy to fit your data and then supply this file when running HAPP.
+
+- `--profile <slurm/dardel/local/test>`
+
+The `--profile` flag specifies the [configuration
+profile](#configuration-profile) to use. These profiles modify the behaviour of
+Snakemake itself (such as compute resources etc), in contrast to configuration
+files (specified with `--configfile`) which set parameters for HAPP (such as
+input files etc).
+
 > [!TIP]
 > If you are running the workflow on a high performance computing system with
 > the SLURM workload manager use the configuration profile under
@@ -64,15 +138,43 @@ Then activate the environment with:
 > specifically, use the configuration profile under `profiles/dardel`. See the
 > README files in the respective subdirectory for more information.
 
-## How to run
+- `<additional-arguments>`
 
-Once you have activated the software environment (either with `pixi shell` or `conda activate happ` as described above) the basic syntax to run the workflow is:
+You can append additional Snakemake arguments to the command line call when
+running HAPP if you wish. These can include number of cores to use (_e.g._
+`--cores 4` to run with 4 cores) or performing a dry-run with `-n`. Read about
+all available Snakemake command line arguments
+[here](https://snakemake.readthedocs.io/en/stable/executing/cli.html#).
+
+### Testrun
+
+The workflow comes with a relatively small test dataset of 100 sequences in 100
+samples which can be used to try the workflow on your system. To use it with
+default settings you need to obtain a Sintax reference file and set the
+corresponding path in the `sintax:` configuration entry. For ease of use you can
+run the `test/setup-ref.sh` script which downloads a reference from
+[Figshare](https://doi.org/10.17044/scilifelab.20514192) and updates the
+`test/configfile.yml` configuration file:
 
 ```bash
-snakemake --sdm <apptainer/conda> --configfile <path-to-your-configfile.yml> --profile <slurm/dardel/local> <additional-arguments>
+bash test/setup-ref.sh
 ```
 
-The `--configfile` argument specifies the path to a [configuration file](#configuration-file) in YAML format. The `--profile` argument specifies the [configuration profile](#configuration-file) to use. The `--sdm` flag is a short-hand for `--software-deployment-method` and specifies how Snakemake will handle [rule-specific dependencies](#software-deployment-method). See below for a description of each of these arguments.
+Once the above command completes you can execute the testrun with:
+
+```bash
+snakemake --profile test --sdm conda
+```
+
+to handled software dependencies by Conda, or:
+
+```bash
+snakemake --profile test --sdm apptainer
+```
+
+to use Apptainer to run jobs in containers where needed.
+
+The testrun takes approximately 30 minutes on a MacBook Pro laptop using 4 cores (excluding potential Apptainer downloads/Conda environment creations).
 
 ### Configuration file
 
@@ -81,7 +183,8 @@ default config file is available at [config/config.yml](config/config.yml). It's
 recommended that you copy this file and make your changes in the copy, then pass
 it on the command line with `--configfile <path-to-your-configfile>`.
 
-See the [Configuration](#configuration) section for more information on how to configure the workflow.
+See the [Configuration](#configuration) section for more information on how to
+configure the workflow.
 
 ### Configuration profile
 
@@ -94,13 +197,129 @@ on different systems. The available profiles are:
 - `slurm`: For running the workflow on a system with the SLURM workload manager
 - `dardel`: For running the workflow on the [Dardel HPC system](https://www.pdc.kth.se/hpc-services/computing-systems/dardel-1.1043529) at PDC. 
 
-To use a profile, simply add `--profile <profile-name>` to the Snakemake command line call. For example, to run the workflow on a system with SLURM you would run:
+> [!IMPORTANT]
+> You will have to modify the `slurm_account:` setting in the
+> `dardel/config.yaml` or `slurm/config.yaml` file in order to use your compute
+> account when running on a cluster. For the generic `slurm` profile you will
+> also have to change the `slurm_partition:` to match the default partition on
+> your cluster.
 
-### Software deployment method
+To use a profile, simply add `--profile <profile-name>` to the Snakemake command
+line call. For example, to run the workflow on a system with SLURM you would
+run:
 
-Once you have installed the main software packages needed to run the workflow
-you also have to specify how Snakemake will handle rule-specific software
-dependencies. This is controlled by the `--sdm` command line argument (short-hand for `--software-deployment-method`). We recommend to use [Apptainer](https://apptainer.org/) if this is available on your system. To use apptainer, add `--sdm apptainer` to the Snakemake command line call. Alternatively you can use [Conda](https://docs.conda.io/en/latest/) in which case you would use `--sdm conda`.
+```bash
+snakemake --configfile <path-to-your-configfile.yml> \
+  --profile slurm \
+  --sdm <conda/apptainer>
+```
+
+### Running parts of the workflow
+
+Instead of running the workflow all the way through you can also target specific
+steps such as taxonomic assignments, chimera filtering _etc._. Currently the
+supported steps are shown in the table below. The general syntax to run up to a
+certain step is:
+
+```bash
+snakemake --configfile <your-configfile.yml> \
+  --profile <local/dardel/slurm> \
+  --sdm=<conda/apptainer> <step>
+```
+
+So to only run up to and including taxonomic assignments for your input
+sequences, using the default `config/config.yml` configuration file, the
+`local/` profile and Conda to handle software dependencies you would run:
+
+```bash
+snakemake --configfile config/config.yml \
+  --profile local \
+  --sdm=conda assign_taxonomy
+```
+
+> [!IMPORTANT]
+> Note the `=` sign in `--sdm=conda`. This is important here in order for
+> Snakemake to properly parse the command line arguments when specific targets
+> are passed.
+
+| Step | Snakemake target | Description |
+| ---- | ---------------- | ------- |
+| Preprocess | `preprocess` | Performs preprocessing of input sequences as configured under the `preprocessing` section in the config file. |
+| Assign taxonomy | `assign_taxonomy` | Assigns taxonomy to the input sequences using tools defined by `taxtools` parameter.
+| Filter chimeras | `filter_chimeras` | Filters chimeras using settings defined under `chimera` section in config file. |
+| dbotu3 clustering | `dbotu3` | Runs clustering of input sequences using dbotu3. |
+| opticlust clustering | `opticlust` | Runs clustering of input sequences using opticlust. |
+| swarm clustering | `swarm` | Runs clustering of input sequences using swarm. |
+| clustering | `clustering` | Runs clustering of input sequences using all tools defined by `software` parameter in config file. |
+
+### Running the NEEAT algorithm directly
+
+One of the final parts of HAPP is a new noise filtering algorithm called NEEAT
+(**N**oise reduction using **E**chos, **E**volutionary signals and **A**bundance
+**T**hresholds) which runs on the sequence clusters generated by the workflow.
+If you want to bypass the other steps of HAPP and run the NEEAT algorithm
+directly on your sequences you can do so by supplying three required files:
+
+1. A tab-separated file with taxonomic information about each sequence. This
+   file must have the sequence ids in the first column with subsequent columns
+   giving the taxonomic labels at different ranks. By default the workflow
+   partitions the sequences by taxonomy and runs NEEAT in parallell on each
+   partition for increased efficiency. The default rank at which this partition
+   occurs is `Order` and is configured via the `split_rank` parameter under the
+   `noise_filtering` [section](#noise-filtering) in the configuration file. You
+   can modify this parameter but make sure that the value you set for
+   `split_rank` matches with a column in this tab-separated file.
+2. A FASTA file containing your sequences. The FASTA headers must have sequence
+   ids matching the ids in the first column of the file in 1) above. 
+3. A tab-separated file with counts of sequences (rows) in each sample
+   (columns). The sequence ids must match the ids in the fasta file from 2) and
+   the taxonomy file from 1).
+
+> [!TIP] 
+> To see an example of these three files take a look at the `taxonomy.tsv`,
+> `sequences.fasta`, `counts.tsv` files in the
+> [data/neeat_test/](https://github.com/insect-biome-atlas/happ/tree/main/data/neeat_test)
+> directory supplied with the repository.
+
+These files are specified as input to the standalone version of NEEAT by adding
+a `neeat:` section to your configuration file, like so:
+
+```yaml
+neeat:
+  fastafile: <path-to-point1-fastafile>
+  taxfile: <path-to-point2-TSVfile>
+  countsfile: <path-to-point3-TSVfile>
+```
+
+See the `test/configfile.yml` file supplied with the workflow for an example.
+
+Once you have got your files and added the parameters to the configuration file
+you can run NEEAT directly on your data with:
+
+```bash
+snakemake --configfile <your-configfile.yml> \
+  --profile <local/dardel/slurm> \
+  --sdm conda \
+  -s workflow/rules/neeat-standalone.smk
+```
+
+The output will be placed under `results/neeat/` and the main results files will
+be in a subdirectory with the name of the taxonomic rank used to partition the
+data. So by default there will be a directory `results/neeat/Order`. This
+directory contains results from intermediate steps in different subdirectories
+and the files:
+
+- `discarded_cluster_taxonomy.tsv`: Information about sequences discarded as noise by NEEAT.
+- `noise_filtered_cluster_taxonomy.tsv`: Information about sequences retained after NEEAT filtering.
+- `noise_filtered_cluster_counts.tsv`: Counts of sequences retained after NEEAT filtering.
+
+To test NEEAT on a small dataset supplied with the workflow you may run:
+
+```bash
+snakemake --profile test \
+  --sdm conda \
+  -s workflow/rules/neeat-standalone.smk
+```
 
 ## Configuration
 
@@ -109,7 +328,9 @@ The most important parameters in the config file are the input files:
 - `asv_seqs.fasta` (ASV sequences in FASTA format)
 - `asv_counts.tsv` (tab separated file with counts of ASVs (rows) in samples (columns))
 
-These files **must** be placed in a subdirectory under `data/` that is specified by the `rundir` parameter in the config file. The `rundir` parameter should be the name of the subdirectory containing the input files.
+These files **must** be placed in a subdirectory under `data/` that is specified
+by the `rundir` parameter in the config file. The `rundir` parameter should be
+the name of the subdirectory containing the input files.
 
 The default config file contains:
 
@@ -124,7 +345,10 @@ separate different runs of the workflow (_e.g._ with different settings on the
 same input data). The default is `run1`.
 
 The `split_rank:` parameter specifies the taxonomic rank to split the ASVs by
-before running the ASV clustering tools. Splitting the data means that ASVs that do not share the same `split_rank` are not compared for clustering which means that you should set this parameter to a relatively high rank in the taxonomy tree. The default is `Family`.
+before running the ASV clustering tools. Splitting the data means that ASVs that
+do not share the same `split_rank` are not compared for clustering which means
+that you should set this parameter to a relatively high rank in the taxonomy
+tree. The default is `Family`.
 
 The `ranks:` parameter 
 
@@ -141,6 +365,7 @@ The workflow supports taxonomic assignment using the following tools:
 - EPA-NG (including assignments with GAPPA)
 - SINTAX + EPA-NG (reassigning SINTAX assignments with EPA-NG)
 - vsearch (implemented in QIIME2)
+- sklearn (implemented in QIIME2)
 
 To assign taxonomy to your input ASVs you need to provide a reference database
 that works with SINTAX and/or with EPA-NG and GAPPA, depending on the tools you
@@ -154,7 +379,11 @@ references.
 
 #### SINTAX
 
-A SINTAX compatible reference database containing COI (mitochondrial cytochrome oxidase subunit I) sequences collected from the BOLD database is available on [Figshare](https://doi.org/10.17044/scilifelab.20514192). From there, simply download the file `bold_clustered.sintax.fasta.gz`, unzip it and set the path to the file in the config file under the `sintax` section:
+A SINTAX compatible reference database containing COI (mitochondrial cytochrome
+oxidase subunit I) sequences collected from the BOLD database is available on
+[Figshare](https://doi.org/10.17044/scilifelab.20514192). From there, simply
+download the file `bold_clustered.sintax.fasta.gz`, unzip it and set the path to
+the file in the config file under the `sintax` section:
 
 ```yaml
 sintax:
@@ -166,13 +395,19 @@ By default, SINTAX assignments are made using a cutoff of 0.8. This can be chang
 #### EPA-NG and GAPPA assignments
 
 The phylogenetic placement/assignment tools EPA-NG and GAPPA require a reference
-tree, a multiple alignment and a reference taxonomy file. A compatible reference that allows assignments to classes Collembola, Diplura, Protura and Insecta is available to download from https://github.com/insect-biome-atlas/paper-bioinformatic-methods/tree/main/data/chesters_tree. The files you need are:
+tree, a multiple alignment and a reference taxonomy file. A compatible reference
+that allows assignments to classes Collembola, Diplura, Protura and Insecta is
+available to download from
+https://github.com/insect-biome-atlas/paper-bioinformatic-methods/tree/main/data/chesters_tree.
+The files you need are:
 
 - chesters_new_outgroups_aligned.trim0.9.fasta (alignment)
 - chesters_new_outgroups.nwk (tree)
 - taxonomy.tsv (taxonomy)
 
-Download these files and place them in a directory on your system. Then set the path to the files in the config file under the `epa-ng` section in the config file:
+Download these files and place them in a directory on your system. Then set the
+path to the files in the config file under the `epa-ng` section in the config
+file:
 
 ```yaml
 epa-ng:
@@ -192,15 +427,15 @@ Gappa can be configured using the `gappa:` section under `epa-ng:`:
 - `distribution_ration:` Determines how gappa handles edges with two possible annotations. If set to `-1` (default) the program will determine the ratio automatically from the 'distal length' specified per placement.
 - `consensus_thresh:` When assigning taxonomy to missing labels in the reference, require this consensus threshold to assign a label. The default is `1`.
 
-#### VSEARCH assignments
+#### VSEARCH/sklearn assignments
 
-To run the `vsearch` taxonomic assignment method (implemented in QIIME2) you need to provide paths to files compatible with QIIME2 under the `qiime2:` config section. 
+To run the `vsearch` or `sklearn` taxonomic assignment methods (implemented in QIIME2) you need to provide paths to files compatible with QIIME2 under the `qiime2:` config section. 
 
 - `ref:` This is the path to a fasta file containing reference sequences for the taxonomic assignment with the QIIME2 `feature-classifier` plugin.
 - `taxfile:` This is the path to a file containing the taxonomy for the reference sequences in the fasta file.
 - `ranks:` This is a list of taxonomic ranks present in the reference.
 
-See the [QIIME2 docs](https://docs.qiime2.org/2024.10/tutorials/feature-classifier/) for how to obtain and format these files.
+See the [QIIME2 docs](https://amplicon-docs.qiime2.org/en/latest/references/plugins/feature-classifier.html) for how to obtain and format these files.
 
 > [!TIP]
 >If you downloaded the COIDB SINTAX reference above you can leave the `ref:`,
@@ -491,3 +726,186 @@ parameters specific to the noise filtering step:
 - `codon_table:` sets the codon table to use for translation when aligning
   sequences with pal2nal.
 - `codon_start:` sets the reading frame start (1 based).
+
+## Workflow output
+
+HAPP generates results in a directory `results/` with sub-directories organised
+by several of the parameters set in the configuration used. This allows you to
+run HAPP with several configurations in the same root directory without
+overwriting results.
+
+### Preprocessing
+
+The output from preprocessing, if configured to run in your configuration file,
+is found in `results/preprocess/<rundir>`. If using the test dataset
+(`data/test/`) and configuration file (`test/configfile.yml`) the output will
+be:
+
+```
+results/preprocess
+└── test # <- rundir parameter
+    ├── ASV_codon_filtered.fna # <- fasta file after filtering by stop codons
+    ├── ASV_codon_filtered.list # <- list of sequences removed by stop codon filtering
+    ├── ASV_codon_filtered.table.tsv # <- counts file after filtering by stop codons
+    ├── ASV_length_filtered.fna # <- fasta file after filtering by length
+    └── ASV_length_filtered.table.tsv # <- counts file after filtering by length
+```
+
+If both `filter_length` and `filter_codons` are set to `True`, length filtering
+happens before stop codon filtering.
+
+### Taxonomic assignments
+
+The output from taxonomic assignments is found in `results/taxonomy` with
+sub-directories for each tool used, _e.g._:
+
+```
+results/taxonomy
+├── epa-ng # output from epa-ng tool
+│   └── test # name of rundir
+│       └── assignments
+│           └── dyn-heur # epa-ng placement heuristic
+│               └── taxonomy.tsv # taxonomic assignments
+├── sintax # output from sintax tool
+│   └── test # name of rundir
+│       ├── confidence.tsv # TSV file with sintax confidence values per sequence/rank
+│       └── taxonomy.tsv # taxonomic assignments
+├── sintax_epang # output from combining sintax + epa-ng
+│   └── test # name of rundir
+│       └── dyn-heur # epa-ng placement heuristic
+│           └── taxonomy.tsv # taxonomic assignments
+└── vsearch # output from vsearch tool
+    └── test # name of rundir
+        ├── taxonomy.raw.tsv # raw output from vsearch, incl. confidence values
+        └── taxonomy.tsv # taxonomic assignments
+```
+
+### Chimera filtering
+
+If chimera filtering is enabled results from filtering are placed under
+`results/chimera/<rundir>` with additional sub-directories depending on the
+`run_name`, `method` and `algorithm` parameter settings under the `chimera`
+section in the configuration file. For example if running chimera filtering with
+the `samplewise` method (default):
+
+```
+results/chimera/
+└── test # <- rundir
+    └── filtered
+        └── chimera1 # <- run_name under chimera config section
+            └── samplewise.uchime_denovo # <- chimera method.algorithm settings
+                ├── chimeras.fasta # <- fasta file with chimeric sequences
+                └── nonchimeras.fasta # <- fasta file with non-chimeric sequences
+```
+
+If chimera filtering is run with the `samplewise` method then each sample will
+also have a sub-directory under
+`results/chimera/<rundir>/samplewise.<algorithm>/samples/<sample>` with
+intermediate files from the chimera filtering steps. For example:
+
+```
+results/chimera/
+└── test # name of rundir
+    └── samplewise.uchime_denovo # method.algorithm chimera settings
+        └── samples
+            └── sample1 # output for sample1
+                ├── borderline.fasta.gz # sequences marked as 'borderline' chimeras
+                ├── chimeras.fasta.gz # chimeric sequences
+                ├── nonchimeras.fasta.gz # non-chimeric sequences
+                ├── uchimealns.out.gz # alignment output file
+                └── uchimeout.txt.gz # chimera results file
+```
+
+If instead the chimera filtering is run with the `batchwise` method, there will be:
+
+```
+results/chimera/
+└── test
+    ├── batchwise.uchime_denovo
+    │   ├── borderline.fasta
+    │   ├── chimeras.fasta
+    │   ├── nonchimeras.fasta
+    │   ├── uchimealns.out
+    │   └── uchimeout.txt
+    └── filtered
+        └── chimera1
+            └── batchwise.uchime_denovo
+                ├── chimeras.fasta
+                ├── nonchimeras.fasta
+                └── uchimeout.tsv
+```
+
+### Output from clustering tools
+
+Each clustering tool specified by the `software` config parameter gets a
+separate sub-directory under `results/`, _e.g._ `results/swarm`, which is
+further structured by the following parameters:
+
+```yaml
+rundir: <name of rundir>
+split_rank: <taxonomic rank at which to partition input>
+run_name: <main name of the workflow run>
+chimera:
+  run_name: <name of chimera run>
+  method: <samplewise/batchwise>
+  algorithm: <uchime_denovo/uchime_denovo2/uchime_denovo3>
+```
+
+For example, using the `test/configfile.yml` configuration file the results from clustering with `swarm` would be:
+
+```
+results/swarm
+└── test # rundir
+    └── chimera1 # chimera run_name
+        └── samplewise.uchime_denovo # chimera method.algorithm
+            └── Family # split_rank
+                └── runs
+                    └── testrun # run_name
+                        ├── cluster_consensus_taxonomy.tsv # consensus taxonomy of clusters
+                        ├── cluster_counts.tsv # summed counts of clusters
+                        ├── cluster_reps.fasta # representative sequences for clusters
+                        ├── cluster_taxonomy.tsv # taxonomic info and cluster ass
+                        ├── neeat # output from noise filtering with NEEAT
+                        ├── precision_recall.order.txt # precision/recall values per Order
+                        └── precision_recall.txt # precision/recall values for clustering results
+```
+
+### Noise filtering output
+
+Noise filtering with NEEAT (**N**oise reduction using **E**chos,
+**E**volutionary signals and **A**bundance **T**hresholds) is applied to the
+clustering results generated by each tool and is found in the `neeat/`
+subdirectory as indicated above.
+
+The contents of this directory depends on the parameters set under the
+`noise_filtering` section in the configuration file:
+
+```yaml
+noise_filtering:
+  # split_rank sets the taxonomic rank to split the ASVs by before running the
+  # noise filtering.
+  split_rank: "Order"
+
+  # assignment_rank sets the taxonomic rank to use for the noise filtering.
+  # ASVs unassigned or ambiguously assigned at this rank are considered noise and will be removed.
+  assignment_rank: "Order"
+```
+
+Using the test dataset and `test/configfile.yml` configuration file the contents in the `neeat/` subdirectory would be:
+
+```
+results/swarm/test/chimera1/samplewise.uchime_denovo/Family/runs/testrun/neeat
+└── Order # split_rank under noise_filtering config section
+    ├── discarded_cluster_taxonomy.tsv # information about sequences discarded as noise
+    ├── noise_filtered_cluster_consensus_taxonomy.tsv # consensus taxonomy of retained non-noise clusters
+    ├── noise_filtered_cluster_counts.tsv # counts of retained non-noise clusters
+    ├── noise_filtered_cluster_taxonomy.tsv # taxonomic and cluster assignments of sequences in retained clusters
+    ├── noise_filtered_precision_recall.order.txt # precision/recall values per order for retained clusters
+    ├── noise_filtered_precision_recall.txt # precision/recall values for retained clusters
+    └── singles.tsv # file with sequences found in taxa with only 1 cluster
+```
+
+> [!TIP]
+> The NEEAT algorithm can also be run directly on your data without running the
+> other HAPP steps. See more information under [Running the NEEAT algorithm
+> directly](#running-the-neeat-algorithm-directly) above.

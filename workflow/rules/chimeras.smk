@@ -29,15 +29,16 @@ def get_abskew(wildcards):
     return f"--abskew {abskew}"
 
 def get_preprocessed_files(wildcards):
+    rundir = config["rundir"]
     if config["preprocessing"]["filter_codons"]:
-        fastafile = rules.filter_codons.output.fasta
-        countsfile = rules.filter_codons.output.counts
+        fastafile = f"results/preprocess/{rundir}/ASV_codon_filtered.fna"
+        countsfile = f"results/preprocess/{rundir}/ASV_codon_filtered.table.tsv"
     elif config["preprocessing"]["filter_length"]:
-        fastafile = rules.filter_length.output.fasta
-        countsfile = rules.filter_length.output.counts
+        fastafile = f"results/preprocess/{rundir}/ASV_length_filtered.fna"
+        countsfile = f"results/preprocess/{rundir}/ASV_length_filtered.table.tsv"
     else:
-        fastafile = f"data/{wildcards.rundir}/asv_seqs.fasta"
-        countsfile = f"data/{wildcards.rundir}/asv_counts.tsv"
+        fastafile = f"data/{rundir}/asv_seqs.fasta"
+        countsfile = f"data/{rundir}/asv_counts.tsv"
     return {"fasta": fastafile, "counts": countsfile}
 
 # TODO: Add checks for samples with zero sum counts after preprocessing?
@@ -76,6 +77,7 @@ rule sum_asvs:
     """
     Sums up counts for batchwise mode
     """
+    message: "Summing counts for sequences"
     input:
         unpack(get_preprocessed_files)
     output:
@@ -94,6 +96,7 @@ rule append_size:
     """
     Adds size annotation for batchwise mode
     """
+    message: "Adding sizes to sequence headers"
     input:
         unpack(get_preprocessed_files),
         sums=rules.sum_asvs.output.sums,
@@ -121,6 +124,7 @@ rule chimera_batchwise:
     Run uchime algorithm with vsearch on the full dataset directly
     The wildcard 'algo' can be 'uchime_denovo', 'uchime2_denovo' or 'uchime3_denovo'
     """
+    message: "Running chimera detection using {wildcards.algo} algorithm"
     input:
         fasta=rules.append_size.output.fasta,
     output:
@@ -141,11 +145,9 @@ rule chimera_batchwise:
         mindiv=config["chimera"]["mindiv"],
         minh=config["chimera"]["minh"],
     threads: 4
-    resources:
-        tasks = 4
     shell:
         """
-        vsearch --threads {resources.tasks} --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} \
+        vsearch --threads {threads} --dn {params.dn} --mindiffs {params.mindiffs} --mindiv {params.mindiv} \
             --minh {params.minh} {params.abskew} --chimeras {output.chim} \
             --borderline {output.border} --nonchimeras {output.nochim} \
             --uchimeout {output.uchimeout} --uchimealns {output.uchimealns} \
@@ -156,6 +158,7 @@ rule chimera_batchwise:
 ### SAMPLEWISE ###
 
 rule split_counts_samplewise:
+    message: "Generating counts file for {wildcards.sample}"
     output:
         temp("results/common/{rundir}/samplewise/{sample}.sum.tsv"),
     input:
@@ -177,6 +180,7 @@ rule add_sums:
     """
     Adds size annotation to fasta headers for samplewise mode
     """
+    message: "Adding sizes to fasta headers for {wildcards.sample}"
     output:
         fasta=temp("results/common/{rundir}/samplewise/{sample}.fasta"),
     input:
@@ -201,6 +205,7 @@ rule chimera_samplewise:
     """
     Run chimera detection on each sample
     """
+    message: "Running chimera detection on {wildcards.sample} using {wildcards.algo} algorithm"
     output:
         chim="results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/chimeras.fasta.gz",
         nochim="results/chimera/{rundir}/samplewise.{algo}/samples/{sample}/nonchimeras.fasta.gz",
@@ -214,8 +219,6 @@ rule chimera_samplewise:
     conda: config["vsearch-env"]
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
     threads: 4
-    resources:
-        tasks = 4
     params:
         tmpdir="$TMPDIR/{rundir}.{algo}.{sample}.chim",
         outdir=lambda wildcards, output: os.path.dirname(output.chim),
@@ -231,7 +234,7 @@ rule chimera_samplewise:
             touch {output.nochim} {output.chim} {output.alns} {output.border} {output.uchimeout} {params.outdir}/NOSEQS
         else
             mkdir -p {params.tmpdir}
-            vsearch --threads {resources.tasks} --dn {params.dn} --mindiffs {params.mindiffs} \
+            vsearch --threads {threads} --dn {params.dn} --mindiffs {params.mindiffs} \
                 --mindiv {params.mindiv} --minh {params.minh} {params.abskew} \
                 --chimeras {params.tmpdir}/chimeras.fasta --borderline {params.tmpdir}/borderline.fasta \
                 --nonchimeras {params.tmpdir}/nonchimeras.fasta --uchimealns {params.tmpdir}/uchimealns.out \
@@ -255,6 +258,7 @@ rule filter_samplewise_chimeras:
     """
     Filter samplewise chimera results
     """
+    message: "Filtering chimeras using samplewise method"
     output:
         nonchims="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/nonchimeras.fasta",
         chimeras="results/chimera/{rundir}/filtered/{chimera_run}/samplewise.{algo}/chimeras.fasta",
@@ -298,6 +302,7 @@ rule filter_batchwise_chimeras:
     detection using the algorithm specified in the config and outputs nonchimeras
     under criteria matching 'min_samples_shared' or 'min_frac_samples_shared'
     """
+    message: "Filtering chimeras using batchwise method"
     output:
         nonchims="results/chimera/{rundir}/filtered/{chimera_run}/batchwise.{algo}/nonchimeras.fasta",
         chims="results/chimera/{rundir}/filtered/{chimera_run}/batchwise.{algo}/chimeras.fasta",

@@ -5,6 +5,7 @@ localrules:
 
 
 rule mothur_align:
+    message: "Aligning sequences for {wildcards.tax} with mothur"
     input:
         fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     output:
@@ -19,13 +20,11 @@ rule mothur_align:
         tmpdir="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}",
         fasta="$TMPDIR/opticlust/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta",
     threads: 10
-    resources:
-        tasks = 10
     shell:
         """
         mkdir -p {params.tmpdir}
         gunzip -c {input.fasta} > {params.fasta}
-        mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log}); pairwise.seqs(fasta={params.fasta}, processors={resources.tasks})" >{log.err} 2>&1
+        mothur "#set.dir(output={params.tmpdir});set.logfile(name={log.log}); pairwise.seqs(fasta={params.fasta}, processors={threads})" >{log.err} 2>&1
         gzip {params.tmpdir}/asv_seqs.dist
         mv {params.tmpdir}/asv_seqs.dist.gz {output.dist}
         rm -rf {params.tmpdir}
@@ -40,6 +39,7 @@ def opticlust_input(wildcards):
 
 
 rule reformat_distmat:
+    message: "Reformatting distance matrix for {wildcards.tax}"
     input:
         rules.vsearch_align.output.dist,
     output:
@@ -55,6 +55,7 @@ rule run_opticlust:
     """
     opticlust requires that all sequences in the counts file have abundance > 0
     """
+    message: "Running opticlust clustering on sequences in {wildcards.tax}"
     input:
         dist=opticlust_input,
         counts="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/total_counts.tsv",
@@ -72,7 +73,7 @@ rule run_opticlust:
         precision=config["opticlust"]["precision"],
     conda: config["opticlust-env"]
     container: "docker://biocontainers/mothur:v1.41.21-1-deb_cv1"
-    shadow: "minimal"
+    shadow: "full"
     shell:
         """
         gunzip -c {input.dist} > asv_seqs.dist
@@ -89,6 +90,7 @@ rule opticlust2tab:
     """
     Generate a membership style table of clusters
     """
+    message: "Generating opticlust cluster file for {wildcards.tax}"
     input:
         rules.run_opticlust.output.list,
     output:

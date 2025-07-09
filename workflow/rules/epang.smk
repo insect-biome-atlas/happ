@@ -17,6 +17,7 @@ rule nexus2newick:
     """
     Converts a nexus tree to newick format
     """
+    message: "Converting nexus tree to newick"
     output:
         "resources/epa-ng/tree.nwk",
     input:
@@ -43,6 +44,7 @@ def ref_msa(wildcards):
         return config["epa-ng"]
 
 rule extract_ref_taxonomy:
+    message: "Extracting reference taxonomy from tree"
     output:
         "resources/epa-ng/taxon_file.tsv",
     input:
@@ -58,6 +60,7 @@ rule extract_ref_taxonomy:
         """
 
 rule nexus2fasta:
+    message: "Converting nexus alignment to fasta"
     output:
         "resources/epa-ng/ref_msa.fasta",
     input:
@@ -78,6 +81,7 @@ def ref_msa(wildcards):
         return config["epa-ng"]["msa"]
 
 rule hmm_build:
+    message: "Building HMM model for reference alignment"
     output:
         "resources/epa-ng/ref_msa.hmm",
     input:
@@ -94,6 +98,7 @@ rule hmm_build:
         """
 
 rule hmm_align:
+    message: "Aligning queries in {wildcards.split} splitfile"
     output:
         temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/{split}.fasta"),
     input:
@@ -117,6 +122,7 @@ rule hmm_align:
         """
 
 rule split_aln:
+    message: "Splitting reference and query alignments for {wildcards.split} splitfile"
     output:
         ref_msa=temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/reference.fasta"),
         qry_msa=temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.fasta"),
@@ -138,6 +144,7 @@ rule filter_query_aln:
     """
     Removes sequences in the alignment that have too few positions aligned
     """
+    message: "Removing queries with few aligned positions"
     output:
         keep=temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.filtered.fasta"),
         r=temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.removed.txt")
@@ -163,6 +170,7 @@ rule filter_query_aln:
                 f.write(f"{r}\n")                     
 
 rule raxml_evaluate:
+    message: "Generating RAxML model file for {wildcards.split} splitfile"
     output:
         temp("results/taxonomy/epa-ng/{rundir}/raxml-ng/splits/{split}/info.raxml.bestModel"),
     input:
@@ -176,11 +184,9 @@ rule raxml_evaluate:
         model=lambda wildcards: config["epa-ng"]["model"],
         prefix=lambda wildcards, output: os.path.dirname(output[0]) + "/info",
     threads: 1
-    resources:
-        tasks=1
     shell:
         """
-        raxml-ng --extra thread-pin --redo --threads {resources.tasks} --evaluate --msa {input.msa} --tree {input.tree} --prefix {params.prefix} --model {params.model} >{log} 2>&1
+        raxml-ng --extra thread-pin --redo --threads {threads} --evaluate --msa {input.msa} --tree {input.tree} --prefix {params.prefix} --model {params.model} >{log} 2>&1
         """
 
 ## epa-ng
@@ -194,6 +200,7 @@ def get_heuristic(wildcards):
         return "--baseball-heur"
 
 rule epa_ng:
+    message: "Running EPA-NG placement for {wildcards.split} splitfile using {wildcards.heur} heuristics"
     output:
         temp("results/taxonomy/epa-ng/{rundir}/placements/splits/{split}/{heur}/epa-ng_result.jplace"),
     input:
@@ -210,11 +217,9 @@ rule epa_ng:
     conda: config["epang-env"]
     container: "docker://quay.io/biocontainers/epa-ng:0.3.8--hd03093a_3"
     threads: 20
-    resources:
-        tasks=20
     shell:
         """
-        epa-ng --chunk-size {params.chunksize} --redo -T {resources.tasks} --tree {input.ref_tree} --ref-msa {input.ref_msa} \
+        epa-ng --chunk-size {params.chunksize} --redo -T {threads} --tree {input.ref_tree} --ref-msa {input.ref_msa} \
             --query {input.qry} --out-dir {params.outdir} {params.heur} --model {input.info} >{log} 2>&1
         mv {params.outdir}/epa_result.jplace {output[0]}
         """
@@ -236,6 +241,7 @@ def get_dist_ratio(config):
         return f"--distribution-ratio {dist_ratio}"
 
 rule gappa_assign:
+    message: "Assigning taxonomy with GAPPA for {wildcards.split} splitfile"
     """
     Run gappa taxonomic assignment on placement file
     """
@@ -256,11 +262,9 @@ rule gappa_assign:
     conda: config["gappa-env"]
     container: "docker://quay.io/biocontainers/gappa:0.8.5--hdcf5f25_2"   
     threads: 4
-    resources:
-        tasks=4
     shell:
         """
-        gappa examine assign --threads {resources.tasks} --out-dir {params.outdir} \
+        gappa examine assign --threads {threads} --out-dir {params.outdir} \
             --jplace-path {input.jplace} --taxon-file {input.taxonfile} \
             --ranks-string '{params.ranks_string}' --per-query-results \
             --consensus-thresh {params.consensus_thresh} {params.distribution_ratio} \
@@ -272,6 +276,7 @@ rule gappa2taxdf:
     """
     Convert gappa output to a taxonomic dataframe
     """
+    message: "Parsing GAPPA assignments for {wildcards.split} splitfile"
     output:
         temp("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/taxonomy.tsv"),
     input:
@@ -294,6 +299,7 @@ def aggregate_gappa(wildcards):
                     split=glob_wildcards(os.path.join(checkpoint_output, "stdin.part_{split}.fasta")).split)
 
 rule collate_gappa_taxdf:
+    message: "Aggregating taxonomic assignments"
     output:
         "results/taxonomy/epa-ng/{rundir}/assignments/{heur}/taxonomy.raw.tsv"
     input:
@@ -318,6 +324,7 @@ rule add_missing:
     """
     Adds ASVs to the taxonomy table that were filtered out during the alignment step
     """
+    message: "Adding unprocessed sequences"
     output:
         "results/taxonomy/epa-ng/{rundir}/assignments/{heur}/taxonomy.tsv"
     input:

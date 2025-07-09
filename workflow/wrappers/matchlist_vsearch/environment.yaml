@@ -1,0 +1,6 @@
+name: vsearch
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - vsearch=2.29.1

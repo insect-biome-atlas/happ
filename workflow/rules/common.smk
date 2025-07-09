@@ -67,6 +67,7 @@ checkpoint split_input:
     """
     Splits the input fasta file into chunks
     """
+    message: "Splitting input fasta for {wildcards.rundir}"
     output:
         directory("results/common/{rundir}/splits")
     input:
@@ -90,6 +91,7 @@ checkpoint filter_seqs:
     if chimera filtering is activated. Ensures that all ASVs are present in both the counts file
     and the sequence file.
     """
+    message: "Generating fasta files per taxa at rank {wildcards.rank}"
     input:
         counts="data/{rundir}/asv_counts.tsv",
         fasta=get_input_fasta,
@@ -165,6 +167,7 @@ checkpoint filter_seqs:
 
 ## VSEARCH ALIGNMENTS ##
 rule vsearch_align:
+    message: "Aligning sequences for {wildcards.tax}"
     input:
         fasta="results/common/{rundir}/{chimera_run}/{chimdir}/{rank}/taxa/{tax}/asv_seqs.fasta.gz",
     output:
@@ -181,15 +184,13 @@ rule vsearch_align:
     threads: config["vsearch"]["threads"]
     conda: config["vsearch-env"]
     container: "docker://quay.io/biocontainers/vsearch:2.29.1--h6a68c12_0"
-    resources:
-        tasks = 10
     shell:
         """
         mkdir -p {params.tmpdir}
         gunzip -c {input.fasta} > {params.fasta}
         vsearch --usearch_global {params.fasta} --db {params.fasta} --self \
             --userout {params.dist} -userfields query+target+id --maxaccepts 0 --maxrejects 0 \
-            --id {params.id} --iddef {params.iddef}  --query_cov {params.query_cov} --threads {resources.tasks} > {log} 2>&1
+            --id {params.id} --iddef {params.iddef}  --query_cov {params.query_cov} --threads {threads} > {log} 2>&1
         gzip {params.dist}
         mv {params.dist}.gz {output.dist} 
         """

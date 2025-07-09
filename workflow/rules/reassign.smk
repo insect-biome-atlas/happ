@@ -2,6 +2,7 @@ localrules:
     update_taxonomy
 
 rule update_taxonomy:
+    message: "Updating taxonomy assignments using SINTAX + EPA-NG results"
     output:
         "results/taxonomy/sintax_epang/{rundir}/{heur}/taxonomy.tsv"
     input:
