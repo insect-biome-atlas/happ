@@ -152,12 +152,12 @@ The workflow comes with a relatively small test dataset of 100 sequences in 100
 samples which can be used to try the workflow on your system. To use it with
 default settings you need to obtain a Sintax reference file and set the
 corresponding path in the `sintax:` configuration entry. For ease of use you can
-run the `test/setup-ref.sh` script which downloads a reference from
+run the `test/setup-ref.py` script which downloads a reference from
 [Figshare](https://doi.org/10.17044/scilifelab.20514192) and updates the
 `test/configfile.yml` configuration file:
 
 ```bash
-bash test/setup-ref.sh
+python test/setup-ref.py
 ```
 
 Once the above command completes you can execute the testrun with:
