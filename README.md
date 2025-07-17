@@ -67,7 +67,6 @@ from within the root of the repository. This will activate an interactive shell
 ready to use with the workflow.
 
 > [!NOTE]
-
 > We highly recommend that you also run `pixi install -a` to install all
 > required software using pixi. When this command finishes, run `pixi shell` and
 > you're good to go.
