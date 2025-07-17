@@ -39,15 +39,15 @@ for your data.
 
 ## Installation
 
-To install the workflow, either clone the repository by running:
+You can install the workflow by cloning from GitHub (requires [git](https://git-scm.com/downloads)):
 
 ```bash
-git clone git@github.com:insect-biome-atlas/happ.git
+git clone https://github.com/insect-biome-atlas/happ.git
 cd happ
 ```
 
-or visit the [release page](https://github.com/insect-biome-atlas/happ/releases)
-and download the latest release.
+or by downloading one of the releases from the [release
+page](https://github.com/insect-biome-atlas/happ/releases).
 
 ### Software requirements
 
@@ -66,6 +66,24 @@ pixi shell
 from within the root of the repository. This will activate an interactive shell
 ready to use with the workflow.
 
+> [!NOTE]
+
+> We highly recommend that you also run `pixi install -a` to install all
+> required software using pixi. When this command finishes, run `pixi shell` and
+> you're good to go.
+>
+> This is especially important **if you are using a Mac with the Apple M-series
+> chip** as some packages will not be available from the standard conda
+> channels. Pixi handles this natively and running `pixi install -a` installs
+> all rule-specific software environments into sub-directories in `.pixi/envs/`
+> in the repository root. HAPP will activate these software environments at
+> run-time when needed if you start the workflow with the `--sdm conda` flag
+> (see below).
+>
+> Note that if you will be using Apptainer to handle rule-specific software
+> (using `--sdm apptainer` as described below) you do not need to run `pixi
+> install -a`.
+
 #### Install with Conda
 
 If you prefer to use Conda, you can create a new environment with the required
@@ -77,9 +95,9 @@ conda env create -f environment.yml
 
 Then activate the environment with:
   
-  ```bash
-  conda activate happ
-  ```
+```bash
+conda activate happ
+```
 
 ## How to run the workflow
 
@@ -108,7 +126,8 @@ rule-specific software dependencies should be handled with
 > is not available and you want to use Conda instead we recommend to first
 > install the conda environments with pixi by running `pixi install -a` from the
 > root of the repository. When the installation has finished, run `pixi shell`
-> to activate a shell ready to run the workflow.
+> to activate a shell ready to run the workflow. **For Mac users with the M-series
+> chip, running `pixi install -a` is required in order for HAPP to work.**
 
 - `--configfile <path-to-your-configfile.yml>`
 
@@ -174,7 +193,8 @@ snakemake --profile test --sdm apptainer
 
 to use Apptainer to run jobs in containers where needed.
 
-The testrun takes approximately 30 minutes on a MacBook Pro laptop using 4 cores (excluding potential Apptainer downloads/Conda environment creations).
+The testrun takes approximately 4 minutes on a MacBook Pro laptop using 4 cores
+(excluding potential Apptainer downloads/Conda environment creations).
 
 ### Configuration file
 
