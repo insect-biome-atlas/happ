@@ -61,7 +61,7 @@ dependencies = {swarm = "*"}
 platforms = ["linux-64", "osx-64", "linux-aarch64"]
 
 [feature.vsearch]
-dependencies = {vsearch = "*"}
+dependencies = {vsearch = ">=2.28.1"}
 
 [environments]
 default = ["happ"]
