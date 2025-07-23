@@ -4,4 +4,4 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - vsearch
+  - vsearch>=2.28.1
