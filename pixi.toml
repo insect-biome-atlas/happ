@@ -1,6 +1,6 @@
 [project]
 name = "happ"
-version = "3.1.0"
+version = "3.1.1"
 description = "Pixi project file for HAPP workflow"
 authors = ["johnne <john.sundh@scilifelab.se>"]
 channels = ["conda-forge", "bioconda", "main", "r", "msys2", "cduvallet"]
@@ -10,58 +10,58 @@ platforms = ["linux-64", "osx-64", "linux-aarch64", "osx-arm64"]
 linux = "3.10.0"
 
 [feature.happ]
-dependencies = {python = "*", snakemake = "*", scikit-learn = "*", biopython = "*", tqdm = "*", polars = "*", pandas = "*", seqkit = "*", conda = "*", r-ape = "*", 'r-data.table' = "*", snakemake-executor-plugin-slurm = "*", pigz = "*"}
+dependencies = { python = "*", snakemake = "*", scikit-learn = "*", biopython = "*", tqdm = "*", polars = "*", pandas = "*", seqkit = "*", conda = "*", r-ape = "*", 'r-data.table' = "*", snakemake-executor-plugin-slurm = "*", pigz = "*" }
 
 [feature.blastn]
-dependencies = {blast = "*"}
+dependencies = { blast = "*" }
 platforms = ["linux-64", "osx-64"]
 
 [feature.datatable]
-dependencies = {'r-data.table' = "*"}
+dependencies = { 'r-data.table' = "*" }
 
 [feature.dbotu3]
-dependencies = {dbotu = "*"}
+dependencies = { dbotu = "*" }
 channels = ["conda-forge", "bioconda", "cduvallet"]
 
 [feature.epang]
-dependencies = {epa-ng = "*"}
+dependencies = { epa-ng = "*" }
 platforms = ["linux-64", "osx-64"]
 
 [feature.gappa]
-dependencies = {gappa = "*"}
+dependencies = { gappa = "*" }
 
 [feature.hmmer]
-dependencies = {hmmer = "*"}
+dependencies = { hmmer = "*" }
 
 [feature.mafft]
-dependencies = {mafft = "*"}
+dependencies = { mafft = "*" }
 
 [feature.opticlust]
-dependencies = {mothur = "*"}
+dependencies = { mothur = "*" }
 platforms = ["linux-64", "osx-64"]
 
 [feature.pal2nal]
-dependencies = {pal2nal = "*"}
+dependencies = { pal2nal = "*" }
 
 [feature.qiime2]
-dependencies = {q2-vsearch = "*", q2-feature-classifier = "*", q2-feature-table = "*", qiime2 = "*", q2cli = "*"}
+dependencies = { q2-vsearch = "*", q2-feature-classifier = "*", q2-feature-table = "*", qiime2 = "*", q2cli = "*" }
 platforms = ["linux-64", "osx-64"]
 channels = ["qiime2", "conda-forge", "bioconda"]
 
 [feature.raxml]
-dependencies = {raxml-ng = "*"}
+dependencies = { raxml-ng = "*" }
 platforms = ["linux-64", "osx-64", "linux-aarch64"]
 
 [feature.seqinr]
-dependencies = {r-seqinr = "*"}
+dependencies = { r-seqinr = "*" }
 platforms = ["linux-64", "osx-64", "linux-aarch64"]
 
 [feature.swarm]
-dependencies = {swarm = "*"}
+dependencies = { swarm = "*" }
 platforms = ["linux-64", "osx-64", "linux-aarch64"]
 
 [feature.vsearch]
-dependencies = {vsearch = "*"}
+dependencies = { vsearch = ">=2.28.1" }
 
 [environments]
 default = ["happ"]
