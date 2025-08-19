@@ -442,7 +442,7 @@ def get_rank_settings(config):
     elif config["taxonomy_source"] == "epa-ng":
         return "--ranks " + " ".join(config["epa-ng"]["tree_ranks"])
     elif config["taxonomy_source"] == "vsearch":
-        if os.path.exists(config["qiime2"]["ref"]) and os.path.exists(config["qiime"]["taxfile"]):
+        if os.path.exists(config["qiime2"]["ref"]) and os.path.exists(config["qiime2"]["taxfile"]):
             return "--ranks " + " ".join(config["qiime2"]["ranks"])
         else:
             if os.path.exists(config["sintax"]["ref"]):
