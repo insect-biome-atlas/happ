@@ -1,6 +1,3 @@
-localrules:
-    filter_seqs,
-
 def get_input_fasta(wildcards):
     """
     Determine the input fasta file for the dataset
