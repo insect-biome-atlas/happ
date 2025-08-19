@@ -184,7 +184,7 @@ rule qiime2_classify_vsearch:
     shell:
         """
         qiime feature-classifier classify-consensus-vsearch --i-reference-reads {input.ref} --i-query {input.qry} \
-            --i-reference-taxonomy {input.ref_tax} --o-classification {output.vsearch} --o-search-results {output.hits} \
+            --i-reference-taxonomy {input.ref_tax} --p-maxrejects 32 --o-classification {output.vsearch} --o-search-results {output.hits} \
             --p-threads {threads} --verbose > {log} 2>&1
         """
 
