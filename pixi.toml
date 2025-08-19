@@ -10,7 +10,7 @@ platforms = ["linux-64", "osx-64", "linux-aarch64", "osx-arm64"]
 linux = "3.10.0"
 
 [feature.happ]
-dependencies = { python = "*", snakemake = "*", scikit-learn = "*", biopython = "*", tqdm = "*", polars = "*", pandas = "*", seqkit = "*", conda = "*", r-ape = "*", 'r-data.table' = "*", snakemake-executor-plugin-slurm = "*", pigz = "*" }
+dependencies = { python = "*", snakemake = "<9.5.1", scikit-learn = "*", biopython = "*", tqdm = "*", polars = "*", pandas = "*", seqkit = "*", conda = "*", r-ape = "*", 'r-data.table' = "*", snakemake-executor-plugin-slurm = "*", pigz = "*" }
 
 [feature.blastn]
 dependencies = { blast = "*" }
