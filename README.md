@@ -66,22 +66,6 @@ pixi shell
 from within the root of the repository. This will activate an interactive shell
 ready to use with the workflow.
 
-> [!NOTE]
-> We highly recommend that you also run `pixi install -a` to install all
-> required software using pixi.
->
-> This is especially important **if you are using a Mac with the Apple M-series
-> chip** as some packages will not be available from the standard conda
-> channels. Pixi handles this natively and running `pixi install -a` installs
-> all rule-specific software environments into sub-directories in `.pixi/envs/`
-> in the repository root. HAPP will activate these software environments at
-> run-time when needed if you start the workflow with the `--sdm conda` flag
-> (see below).
->
-> Note that if you will be using Apptainer to handle rule-specific software
-> (using `--sdm apptainer` as described below) you do not need to run `pixi
-> install -a`.
-
 #### Install with Conda
 
 If you prefer to use Conda, you can create a new environment with the required
