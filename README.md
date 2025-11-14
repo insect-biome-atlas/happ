@@ -2,6 +2,7 @@
 
 # HAPP: High-Accuracy Pipeline for Processing deep metabarcoding data
 
+- [How to cite](#how-to-cite)
 - [Overview](#overview)
 - [Installation](#installation)
   - [Software requirements](#software-requirements)
@@ -19,6 +20,19 @@
   - [Noise filtering](#noise-filtering)
 - [Workflow output](#workflow-output)
 
+## How to cite
+
+If you use this software, please cite:
+
+```
+HAPP: High-Accuracy Pipeline for Processing deep metabarcoding data.
+  John Sundh, Emma Granqvist, Ela Iwaszkiewicz-Eggebrecht,
+  Lokeshwaran Manoharan, Laura J. A. van Dijk, Robert Goodsell,
+  Nerivania N. Godeiro, Bruno C. Bellini, Johanna Orsholm, Piotr Łukasik,
+  Andreia Miraldo, Tomas Roslin, Ayco J. M. Tack, Anders F. Andersson,
+  Ronquist, F. (2025). PLOS Computational Biology, 21(11), e1013558.
+  doi: 10.1371/journal.pcbi.1013558
+```
 
 ## Overview
 
