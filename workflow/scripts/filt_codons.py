@@ -53,7 +53,7 @@ parser.add_argument(
     type=int,
     help="Specific position of the ASV where to start checking for codons. By default it starts from position 1",
     required=False,
-    default=0,
+    default=1,
 )
 
 parser.add_argument(
