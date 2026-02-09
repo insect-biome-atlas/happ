@@ -5,9 +5,12 @@ from argparse import ArgumentParser
 
 
 def extract_taxa(row, taxcol="Taxon", ranks=["kingdom", "phylum", "class", "order", "family", "genus", "species"]):
-    rank_translate = {"d__": "domain", "k__": "kingdom", "p__": "phylum", "c__": "class", "o__": "order", "f__": "family", "g__": "genus", "s__": "species", "b__": "bold_bin"}
     data = {}
     items = row[taxcol].split("; ")
+    if items[0] == "Unassigned":
+        for rank in ranks:
+            data[rank] = ""
+        return pd.Series(data)
     for i, rank in enumerate(ranks):
         try:
             item = items[i][3:]
@@ -65,6 +68,7 @@ def main(args):
     df = pd.read_csv(args.input, sep="\t", index_col=0)
     parsed = parse_qiime2(df, taxcol=args.taxcol, ranks=args.ranks)
     parsed = parsed.apply(add_unassigned, axis=1)
+    parsed.index.name = "ASV"
     parsed.to_csv(args.output, sep="\t")
 
 if __name__ == "__main__":
