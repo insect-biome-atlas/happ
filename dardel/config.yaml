@@ -3,8 +3,6 @@ default-resources:
   slurm_account: <your-slurm-account>
   slurm_partition: shared
   runtime: 240
-  tasks: f"{threads}"
-  cpus_per_task: 1
   mem_mb: 888
 
 set-threads:
@@ -43,12 +41,12 @@ set-resources:
     runtime: 180
     mem_mb: 56832
   gappa_assign:
-    runtime: 30
+    runtime: 300
     mem_mb: 3552
   # sintax.smk
   sintax:
     runtime: 30
-    mem_mb: 8880
+    mem_mb: 14208
   # common.smk
   filter_seqs:
     mem_mb: 17760
