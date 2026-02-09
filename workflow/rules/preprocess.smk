@@ -85,7 +85,7 @@ rule filter_codons:
         "minimal"
     shell:
         """
-        python {params.src} -f {input.fasta} -t {input.counts} -p ASV_codon -x {params.stop_codons} -s {params.start_position} -e {params.end_position} > {log} 2>&1
+        python {params.src} -f {input.fasta} -t {input.counts} -p ASV_codon -x {params.stop_codons} -s {params.start_position} {params.end_position} > {log} 2>&1
         mv ASV_codon_filtered.fna {output.fasta}
         mv ASV_codon_filtered.table.tsv {output.counts}
         mv ASV_codon_filtered.list {output.l}
