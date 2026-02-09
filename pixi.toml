@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "happ"
 version = "3.1.1"
 description = "Pixi project file for HAPP workflow"
