@@ -7,42 +7,50 @@ localrules:
     parse_qiime,
     aggregate_qiime,
 
+
 wildcard_constraints:
-    classifier = "vsearch|sklearn",
+    classifier="vsearch|sklearn",
+
 
 rule run_qiime2_vsearch:
     input:
-        expand("results/taxonomy/vsearch/{rundir}/taxonomy.tsv",
-            rundir = config["rundir"])
+        expand(
+            "results/taxonomy/vsearch/{rundir}/taxonomy.tsv", rundir=config["rundir"]
+        ),
+
 
 rule run_qiime2_sklearn:
     input:
-        expand("results/taxonomy/sklearn/{rundir}/taxonomy.tsv",
-            rundir = config["rundir"])
+        expand(
+            "results/taxonomy/sklearn/{rundir}/taxonomy.tsv", rundir=config["rundir"]
+        ),
+
 
 rule sintax2qiime_input:
     """
     Reformats a sintax database fasta to qiime2 input format
     Output should look like this:
-    seqid1	k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Legionellales; f__Legionellaceae; g__Legionella; s__
-    seqid2	k__Bacteria; p__Bacteroidetes; c__Flavobacteriia; o__Flavobacteriales; f__Flavobacteriaceae; g__Flavobacterium; s__
+    seqid1    k__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Legionellales; f__Legionellaceae; g__Legionella; s__
+    seqid2    k__Bacteria; p__Bacteroidetes; c__Flavobacteriia; o__Flavobacteriales; f__Flavobacteriaceae; g__Flavobacterium; s__
 
     fasta output should be:
     >seqid1
     ATGCGGGCTAGAGTAGCGAT...
     """
-    message: "Converting SINTAX reference to QIIME2 format"
+    message:
+        "Converting SINTAX reference to QIIME2 format"
     input:
-        fasta=config["sintax"]["ref"]
+        fasta=config["sintax"]["ref"],
     output:
         tsv="resources/qiime2/sintax2qiime/taxonomy.tsv",
         fasta="resources/qiime2/sintax2qiime/seqs.fasta",
     log:
-        "resources/qiime2/sintax2qiime/log"
+        "resources/qiime2/sintax2qiime/log",
     shell:
         """
         python workflow/scripts/sintax2qiime_input.py {input.fasta} {output.tsv} {output.fasta} > {log} 2>&1
         """
+
 
 def qiime2_ref_seqs(wildcards):
     """
@@ -59,37 +67,45 @@ rule qiime2_import_ref_seqs:
     """
     Imports the reference sequences into a QIIME2 artifact
     """
-    message: "Importing QIIME2 reference"
+    message:
+        "Importing QIIME2 reference"
     output:
-        "resources/qiime2/seqs.qza"
+        "resources/qiime2/seqs.qza",
     input:
         qiime2_ref_seqs,
     log:
-        "logs/qiime2_import_ref_seqs.log"
-    conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10"
+        "logs/qiime2_import_ref_seqs.log",
+    conda:
+        config["qiime2-env"]
+    container:
+        "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime tools import --type 'FeatureData[Sequence]' --input-path {input} --output-path {output} > {log} 2>&1
         """
-        
+
+
 rule qiime2_import_qry_seqs:
     """
     Imports the query sequences into a QIIME2 artifact
     """
-    message: "Importing query sequences for {wildcards.split} splitfile"
+    message:
+        "Importing query sequences for {wildcards.split} splitfile"
     output:
-        temp("results/taxonomy/qiime2/{rundir}/splits/{split}/{split}.qza")
+        temp("results/taxonomy/qiime2/{rundir}/splits/{split}/{split}.qza"),
     input:
-        "results/common/{rundir}/splits/stdin.part_{split}.fasta"
+        "results/common/{rundir}/splits/stdin.part_{split}.fasta",
     log:
-        "logs/qiime2_import_qry_seqs/{rundir}/{split}.log"
-    conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10"
+        "logs/qiime2_import_qry_seqs/{rundir}/{split}.log",
+    conda:
+        config["qiime2-env"]
+    container:
+        "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime tools import --type 'FeatureData[Sequence]' --input-path {input} --output-path {output} > {log} 2>&1
         """
+
 
 def qiime2_taxonomy(wildcards):
     """
@@ -101,86 +117,102 @@ def qiime2_taxonomy(wildcards):
     elif os.path.exists(config["sintax"]["ref"]):
         return "resources/qiime2/sintax2qiime/taxonomy.tsv"
 
+
 rule qiime2_import_taxonomy:
     """
     Imports the taxonomy file into a QIIME2 artifact
     """
-    message: "Importing taxonomy file"
+    message:
+        "Importing taxonomy file"
     output:
-        "resources/qiime2/taxonomy.qza"
+        "resources/qiime2/taxonomy.qza",
     input:
         qiime2_taxonomy,
     log:
-        "logs/qiime2_import_taxonomy.log"
-    conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10"
+        "logs/qiime2_import_taxonomy.log",
+    conda:
+        config["qiime2-env"]
+    container:
+        "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime tools import --type 'FeatureData[Taxonomy]' --input-format TSVTaxonomyFormat \
             --input-path {input} --output-path {output} > {log} 2>&1
         """
 
+
 rule qiime2_train:
     """
     Trains a naive bayes classifier on the reference sequences and taxonomy
     """
-    message: "Training classifier"
+    message:
+        "Training classifier"
     output:
-        "resources/qiime2/classifier.qza"
+        "resources/qiime2/classifier.qza",
     input:
         tax=rules.qiime2_import_taxonomy.output[0],
-        seq=rules.qiime2_import_ref_seqs.output[0]
+        seq=rules.qiime2_import_ref_seqs.output[0],
     log:
-        "logs/qiime2_train.log"
-    conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10"
+        "logs/qiime2_train.log",
+    conda:
+        config["qiime2-env"]
+    container:
+        "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime feature-classifier fit-classifier-naive-bayes --i-reference-reads {input.seq} --i-reference-taxonomy {input.tax} \
             --o-classifier {output} > {log} 2>&1
         """
 
+
 rule qiime2_classify_sklearn:
     """
     Classifies the query sequences using a naive bayes classifier
     """
-    message: "Classifying sequences for {wildcards.split} splitfile"
+    message:
+        "Classifying sequences for {wildcards.split} splitfile"
     output:
-        "results/taxonomy/sklearn/{rundir}/splits/{split}/taxonomy.qza"
+        "results/taxonomy/sklearn/{rundir}/splits/{split}/taxonomy.qza",
     input:
         classifier=rules.qiime2_train.output[0],
-        qry=rules.qiime2_import_qry_seqs.output[0]
+        qry=rules.qiime2_import_qry_seqs.output[0],
     log:
-        "logs/qiime2_classify_sklearn/{rundir}/{split}.log"
+        "logs/qiime2_classify_sklearn/{rundir}/{split}.log",
     threads: 20
-    conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10"
+    conda:
+        config["qiime2-env"]
+    container:
+        "docker://quay.io/qiime2/amplicon:2024.10"
     resources:
-        runtime = 60 * 10,
+        runtime=60 * 10,
     shell:
         """
         qiime feature-classifier classify-sklearn --p-n-jobs {threads} --i-classifier {input.classifier} --i-reads {input.qry} --o-classification {output} > {log} 2>&1
         """
 
+
 rule qiime2_classify_vsearch:
     """
     Classifies the query sequences using vsearch
     """
-    message: "Classifying sequences with vsearch for {wildcards.split} splitfile"
+    message:
+        "Classifying sequences with vsearch for {wildcards.split} splitfile"
     output:
         vsearch="results/taxonomy/vsearch/{rundir}/splits/{split}/taxonomy.qza",
         hits="results/taxonomy/vsearch/{rundir}/splits/{split}/hits.qza",
     input:
         ref=rules.qiime2_import_ref_seqs.output[0],
         ref_tax=rules.qiime2_import_taxonomy.output[0],
-        qry=rules.qiime2_import_qry_seqs.output[0]
+        qry=rules.qiime2_import_qry_seqs.output[0],
     log:
-        "logs/qiime2_classify_vsearch/{rundir}/{split}.log"
+        "logs/qiime2_classify_vsearch/{rundir}/{split}.log",
     threads: 20
-    conda: config["qiime2-env"]
-    container: "docker://quay.io/qiime2/amplicon:2024.10"
+    conda:
+        config["qiime2-env"]
+    container:
+        "docker://quay.io/qiime2/amplicon:2024.10"
     resources:
-        runtime = 60 * 10,
+        runtime=60 * 10,
     shell:
         """
         qiime feature-classifier classify-consensus-vsearch --i-reference-reads {input.ref} --i-query {input.qry} \
@@ -188,34 +220,49 @@ rule qiime2_classify_vsearch:
             --p-threads {threads} --verbose > {log} 2>&1
         """
 
+
 rule qiime2_export:
-    message: "Exporting {wildcards.classifier} classifications for {wildcards.split} splitfile"
+    message:
+        "Exporting {wildcards.classifier} classifications for {wildcards.split} splitfile"
     output:
-        "results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.tsv"
+        ensure(
+            "results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.tsv",
+            non_empty=True,
+        ),
     input:
-        "results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.qza"
+        "results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.qza",
     log:
-        "logs/qiime2_export/{classifier}/{rundir}/{split}.log"
-    conda: config["qiime2-env"]
-    container:  "docker://quay.io/qiime2/amplicon:2024.10"
+        "logs/qiime2_export/{classifier}/{rundir}/{split}.log",
+    conda:
+        config["qiime2-env"]
+    container:
+        "docker://quay.io/qiime2/amplicon:2024.10"
     shell:
         """
         qiime tools export --input-path {input} --output-path {output[0]} --output-format TSVTaxonomyFormat > {log} 2>&1
         """
 
+
 def get_classifier_files(wildcards):
     checkpoint_output = checkpoints.split_input.get(**wildcards).output[0]
-    return expand("results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.tsv",
-                    classifier=wildcards.classifier, rundir=config["rundir"],
-                    split=glob_wildcards(os.path.join(checkpoint_output, "stdin.part_{split}.fasta")).split)
+    return expand(
+        "results/taxonomy/{classifier}/{rundir}/splits/{split}/taxonomy.tsv",
+        classifier=wildcards.classifier,
+        rundir=config["rundir"],
+        split=glob_wildcards(
+            os.path.join(checkpoint_output, "stdin.part_{split}.fasta")
+        ).split,
+    )
+
 
 rule aggregate_qiime:
     """
     Concatenates the qiime output files into a single file
     """
-    message: "Aggregating {wildcards.classifier} classificiations"
+    message:
+        "Aggregating {wildcards.classifier} classificiations"
     output:
-        "results/taxonomy/{classifier}/{rundir}/taxonomy.raw.tsv"
+        "results/taxonomy/{classifier}/{rundir}/taxonomy.raw.tsv",
     input:
         get_classifier_files,
     run:
@@ -223,18 +270,22 @@ rule aggregate_qiime:
 
 
 rule parse_qiime:
-    message: "Parsing {wildcards.classifier} classifications"
+    message:
+        "Parsing {wildcards.classifier} classifications"
     output:
-        "results/taxonomy/{classifier}/{rundir}/taxonomy.tsv"
+        "results/taxonomy/{classifier}/{rundir}/taxonomy.tsv",
     input:
-        rules.aggregate_qiime.output[0]
+        rules.aggregate_qiime.output[0],
     log:
-        "logs/parse_qiime/{classifier}/{rundir}.log"
+        "logs/parse_qiime/{classifier}/{rundir}.log",
     params:
         src=workflow.source_path("../scripts/parse_qiime.py"),
-        ranks=config["qiime2"]["ranks"] if len(config["qiime2"]["ranks"]) > 0 else config["sintax"]["ranks"]
+        ranks=(
+            config["qiime2"]["ranks"]
+            if len(config["qiime2"]["ranks"]) > 0
+            else config["sintax"]["ranks"]
+        ),
     shell:
         """
         python {params.src} {input} {output} -r {params.ranks} > {log} 2>&1
         """
-    
