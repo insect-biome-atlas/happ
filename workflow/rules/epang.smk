@@ -201,9 +201,8 @@ rule raxml_evaluate:
     message:
         "Generating RAxML model file for {wildcards.split} splitfile"
     output:
-        temp(
-            "results/taxonomy/epa-ng/{rundir}/raxml-ng/splits/{split}/info.raxml.bestModel"
-        ),
+        model="results/taxonomy/epa-ng/{rundir}/raxml-ng/splits/{split}/info.raxml.bestModel",
+        tree="results/taxonomy/epa-ng/{rundir}/raxml-ng/splits/{split}/info.raxml.bestTree",
     input:
         tree=ref_tree,
         msa=rules.split_aln.output.ref_msa,
@@ -245,7 +244,7 @@ rule epa_ng:
     input:
         qry=rules.filter_query_aln.output[0],
         ref_msa=rules.split_aln.output.ref_msa,
-        ref_tree=ref_tree,
+        ref_tree=rules.raxml_evaluate.output.tree,
         info=rules.raxml_evaluate.output[0],
     log:
         "logs/epa-ng/{rundir}/placements/{split}/{heur}/epa-ng.log",
