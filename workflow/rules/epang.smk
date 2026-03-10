@@ -6,18 +6,22 @@ localrules:
     gappa2taxdf,
     collate_gappa_taxdf,
     filter_query_aln,
-    add_missing
+    add_missing,
+
 
 wildcard_constraints:
     heur="baseball-heur|dyn-heur|no-heur",
 
+
 ## target rules
+
 
 rule nexus2newick:
     """
     Converts a nexus tree to newick format
     """
-    message: "Converting nexus tree to newick"
+    message:
+        "Converting nexus tree to newick"
     output:
         "resources/epa-ng/tree.nwk",
     input:
@@ -31,20 +35,17 @@ rule nexus2newick:
         python {params.src} {input} {output} >{log} 2>&1
         """
 
+
 def ref_tree(wildcards):
     if config["epa-ng"]["tree_format"] == "nexus":
         return rules.nexus2newick.output[0]
     elif config["epa-ng"]["tree_format"] == "newick":
         return config["epa-ng"]["tree"]
 
-def ref_msa(wildcards):
-    if config["epa-ng"]["msa_format"] == "nexus":
-        return rules.nexus2fasta.output[0]
-    elif config["epa-ng"]["msa_format"] == "fasta":
-        return config["epa-ng"]
 
 rule extract_ref_taxonomy:
-    message: "Extracting reference taxonomy from tree"
+    message:
+        "Extracting reference taxonomy from tree"
     output:
         "resources/epa-ng/taxon_file.tsv",
     input:
@@ -59,8 +60,10 @@ rule extract_ref_taxonomy:
         python {params.src} {input} {output} --ranks {params.ranks} >{log} 2>&1
         """
 
+
 rule nexus2fasta:
-    message: "Converting nexus alignment to fasta"
+    message:
+        "Converting nexus alignment to fasta"
     output:
         "resources/epa-ng/ref_msa.fasta",
     input:
@@ -74,22 +77,27 @@ rule nexus2fasta:
         python {params.src} {input} nexus {output} fasta >{log} 2>&1
         """
 
+
 def ref_msa(wildcards):
     if config["epa-ng"]["msa_format"] == "nexus":
         return rules.nexus2fasta.output[0]
     elif config["epa-ng"]["msa_format"] == "fasta":
         return config["epa-ng"]["msa"]
 
+
 rule hmm_build:
-    message: "Building HMM model for reference alignment"
+    message:
+        "Building HMM model for reference alignment"
     output:
         "resources/epa-ng/ref_msa.hmm",
     input:
         ref_msa,
     log:
         "logs/epa-ng/hmmbuild.log",
-    conda: config["hmmer-env"]
-    container: "docker://quay.io/biocontainers/hmmer:3.4--hdbdd923_2"
+    conda:
+        config["hmmer-env"]
+    container:
+        "docker://quay.io/biocontainers/hmmer:3.4--hdbdd923_2"
     resources:
         runtime=60,
     shell:
@@ -97,18 +105,22 @@ rule hmm_build:
         hmmbuild {output} {input} > {log} 2>&1
         """
 
+
 rule hmm_align:
-    message: "Aligning queries in {wildcards.split} splitfile"
+    message:
+        "Aligning queries in {wildcards.split} splitfile"
     output:
         temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/{split}.fasta"),
     input:
         hmm=rules.hmm_build.output,
         qry="results/common/{rundir}/splits/stdin.part_{split}.fasta",
-        ref_msa=ref_msa
+        ref_msa=ref_msa,
     log:
         "logs/epa-ng/{rundir}/hmmalign/{split}.log",
-    conda: config["hmmer-env"]
-    container: "docker://quay.io/biocontainers/hmmer:3.4--hdbdd923_2"
+    conda:
+        config["hmmer-env"]
+    container:
+        "docker://quay.io/biocontainers/hmmer:3.4--hdbdd923_2"
     resources:
         runtime=5,
     params:
@@ -121,11 +133,17 @@ rule hmm_align:
         rm -r {params.tmpdir}
         """
 
+
 rule split_aln:
-    message: "Splitting reference and query alignments for {wildcards.split} splitfile"
+    message:
+        "Splitting reference and query alignments for {wildcards.split} splitfile"
     output:
-        ref_msa=temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/reference.fasta"),
-        qry_msa=temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.fasta"),
+        ref_msa=temp(
+            "results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/reference.fasta"
+        ),
+        qry_msa=temp(
+            "results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.fasta"
+        ),
     input:
         ref_msa=ref_msa,
         msa=rules.hmm_align.output,
@@ -133,33 +151,42 @@ rule split_aln:
         "logs/epa-ng/{rundir}/split_aln/{split}.log",
     params:
         outdir=lambda wildcards, output: os.path.dirname(output.ref_msa),
-    conda: config["epang-env"]
-    container: "docker://quay.io/biocontainers/epa-ng:0.3.8--hd03093a_3"
+    conda:
+        config["epang-env"]
+    container:
+        "docker://quay.io/biocontainers/epa-ng:0.3.8--hd03093a_3"
     shell:
         """
         epa-ng --redo --split {input.ref_msa} {input.msa} --outdir {params.outdir} > {log} 2>&1
         """
 
+
 rule filter_query_aln:
     """
     Removes sequences in the alignment that have too few positions aligned
     """
-    message: "Removing queries with few aligned positions"
+    message:
+        "Removing queries with few aligned positions"
     output:
-        keep=temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.filtered.fasta"),
-        r=temp("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.removed.txt")
+        keep=temp(
+            "results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.filtered.fasta"
+        ),
+        r=temp(
+            "results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.removed.txt"
+        ),
     input:
         rules.split_aln.output.qry_msa,
     params:
-        min_len=50 #TODO: make this a parameter
+        min_len=50,  #TODO: make this a parameter
     run:
         from Bio.AlignIO import read
         from Bio.SeqIO import write
+
         alignment = read(input[0], "fasta")
         keep = []
         remove = []
         for record in alignment:
-            seq =record.seq
+            seq = record.seq
             if len(seq.replace("-", "").replace(".", "")) >= params.min_len:
                 keep.append(record)
             else:
@@ -167,19 +194,24 @@ rule filter_query_aln:
         write(keep, output.keep, "fasta")
         with open(output.r, "w") as f:
             for r in remove:
-                f.write(f"{r}\n")                     
+                f.write(f"{r}\n")
+
 
 rule raxml_evaluate:
-    message: "Generating RAxML model file for {wildcards.split} splitfile"
+    message:
+        "Generating RAxML model file for {wildcards.split} splitfile"
     output:
-        temp("results/taxonomy/epa-ng/{rundir}/raxml-ng/splits/{split}/info.raxml.bestModel"),
+        model="results/taxonomy/epa-ng/{rundir}/raxml-ng/splits/{split}/info.raxml.bestModel",
+        tree="results/taxonomy/epa-ng/{rundir}/raxml-ng/splits/{split}/info.raxml.bestTree",
     input:
         tree=ref_tree,
         msa=rules.split_aln.output.ref_msa,
     log:
         "logs/epa-ng/{rundir}/raxml_evaluate/{split}.log",
-    conda: config["raxml-env"]
-    container: "docker://quay.io/biocontainers/raxml-ng:1.2.2--h6d1f11b_0"
+    conda:
+        config["raxml-env"]
+    container:
+        "docker://quay.io/biocontainers/raxml-ng:1.2.2--h6d1f11b_0"
     params:
         model=lambda wildcards: config["epa-ng"]["model"],
         prefix=lambda wildcards, output: os.path.dirname(output[0]) + "/info",
@@ -189,7 +221,9 @@ rule raxml_evaluate:
         raxml-ng --extra thread-pin --redo --threads {threads} --evaluate --msa {input.msa} --tree {input.tree} --prefix {params.prefix} --model {params.model} >{log} 2>&1
         """
 
+
 ## epa-ng
+
 
 def get_heuristic(wildcards):
     if wildcards.heur == "no-heur":
@@ -199,14 +233,18 @@ def get_heuristic(wildcards):
     elif wildcards.heur == "baseball-heur":
         return "--baseball-heur"
 
+
 rule epa_ng:
-    message: "Running EPA-NG placement for {wildcards.split} splitfile using {wildcards.heur} heuristics"
+    message:
+        "Running EPA-NG placement for {wildcards.split} splitfile using {wildcards.heur} heuristics"
     output:
-        temp("results/taxonomy/epa-ng/{rundir}/placements/splits/{split}/{heur}/epa-ng_result.jplace"),
+        temp(
+            "results/taxonomy/epa-ng/{rundir}/placements/splits/{split}/{heur}/epa-ng_result.jplace"
+        ),
     input:
         qry=rules.filter_query_aln.output[0],
         ref_msa=rules.split_aln.output.ref_msa,
-        ref_tree=ref_tree,
+        ref_tree=rules.raxml_evaluate.output.tree,
         info=rules.raxml_evaluate.output[0],
     log:
         "logs/epa-ng/{rundir}/placements/{split}/{heur}/epa-ng.log",
@@ -214,8 +252,10 @@ rule epa_ng:
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         heur=get_heuristic,
         chunksize=config["epa-ng"]["chunk_size"],
-    conda: config["epang-env"]
-    container: "docker://quay.io/biocontainers/epa-ng:0.3.8--hd03093a_3"
+    conda:
+        config["epang-env"]
+    container:
+        "docker://quay.io/biocontainers/epa-ng:0.3.8--hd03093a_3"
     threads: 20
     shell:
         """
@@ -224,7 +264,9 @@ rule epa_ng:
         mv {params.outdir}/epa_result.jplace {output[0]}
         """
 
+
 ## gappa
+
 
 def ref_taxonomy(wildcards):
     if config["epa-ng"]["ref_taxonomy"]:
@@ -240,15 +282,23 @@ def get_dist_ratio(config):
     else:
         return f"--distribution-ratio {dist_ratio}"
 
+
 rule gappa_assign:
-    message: "Assigning taxonomy with GAPPA for {wildcards.split} splitfile"
     """
     Run gappa taxonomic assignment on placement file
     """
+    message:
+        "Assigning taxonomy with GAPPA for {wildcards.split} splitfile"
     output:
-        temp("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/per_query.tsv"),
-        temp("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/profile.tsv"),
-        temp("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/labelled_tree.newick"),
+        temp(
+            "results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/per_query.tsv"
+        ),
+        temp(
+            "results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/profile.tsv"
+        ),
+        temp(
+            "results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/labelled_tree.newick"
+        ),
     input:
         jplace=rules.epa_ng.output,
         taxonfile=ref_taxonomy,
@@ -259,8 +309,10 @@ rule gappa_assign:
         outdir=lambda wildcards, output: os.path.dirname(output[0]),
         consensus_thresh=config["epa-ng"]["gappa"]["consensus_thresh"],
         distribution_ratio=get_dist_ratio(config),
-    conda: config["gappa-env"]
-    container: "docker://quay.io/biocontainers/gappa:0.8.5--hdcf5f25_2"   
+    conda:
+        config["gappa-env"]
+    container:
+        "docker://quay.io/biocontainers/gappa:0.9.0--h077b44d_0"
     threads: 4
     shell:
         """
@@ -276,13 +328,16 @@ rule gappa2taxdf:
     """
     Convert gappa output to a taxonomic dataframe
     """
-    message: "Parsing GAPPA assignments for {wildcards.split} splitfile"
+    message:
+        "Parsing GAPPA assignments for {wildcards.split} splitfile"
     output:
-        temp("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/taxonomy.tsv"),
+        temp(
+            "results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/taxonomy.tsv"
+        ),
     input:
         rules.gappa_assign.output[0],
     log:
-        "logs/epa-ng/{rundir}/assignments/splits/{split}/{heur}/gappa2taxdf.log"
+        "logs/epa-ng/{rundir}/assignments/splits/{split}/{heur}/gappa2taxdf.log",
     params:
         src=workflow.source_path("../scripts/gappa2taxdf.py"),
         ranks=lambda wildcards: config["epa-ng"]["tree_ranks"],
@@ -291,47 +346,62 @@ rule gappa2taxdf:
         python {params.src} {input} {output} --ranks {params.ranks} >{log} 2>&1
         """
 
+
 def aggregate_gappa(wildcards):
     checkpoint_output = checkpoints.split_input.get(**wildcards).output[0]
-    return expand("results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/taxonomy.tsv",
-                    rundir=config["rundir"],
-                    heur=wildcards.heur,
-                    split=glob_wildcards(os.path.join(checkpoint_output, "stdin.part_{split}.fasta")).split)
+    return expand(
+        "results/taxonomy/epa-ng/{rundir}/assignments/splits/{split}/{heur}/taxonomy.tsv",
+        rundir=config["rundir"],
+        heur=wildcards.heur,
+        split=glob_wildcards(
+            os.path.join(checkpoint_output, "stdin.part_{split}.fasta")
+        ).split,
+    )
+
 
 rule collate_gappa_taxdf:
-    message: "Aggregating taxonomic assignments"
+    message:
+        "Aggregating taxonomic assignments"
     output:
-        "results/taxonomy/epa-ng/{rundir}/assignments/{heur}/taxonomy.raw.tsv"
+        "results/taxonomy/epa-ng/{rundir}/assignments/{heur}/taxonomy.raw.tsv",
     input:
-        aggregate_gappa
+        aggregate_gappa,
     run:
         with open(output[0], "w") as out:
             for i, f in enumerate(input):
-                with open(f, 'r') as infile:
+                with open(f, "r") as infile:
                     for j, line in enumerate(infile):
                         if j == 0 and i == 0:
                             out.write(line)
                         elif j > 0:
                             out.write(line)
 
+
 def aggregate_removed(wildcards):
     checkpoint_output = checkpoints.split_input.get(**wildcards).output[0]
-    return expand("results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.removed.txt",
-                    rundir=config["rundir"], 
-                    split=glob_wildcards(os.path.join(checkpoint_output, "stdin.part_{split}.fasta")).split)
+    return expand(
+        "results/taxonomy/epa-ng/{rundir}/hmmalign/splits/{split}/query.removed.txt",
+        rundir=config["rundir"],
+        split=glob_wildcards(
+            os.path.join(checkpoint_output, "stdin.part_{split}.fasta")
+        ).split,
+    )
+
 
 rule add_missing:
     """
     Adds ASVs to the taxonomy table that were filtered out during the alignment step
     """
-    message: "Adding unprocessed sequences"
+    message:
+        "Adding unprocessed sequences"
     output:
-        "results/taxonomy/epa-ng/{rundir}/assignments/{heur}/taxonomy.tsv"
+        "results/taxonomy/epa-ng/{rundir}/assignments/{heur}/taxonomy.tsv",
     input:
         df=rules.collate_gappa_taxdf.output[0],
         asv=aggregate_removed,
     run:
         import pandas as pd
+
         df = pd.read_csv(input.df, sep="\t", index_col=0)
         for f in input.asv:
             with open(f, "r") as fhin:
