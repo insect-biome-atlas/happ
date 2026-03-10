@@ -1,6 +1,6 @@
 [workspace]
 name = "happ"
-version = "3.1.1"
+version = "3.1.2"
 description = "Pixi project file for HAPP workflow"
 authors = ["johnne <john.sundh@scilifelab.se>"]
 channels = ["conda-forge", "bioconda", "main", "r", "msys2", "cduvallet"]
