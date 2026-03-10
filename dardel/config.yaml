@@ -48,8 +48,8 @@ set-resources:
     runtime: 30
     mem_mb: 14208
   # common.smk
-  filter_seqs:
-    mem_mb: 17760
+  filter_counts:
+    mem_mb: 24864
   vsearch_align:
     mem_mb: 8880
   # qiime2.smk
