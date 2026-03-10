@@ -143,15 +143,15 @@ def main(args):
     )
     counts.index.name = "ASV"
     dataframe = pd.merge(filtered, counts, left_index=True, right_index=True)
-    multi_asv_clusters = sum(dataframe.groupby("cluster").size()>1)
+    multi_asv_clusters = sum(dataframe.groupby("cluster").size() > 1)
     sys.stderr.write(f"{multi_asv_clusters} clusters with >1 ASV\n")
     sys.stderr.write(f"Finding representatives for rank {args.rank}\n")
     if dataframe.shape[0] == 1:
         reps = dataframe
     else:
         reps = get_reps(dataframe, args.rank)
-    # Add cluster column back
-    reps = pd.merge(dataframe[args.rank], reps, left_index=True, right_index=True)
+        # Add cluster column back
+        reps = pd.merge(dataframe[args.rank], reps, left_index=True, right_index=True)
     if args.taxa_table:
         sys.stderr.write(f"Adding taxonomic info from {args.taxa_table}\n")
         extra_taxdf = read_input(args.taxa_table)
