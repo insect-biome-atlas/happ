@@ -21,7 +21,7 @@ def rank_max(df):
 
 def get_reps(df, rank):
     start = time.time()
-    reps = df.groupby(rank, group_keys=False).apply(rank_max)
+    reps = df.groupby(rank, group_keys=False).apply(rank_max, include_groups=False)
     sys.stderr.write(f"Found representatives in {time.time()-start} seconds\n")
     return reps
 
@@ -37,7 +37,10 @@ def filter_taxa(taxa, rank):
 def get_seqs(seqsfile, reps, ranks, rank):
     start = time.time()
     seqs = {}
-    for record in tqdm.tqdm(parse(seqsfile, "fasta"), unit=" records",):
+    for record in tqdm.tqdm(
+        parse(seqsfile, "fasta"),
+        unit=" records",
+    ):
         try:
             row = reps.loc[record.id]
         except KeyError:
@@ -98,12 +101,11 @@ def calc_counts(countsdf, colsums, ids=None, normalize=False):
     s = pd.DataFrame(countsdf.apply(np.sum, axis=1), columns=["sum"])
     calculated_counts = pd.merge(
         pd.merge(median, mean, left_index=True, right_index=True),
-        s, left_index=True, right_index=True
+        s,
+        left_index=True,
+        right_index=True,
     )
-    
-    sys.stderr.write(
-        f"Calculated counts in" f"{time.time()-start} seconds\n"
-    )
+    sys.stderr.write(f"Calculated counts in " f"{time.time()-start} seconds\n")
     return calculated_counts
 
 
@@ -141,20 +143,19 @@ def main(args):
     )
     counts.index.name = "ASV"
     dataframe = pd.merge(filtered, counts, left_index=True, right_index=True)
+    multi_asv_clusters = sum(dataframe.groupby("cluster").size()>1)
+    sys.stderr.write(f"{multi_asv_clusters} clusters with >1 ASV\n")
     sys.stderr.write(f"Finding representatives for rank {args.rank}\n")
     if dataframe.shape[0] == 1:
         reps = dataframe
     else:
         reps = get_reps(dataframe, args.rank)
-    rep_size = reps.groupby(args.rank).size()
-    sys.stderr.write(
-        f"{rep_size.loc[rep_size>1].shape[0]} {args.rank} reps with >1 ASV\n"
-    )
+    # Add cluster column back
+    reps = pd.merge(dataframe[args.rank], reps, left_index=True, right_index=True)
     if args.taxa_table:
         sys.stderr.write(f"Adding taxonomic info from {args.taxa_table}\n")
         extra_taxdf = read_input(args.taxa_table)
-        taxdf = pd.merge(dataframe, extra_taxdf, left_index=True,
-                         right_index=True)
+        taxdf = pd.merge(dataframe, extra_taxdf, left_index=True, right_index=True)
         taxdf = taxdf.assign(
             representative=pd.Series([0] * taxdf.shape[0], index=taxdf.index)
         )
@@ -179,11 +180,9 @@ if __name__ == "__main__":
         help="Write representatives to outfile",
     )
     parser.add_argument(
-        "--rank", type=str, default="BOLD_bin", help="What level to group TAX "
-                                                     "ids"
+        "--rank", type=str, default="BOLD_bin", help="What level to group TAX " "ids"
     )
-    parser.add_argument("--prefix", type=str, help="Prefix cluster name with "
-                                                   "string")
+    parser.add_argument("--prefix", type=str, help="Prefix cluster name with " "string")
     parser.add_argument(
         "--normalize",
         action="store_true",
