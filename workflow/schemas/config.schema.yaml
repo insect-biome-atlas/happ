@@ -252,7 +252,7 @@ properties:
     properties:
       placeholder_rank:
         type: string
-        description: "taxonomic rank at which ASVs must be classified by EPA-NG, but unclassified by SINTAX in order to be reclassified."
+        description: "taxonomic rank for which both SINTAX and EPA-NG assignments must be identical in order for any updates to be made. The default is `Class` which means that if both SINTAX and EPA-NG agree on the class level assignment for an ASV, the EPA-NG assignment can be used to update the SINTAX assignment (if additional criteria are met, see below)."
         default: "Class"
       placeholder_taxa:
         type: array

@@ -110,8 +110,11 @@ epa-ng:
 # be handled. The default is to use the EPA-NG results to reassign the SINTAX
 # taxonomy at high levels in the taxonomy tree.
 reassign:
-  # placeholder_rank is the taxonomic rank at which ASVs must be classified by EPA-NG, 
-  # but unclassified by SINTAX in order to be reclassified.
+  # placeholder_rank is the taxonomic rank for which both SINTAX and EPA-NG
+  # assignments must be identical in order for any updates to be made. The
+  # default is `Class` which means that if both SINTAX and EPA-NG agree on the
+  # class level assignment for an ASV, the EPA-NG assignment can be used to
+  # update the SINTAX assignment (if additional criteria are met, see below).
   placeholder_rank: "Class"
   # placeholder_taxa is a list of taxa that ASVs must be classified as by both EPA-NG,
   # and SINTAX (at placeholder_rank) in order to be reassigned at lower levels.
