@@ -414,7 +414,7 @@ The phylogenetic placement/assignment tools EPA-NG and GAPPA require a reference
 tree, a multiple alignment and a reference taxonomy file. A compatible reference
 that allows assignments to classes Collembola, Diplura, Protura and Insecta is
 available to download from
-https://github.com/insect-biome-atlas/paper-bioinformatic-methods/tree/main/data/chesters_tree.
+https://github.com/insect-biome-atlas/paper-bioinformatic-methods/tree/main/chesters/data/chesters_tree.
 The files you need are:
 
 - chesters_new_outgroups_aligned.trim0.9.fasta (alignment)
