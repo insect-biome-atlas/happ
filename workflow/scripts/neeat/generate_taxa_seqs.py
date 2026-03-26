@@ -4,21 +4,34 @@ from argparse import ArgumentParser
 import os
 import sys
 
-def check_fasta_header(f):
-    with open(f, 'r') as fhin:
-        line = fhin.readline()
-    return line.rstrip().lstrip(">").split(" ")
+
+def check_fasta_header(f, clusters, seqids):
+    cluster_desc = None
+    with open(f, "r") as fhin:
+        for line in fhin:
+            if not line.startswith(">"):
+                continue
+            header = line.rstrip().lstrip(">").split(" ")
+            if len(header) == 1 and header[0] in seqids:
+                return False
+            elif len(header) > 1 and header[1] in clusters:
+                return True
+    sys.exit("Cannot match fasta headers to taxfile")
+
 
 def main(args):
     os.makedirs(args.outdir, exist_ok=True)
     # read in the taxonomy file
     taxdf = pd.read_csv(args.taxfile, sep="\t", index_col=0)
+    seqids = taxdf.index.tolist()
     # extract representative sequences
     if "representative" in taxdf.columns:
-        taxdf = taxdf.loc[taxdf.representative==1]
-    taxdf.index.name="seqid"
+        taxdf = taxdf.loc[taxdf.representative == 1]
+    taxdf.index.name = "seqid"
     if "cluster" in taxdf.columns:
         taxdf = taxdf.reset_index().set_index("cluster")
+    clusters = taxdf.index.tolist()
+    cluster_desc = check_fasta_header(args.fastafile, clusters, seqids)
     # also make sure that only clusters that remain in the counts file are used
     clusters_w_counts = []
     with open(args.countsfile, "r") as fhin:
@@ -27,17 +40,6 @@ def main(args):
     # taxa is the unique set of values for split_rank
     taxa = taxdf[args.rank].unique()
     singles = pd.DataFrame()
-    header = check_fasta_header(args.fastafile)
-    # if fasta header only contains one identifier
-    # we assume this identifier is also in the taxdf index
-    if len(header) == 1 and header[0] in taxdf.index:
-        cluster_desc = False
-    # otherwise we assume the second identifier in the header matches
-    # the taxdf index
-    elif len(header) > 1 and header[1] in taxdf.index:
-        cluster_desc = True
-    else:
-        sys.exit("Cannot match fasta headers to taxfile")
     # iterate over taxa
     for tax in taxa:
         # get asvs and cluster designation
@@ -56,7 +58,9 @@ def main(args):
         # write asvs to file
         with open(f"{args.outdir}/{tax}.ids", "w") as f:
             _ = f.write("\n".join(seqs))
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
         output, _ = process.communicate()
         # use seqkit to extract sequences
         with open(f"{args.outdir}/{tax}.fasta", "w") as fhout:
