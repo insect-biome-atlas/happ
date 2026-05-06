@@ -312,7 +312,9 @@ rule noise_filtered_precision_recall:
     params:
         src=workflow.source_path("../scripts/evaluate_clusters.py"),
         eval_rank=config["evaluation_rank"],
+        ignore_taxa=config["ignore_taxa"],
+        ignore_rank=config["ignore_rank"],
     shell:
         """
-        python {params.src} {input[0]} {input[0]} --rank {params.eval_rank} --order_level {output.txt_order} > {output.txt} 2>{log}
+        python {params.src} {input[0]} {input[0]} --rank {params.eval_rank} --order_level {output.txt_order} --ignore_taxa {params.ignore_taxa} --ignore_rank {params.ignore_rank} > {output.txt} 2>{log}
         """
