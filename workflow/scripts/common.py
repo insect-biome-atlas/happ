@@ -13,6 +13,9 @@ def mem_allowed(wildcards, threads):
     return max(threads * 6400, 6400)
 
 
+def replace_underscores(name):
+    return re.sub(r"_(?!X+$)", " ", name)
+
 
 def concat_files(files, has_header=True):
     """
