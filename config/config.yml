@@ -128,6 +128,20 @@ reassign:
 # you expect the clustering to represent, e.g. if you expect the clustering to
 # represent species, set this parameter to "Species".
 evaluation_rank: "Species"
+
+# The ignore_taxa parameter specifies what taxa to ignore when evaluating the
+# clustering results.
+ignore_taxa:
+  - "Bacillati"
+  - "Pseudomonadati"
+  - "Methanobacteriati"
+  - "Thermotogati"
+  - "Thermoproteati"
+  - "Bacteria"
+  - "Archaea"
+# The ignore_rank parameter sets the rank corresponding to the taxlabels in
+# ignore_taxa.
+ignore_rank: "Kingdom"
 # Ranks to use for calculating consensus taxonomy for clusters
 consensus_ranks:
   - "Family"
