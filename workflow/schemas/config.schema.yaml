@@ -288,6 +288,14 @@ properties:
     description: "rank at which to evaluate clusters"
     default: "Species"
     enum: ["all", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"]
+  ignore_taxa:
+    type: array
+    description: "taxa to ignore when evaluting clusters"
+    default: ["Bacillati","Pseudomonadati","Methanobacteriati","Thermotogati","Thermoproteati","Bacteria","Archaea"]
+  ignore_rank:
+    type: string
+    description: "rank corresponding to taxlabels in ignore_taxa"
+    default: "Kingdom"
   software:
     type: array
     description: "clustering software to run"

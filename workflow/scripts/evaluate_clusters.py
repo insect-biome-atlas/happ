@@ -174,8 +174,15 @@ def main(args):
     asv_taxa = asv_taxa.loc[
         (~asv_taxa[rank].str.contains("_X+$"))
         & (~asv_taxa[rank].str.startswith("unclassified"))
+        & (~asv_taxa[rank].str.startswith("unresolved"))
     ]
     sys.stderr.write(f"#{asv_taxa.shape[0]} ASVs remaining\n")
+    if args.ignore_taxa is not None:
+        sys.stderr.write(
+            f"#Removing ASVs assigned to {",".join(args.ignore_taxa)} at rank {args.ignore_rank}\n"
+        )
+        asv_taxa = asv_taxa.loc[~asv_taxa[args.ignore_rank].isin(args.ignore_taxa)]
+        sys.stderr.write(f"#{asv_taxa.shape[0]} ASVs remaining\n")
     # Read cluster files
     sys.stderr.write(f"#Loading cluster results from {len(args.clustfiles)} files\n")
     clustdf = read_asv_clusters(args.clustfiles)
@@ -244,6 +251,26 @@ if __name__ == "__main__":
         "--cluster_prefix_col",
         type=str,
         help="Prefix cluster names with values in a specific column. Used mainly when combining clustfiles from different taxa.",
+    )
+    parser.add_argument(
+        "--ignore_taxa",
+        nargs="*",
+        help="Ignore ASVs assigned to these taxa",
+        default=[
+            "Bacillati",
+            "Pseudomonadati",
+            "Methanobacteriati",
+            "Thermotogati",
+            "Thermoproteati",
+            "Bacteria",
+            "Archaea",
+        ],
+    )
+    parser.add_argument(
+        "--ignore_rank",
+        type=str,
+        help="Rank for ignore_taxa argument",
+        default="kingdom",
     )
     args = parser.parse_args()
     main(args)

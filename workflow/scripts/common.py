@@ -7,11 +7,15 @@ import os
 import shutil
 import logging
 from tqdm import tqdm
+import re
 
 
 def mem_allowed(wildcards, threads):
     return max(threads * 6400, 6400)
 
+
+def replace_underscores(name):
+    return re.sub(r"_(?!X+$)", " ", name)
 
 
 def concat_files(files, has_header=True):
@@ -33,30 +37,35 @@ def concat_files(files, has_header=True):
     else:
         header = None
     for i, f in enumerate(files):
-            _df = pd.read_csv(f, sep="\t", index_col=0, header=header)
-            if has_header:
-                if i==0:
-                    cols = _df.columns
-                else:
-                    _df = _df.loc[:, cols]
-            df = pd.concat([df, _df], axis=0)
+        _df = pd.read_csv(f, sep="\t", index_col=0, header=header)
+        if has_header:
+            if i == 0:
+                cols = _df.columns
+            else:
+                _df = _df.loc[:, cols]
+        df = pd.concat([df, _df], axis=0)
     return df
 
 
 def read_taxa(config):
     rundir = config["rundir"]
     split_rank = config["split_rank"]
-    chimera_run=config["chimera"]["run_name"]
-    method=config["chimera"]["method"]
-    algo=config["chimera"]["algorithm"]
+    chimera_run = config["chimera"]["run_name"]
+    method = config["chimera"]["method"]
+    algo = config["chimera"]["algorithm"]
     taxa = []
     # See if the list of taxa already exists
     # If there exists a taxfile from chimera filtering, only containing taxa with ASVs remaining
     # after filtering, use that
     # Example: If split_rank is set to 'Family', look for a file 'Family.txt' in the chimera filtered output
     # and use that if present
-    if os.path.exists(f"results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{split_rank}.txt"):
-        with open(f"results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{split_rank}.txt", "r") as fhin:
+    if os.path.exists(
+        f"results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{split_rank}.txt"
+    ):
+        with open(
+            f"results/chimera/{rundir}/filtered/{chimera_run}/{method}.{algo}/{split_rank}.txt",
+            "r",
+        ) as fhin:
             for line in fhin:
                 taxa.append(line.rstrip())
         return taxa
@@ -147,7 +156,7 @@ def filter_seqs(sm):
     )
     logging.info(f"Reading taxonomic info from {sm.input.tax[0]}")
     taxdf = pd.read_csv(sm.input.tax, sep="\t", index_col=0, header=0)
-    outdir=sm.output[0]
+    outdir = sm.output[0]
     os.makedirs(outdir, exist_ok=True)
     split_rank = sm.params.split_rank
     taxa = taxdf[split_rank].unique()
@@ -179,6 +188,7 @@ def filter_seqs(sm):
             countsout=countsout,
             ids=filtered_ids,
         )
+
 
 def collate(sm):
     cluster_num = 0
@@ -219,10 +229,11 @@ def clean_fasta(sm):
     )
     outfile = sm.output[0]
     df = pd.read_csv(tsv, sep="\t", index_col=0)
-    with open(outfile, 'w') as fhout:
+    with open(outfile, "w") as fhout:
         for record in SeqIO.parse(fasta, "fasta"):
             if record.id in df.index:
                 fhout.write(f">{record.description}\n{record.seq}\n")
+
 
 def clean_counts(sm):
     """
@@ -241,16 +252,22 @@ def clean_counts(sm):
     )
     df = pd.read_csv(tsv, sep="\t", index_col=0)
     clusters = df["cluster"].unique()
-    with open(sm.input.counts, 'r') as fhin, open(sm.output[0], 'w') as fhout:
+    with open(sm.input.counts, "r") as fhin, open(sm.output[0], "w") as fhout:
         for i, line in enumerate(fhin):
-            if i==0:
+            if i == 0:
                 fhout.write(line)
                 continue
             if line.rsplit()[0] in clusters:
                 fhout.write(line)
 
+
 def main(sm):
-    toolbox = {"filter_seqs": filter_seqs, "collate": collate, "clean_counts": clean_counts, "clean_fasta": clean_fasta}
+    toolbox = {
+        "filter_seqs": filter_seqs,
+        "collate": collate,
+        "clean_counts": clean_counts,
+        "clean_fasta": clean_fasta,
+    }
     toolbox[sm.rule](sm)
 
 
